@@ -1,0 +1,51 @@
+{
+    "manifest_version": 3,
+    "name": "AInews",
+    "version": "1.0",
+    "description": "Automates opening, loading, and saving HTML content of web pages from the 'Tech news' bookmark folder.",
+    "permissions": [
+      "bookmarks",
+      "activeTab",
+      "tabs",
+      "storage",
+      "downloads"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+          "matches": [
+            "https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB",
+            "https://feedly.com/i/aiFeeds",
+            "https://www.techmeme.com/river",
+            "https://www.reddit.com/r/ChatGPT+ChatGPTCoding+MacOS+MachineLearning+OpenAI+ProgrammerHumor+Windows10+battlestations+buildapc+cordcutters+dataisbeautiful+gadgets+hardware+linux+msp+programming+realtech+software+talesfromtechsupport+tech+technews+technology+techsupportgore+windows/top/?sort=top&t=day",
+            "https://www.theregister.com/",
+            "https://arstechnica.com/",
+            "https://www.nytimes.com/section/technology",
+            "https://www.ft.com/technology",
+            "https://www.bloomberg.com/technology",
+            "https://www.wsj.com/tech",
+            "https://www.washingtonpost.com/business/technology/",
+            "https://hackernoon.com/",
+            "https://news.ycombinator.com/",
+            "https://news.ycombinator.com/?p=2",
+            "https://www.businessinsider.com/tech"],
+          "js": ["content-script.js"],
+          "run_at": "document_idle"
+        }
+      ],
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "icon.png",
+        "48": "icon.png",
+        "128": "icon.png"
+      }
+    },
+    "icons": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  }

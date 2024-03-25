@@ -1,0 +1,9 @@
+jupyter
+pandas
+ipykernel
+selenium
+openai
+tiktoken
+python-dotenv
+atproto
+pillow
