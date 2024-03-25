@@ -1,5 +1,7 @@
 jupyter
+numpy
 pandas
+scipy
 ipykernel
 selenium
 openai
