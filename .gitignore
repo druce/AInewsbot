@@ -1,4 +1,7 @@
-tmp/*.*
+tmp/*.jpg
+tmp/*.jpeg
+tmp/*.png
+
 htmldata/*.html
 articles.db
 .ipynb_checkpoints
