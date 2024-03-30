@@ -1,6 +1,9 @@
 tmp/*.jpg
 tmp/*.jpeg
 tmp/*.png
+tmp/*.gif
+tmp/*.webp
+tmp/*.html*
 
 htmldata/*.html
 articles.db
