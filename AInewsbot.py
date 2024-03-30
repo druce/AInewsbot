@@ -37,9 +37,6 @@ from scipy.spatial.distance import cdist
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-# from selenium.webdriver.common.keys import Keys
-# from selenium.webdriver.support.ui import WebDriverWait
-# from selenium.webdriver.support import expected_conditions as EC
 # use firefox because it updates less often, can disable updates
 # recommend importing profile from Chrome for cookies, passwords
 # looks less like a bot with more user cruft in the profile
@@ -60,14 +57,8 @@ import dotenv
 
 import sqlite3
 
-# import IPython
-# from IPython.display import HTML, Markdown, display
-
-# from atproto import Client
-
-# import PIL
-# from PIL import Image
-
+############################################################################################################
+# initial configs
 ############################################################################################################
 
 # load credentials if necessary
@@ -89,6 +80,8 @@ with open("sources.yaml", "r") as stream:
 
 sources_reverse = {v["title"]: k for k, v in sources.items()}
 
+############################################################################################################
+# utility functions
 ############################################################################################################
 
 
@@ -179,7 +172,7 @@ def trimmed_href(link):
 
 
 ############################################################################################################
-# get HTML files
+# Get HTML files
 ############################################################################################################
 
 print(datetime.now().strftime('%H:%M:%S'), "Started", flush=True)
@@ -307,7 +300,8 @@ print(datetime.now().strftime('%H:%M:%S'), "Quit webdriver", flush=True)
 # finish downloading files
 
 ############################################################################################################
-# process downloaded files
+# Parse news URLs and titles from downloaded HTML files
+############################################################################################################
 
 # List all paths in the directory matching today's date
 nfiles = 50
@@ -330,10 +324,6 @@ file = files[:nfiles]
 files = [file for file in files if datestr in file and file.endswith(".html")]
 print(datetime.now().strftime('%H:%M:%S'),
       f"Found {len(files)} files", flush=True)
-
-############################################################################################################
-# Parse news URLs and titles from downloaded HTML files
-############################################################################################################
 
 # parse all the URLs that look like news articles
 # into all_urls list of dicts with url, title, src
@@ -454,7 +444,7 @@ orig_df = (
 )
 
 ############################################################################################################
-# filter URLs
+# Filter URLs, ignore previously sent, check if AI-related using ChatGPT
 ############################################################################################################
 
 # filter ones not seen before
@@ -680,7 +670,7 @@ for row in merged_df.itertuples():
 AIdf = merged_df.loc[merged_df["isAI"]].reset_index()
 
 ############################################################################################################
-# save order list and send email
+# Save ordered list and send email
 ############################################################################################################
 
 # Attempt to order by topic by getting embeddings and solving a traveling salesman problem
