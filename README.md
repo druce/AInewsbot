@@ -8,5 +8,5 @@ AInewsbot.ipynb
 - Extract URLs from all files, create a pandas dataframe with url, title, src
 - Use ChatGPT to filter only AI-related headlines
 - Use SQLite to store headlines previously seen and not show them again
-- send a mail with the latest headlines
-- requires Firefox / geckodriver, doesn't run headless currently, needs interactive session
+- Send a mail with the latest headlines
+- Requires Firefox / geckodriver, doesn't run headless currently, needs interactive session
