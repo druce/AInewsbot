@@ -171,16 +171,64 @@ def trimmed_href(link):
         return s
 
 
+def get_encoding(driver):
+    """use selenium driver to get encoding of current page, default to utf-8 if not found"""
+    # not used, just assumes utf-8
+
+    # Get the current web page source
+    # Retrieve the content-type meta tag from the driver of HTML meta charset tag or http-equiv tag
+    encoding = None
+    try:
+        # retrieve the encoding from the driver by executing javascript
+        encoding = driver.execute_script("return document.characterSet;")
+        if encoding:
+            return encoding
+    except Exception:
+        pass
+
+    # not sure why above would fail, but can also check page tags
+    try:
+        # retrieve the encoding from the meta charset tag
+        meta_tag = driver.find_element(By.XPATH, "//meta[@charset]")
+        encoding = meta_tag.get_attribute("charset")
+        if encoding:
+            return encoding
+    except Exception:
+        pass
+
+    try:
+        # retrieve the encoding from the meta http-equiv tag
+        meta_tag = driver.find_element(
+            By.XPATH, "//meta[@http-equiv='Content-Type']")
+        content_type = meta_tag.get_attribute("content")
+        # Typical format is "text/html; charset=UTF-8"
+        charset_start = content_type.find("charset=")
+        if charset_start != -1:
+            encoding = content_type[charset_start + 8:]
+        if encoding:
+            return encoding
+    except Exception:
+        pass
+
+    return "utf-8"
+
+# possible refactor
+# files = get_files(sources, DOWNLOAD_DIR)
+# urls = parse_files(files)
+# AIdf = filter_urls_AI(urls)
+# AIdf = filter_urls_db(AIdf)
+# html_str = format_html(AIdf)
+# send_mail(html_str)
+
 ############################################################################################################
 # Get HTML files
 ############################################################################################################
+
 
 print(datetime.now().strftime('%H:%M:%S'), "Started", flush=True)
 
 # delete html files in download directory
 delete_files(DOWNLOAD_DIR)
-
-client = OpenAI()
 
 # download files via selenium and firefox
 
@@ -192,7 +240,8 @@ geckodriver_path = '/Users/drucev/webdrivers/geckodriver'
 firefox_profile_path = '/Users/drucev/Library/Application Support/Firefox/Profiles/k8k0lcjj.default-release'
 options = Options()
 options.profile = firefox_profile_path
-options.headless = True
+# options.headless = True
+sleeptime = 10
 
 print(datetime.now().strftime('%H:%M:%S'),
       "Initialized browser profile", flush=True)
@@ -207,7 +256,6 @@ print(datetime.now().strftime('%H:%M:%S'),
 driver = webdriver.Firefox(service=service, options=options)
 
 print(datetime.now().strftime('%H:%M:%S'), "Initialized webdriver", flush=True)
-sleeptime = 10
 
 for sourcename, sourcedict in sources.items():
     print(datetime.now().strftime('%H:%M:%S'),
@@ -242,49 +290,7 @@ for sourcename, sourcedict in sources.items():
     # Get the HTML source of the page
     html_source = driver.page_source
 
-    # check encoding, default utf-8
-    encoding = None  # Default to UTF-8 if not specified
-    # Retrieve the content-type meta tag from the driver of HTML meta charset tag or http-equiv tag
-    try:
-        # retrieve the encoding from the driver by executing javascript
-        encoding = driver.execute_script("return document.characterSet;")
-        print(datetime.now().strftime('%H:%M:%S'),
-              f'Encoding {encoding} (JS)', flush=True)
-    except Exception:
-        pass
-
-    if encoding:
-        pass
-    else:
-        try:
-            # retrieve the encoding from the meta charset tag
-            meta_tag = driver.find_element(By.XPATH, "//meta[@charset]")
-            encoding = meta_tag.get_attribute("charset")
-            print(datetime.now().strftime('%H:%M:%S'),
-                  f'Encoding {encoding} (meta charset)', flush=True)
-        except Exception:
-            pass
-
-    if encoding:
-        pass
-    else:
-        try:
-            # retrieve the encoding from the meta http-equiv tag
-            meta_tag = driver.find_element(
-                By.XPATH, "//meta[@http-equiv='Content-Type']")
-            content_type = meta_tag.get_attribute("content")
-            # Typical format is "text/html; charset=UTF-8"
-            charset_start = content_type.find("charset=")
-            if charset_start != -1:
-                encoding = content_type[charset_start + 8:]
-            print(datetime.now().strftime('%H:%M:%S'),
-                  f'Encoding {encoding} (meta http-equiv)', flush=True)
-        except Exception:  # as err:
-            pass
-
-    if encoding == 'windows-1252' or encoding is None:
-        # Default to UTF-8 if not specified
-        encoding = "utf-8"
+    encoding = "utf-8"  # Default to UTF-8
 
     # Save the HTML to a local file
     datestr = datetime.now().strftime("%m_%d_%Y %I_%M_%S %p")
@@ -468,6 +474,8 @@ print(datetime.now().strftime('%H:%M:%S'),
 # # Filter AI-related headlines using a prompt to OpenAI
 
 # make pages that fit in a reasonably sized prompt
+client = OpenAI()
+
 MAXPAGELEN = 50
 pages = []
 current_page = []
