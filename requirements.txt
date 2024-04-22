@@ -9,3 +9,6 @@ tiktoken
 python-dotenv
 atproto
 pillow
+
+# alpha-vantage
+newsapi-python

@@ -94,6 +94,9 @@ The Register:
   - ^https://www.theregister.com/(\d+)/(\d+)/(\d+)/
   title: The Register_ Enterprise Technology News and Analysis
   url: https://www.theregister.com/
+VentureBeat:
+  title: AI News _ VentureBeat
+  url: https://venturebeat.com/category/ai/
 WSJ Tech:
   include:
   - ^https://www.wsj.com/articles/

@@ -593,6 +593,44 @@ The list of news stories to classify and enrich is:
 
 """
 
+def fetch_response(client, prompt, p):
+    """given a dict p (page) of keys and values,
+       prompt the openai client to process the dict 
+       and return the response as a list of keys and values """
+    response = get_response_json(client, prompt + json.dumps(p))
+    responses.append(response.choices[0].message.content)
+    retval = json.loads(responses[-1])
+    retlist = []
+    # usually comes back as a dict with a single arbitrary key like "stories" with a list value
+    if type(retval) == dict:
+        for k, v in retval.items():
+            if type(v) == list:
+                retlist.extend(v)
+            else:
+                retlist.append(v)
+        print(
+            f"{datetime.now().strftime('%H:%M:%S')} got dict with {len(retlist)} items "
+        )
+    elif type(retval) == list:  # in case it comes back as a list
+        retlist = retval
+        print(
+            f"{datetime.now().strftime('%H:%M:%S')} got list with {len(retlist)} items "
+        )
+    else:
+        print("Error", str(type(retval)))
+    # make a list of ids sent
+    sent_ids = [ s['id'] for s in p]    
+    # list of ids got back
+    received_ids = [r['id'] for r in retval['stories']]
+    # subtract response from sent, check if empty
+    difference = set(sent_ids) - set(received_ids)
+    # could map response to boolean, remove anything from response that is not true or false
+    if difference:
+        print(f"{datetime.now().strftime('%H:%M:%S')} missing items", difference)
+        return []
+    else:
+        return retlist
+    
 responses = []
 enriched_urls = []
 for i, p in enumerate(pages):
@@ -600,29 +638,16 @@ for i, p in enumerate(pages):
         f"{datetime.now().strftime('%H:%M:%S')} send page {i+1} of {len(pages)}, {len(p)} items "
     )
     # print(prompt + json.dumps(p))
-    response = get_response_json(client, prompt + json.dumps(p))
-    responses.append(response.choices[0].message.content)
-    retval = json.loads(responses[-1])
-    retlist = []
-    # usually comes back as a dict with a single arbitrary key like "stories" with a list value
-    if type(retval) is dict:
-        for k, v in retval.items():
-            if type(v) is list:
-                retlist.extend(v)
-            else:
-                retlist.append(v)
-        print(
-            f"{datetime.now().strftime('%H:%M:%S')} got dict with {len(retlist)} items "
-        )
-    elif type(retval) is list:  # in case it comes back as a list
-        retlist = retval
-        print(
-            f"{datetime.now().strftime('%H:%M:%S')} got list with {len(retlist)} items "
-        )
+    for c in range(3):
+        if c:
+            print(f"{datetime.now().strftime('%H:%M:%S')} Retrying, attempt {c+1}")
+        retlist = fetch_response(client, prompt, p)
+        if retlist:
+            break
+    if retlist:
+        enriched_urls.extend(retlist)
     else:
-        print(str(type(retval)))
-    enriched_urls.extend(retlist)
-
+        print(f"{datetime.now().strftime('%H:%M:%S')} failed after {c+1} attempts")
 
 enriched_df = pd.DataFrame(enriched_urls)
 enriched_df.head()
@@ -676,6 +701,19 @@ for row in merged_df.itertuples():
     insert_article(cursor, row.src, row.title, row.url, row.isAI, row.date)
 
 AIdf = merged_df.loc[merged_df["isAI"]].reset_index()
+
+print(datetime.now().strftime('%H:%M:%S'), f"Found {len(AIdf)} headlines", flush=True)
+
+# dedupe identical headlines
+AIdf['title_clean'] = AIdf['title'].map(lambda s: "".join(s.split()))
+
+AIdf = AIdf.sort_values("src") \
+    .groupby("title_clean") \
+    .first() \
+    .reset_index()
+
+print(datetime.now().strftime('%H:%M:%S'), f"Deduped {len(AIdf)} headlines", flush=True)
+
 
 ############################################################################################################
 # Save ordered list and send email

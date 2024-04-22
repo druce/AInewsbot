@@ -4,8 +4,8 @@
 cd /Users/drucev/projects/AInewsbot
 
 # Activate the conda environment
-source /Users/drucev/anaconda3/etc/profile.d/conda.sh
+source /opt/anaconda3/etc/profile.d/conda.sh
 conda activate ainewsbot
 
 # Run the Python script
-python /Users/drucev/projects/AInewsbot/AInewsbot.py
+python /Users/drucev/projects/AInewsbot/AInewsbot.py > AInewsbot.out
