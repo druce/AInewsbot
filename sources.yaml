@@ -94,6 +94,11 @@ The Register:
   - ^https://www.theregister.com/(\d+)/(\d+)/(\d+)/
   title: The Register_ Enterprise Technology News and Analysis
   url: https://www.theregister.com/
+The Verge:
+  include:
+  - ^https://www.theverge.com/(\d+)/(\d+)/(\d+)/(\d+)/
+  title: Artificial Intelligence - The Verge
+  url: https://www.theverge.com/ai-artificial-intelligence
 VentureBeat:
   title: AI News _ VentureBeat
   url: https://venturebeat.com/category/ai/

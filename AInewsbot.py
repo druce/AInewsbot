@@ -65,9 +65,9 @@ import sqlite3
 dotenv.load_dotenv()
 
 DOWNLOAD_DIR = "htmldata"
-MODEL = "gpt-4-turbo-preview"
+MODEL = "gpt-4-turbo"
 
-MAX_INPUT_TOKENS = 3072
+MAX_INPUT_TOKENS = 8192
 MAX_OUTPUT_TOKENS = 4096
 MAX_RETRIES = 3
 TEMPERATURE = 0
@@ -463,13 +463,13 @@ conn.close()
 # Convert the URLs to a list for easier comparison
 existing_urls_list = existing_urls['url'].tolist()
 print(datetime.now().strftime('%H:%M:%S'),
-      f"Found total URLs: {len(existing_urls_list)}", flush=True)
+      f"Existing URLs: {len(existing_urls_list)}", flush=True)
 
 # Filter the original DataFrame
 # Keep rows where the URL is not in the existing_urls_list
 filtered_df = orig_df[~orig_df['url'].isin(existing_urls_list)]
 print(datetime.now().strftime('%H:%M:%S'),
-      f"Found new URLs: {len(filtered_df)}", flush=True)
+      f"New URLs: {len(filtered_df)}", flush=True)
 
 # # Filter AI-related headlines using a prompt to OpenAI
 
@@ -543,7 +543,8 @@ def get_response_json(
 prompt = """
 You will act as a research assistant classifying news stories as related to artificial intelligence (AI) or unrelated to AI.
 
-Your task is to read JSON format objects from an input list of news stories using the schema below delimited by |, and output JSON format objects for each using the schema below delimited by ~.
+Your task is to read JSON format objects from an input list of news stories using the schema below delimited by |,
+and output JSON format objects for each using the schema below delimited by ~.
 
 Define a list of objects representing news stories in JSON format as in the following example:
 |
@@ -593,25 +594,26 @@ The list of news stories to classify and enrich is:
 
 """
 
+
 def fetch_response(client, prompt, p):
     """given a dict p (page) of keys and values,
-       prompt the openai client to process the dict 
+       prompt the openai client to process the dict
        and return the response as a list of keys and values """
     response = get_response_json(client, prompt + json.dumps(p))
     responses.append(response.choices[0].message.content)
     retval = json.loads(responses[-1])
     retlist = []
     # usually comes back as a dict with a single arbitrary key like "stories" with a list value
-    if type(retval) == dict:
+    if type(retval) is dict:
         for k, v in retval.items():
-            if type(v) == list:
+            if type(v) is list:
                 retlist.extend(v)
             else:
                 retlist.append(v)
         print(
             f"{datetime.now().strftime('%H:%M:%S')} got dict with {len(retlist)} items "
         )
-    elif type(retval) == list:  # in case it comes back as a list
+    elif type(retval) is list:  # in case it comes back as a list
         retlist = retval
         print(
             f"{datetime.now().strftime('%H:%M:%S')} got list with {len(retlist)} items "
@@ -619,7 +621,7 @@ def fetch_response(client, prompt, p):
     else:
         print("Error", str(type(retval)))
     # make a list of ids sent
-    sent_ids = [ s['id'] for s in p]    
+    sent_ids = [s['id'] for s in p]
     # list of ids got back
     received_ids = [r['id'] for r in retval['stories']]
     # subtract response from sent, check if empty
@@ -630,7 +632,8 @@ def fetch_response(client, prompt, p):
         return []
     else:
         return retlist
-    
+
+
 responses = []
 enriched_urls = []
 for i, p in enumerate(pages):
@@ -702,7 +705,8 @@ for row in merged_df.itertuples():
 
 AIdf = merged_df.loc[merged_df["isAI"]].reset_index()
 
-print(datetime.now().strftime('%H:%M:%S'), f"Found {len(AIdf)} headlines", flush=True)
+print(datetime.now().strftime('%H:%M:%S'),
+      f"Found {len(AIdf)} headlines", flush=True)
 
 # dedupe identical headlines
 AIdf['title_clean'] = AIdf['title'].map(lambda s: "".join(s.split()))
@@ -712,7 +716,8 @@ AIdf = AIdf.sort_values("src") \
     .first() \
     .reset_index()
 
-print(datetime.now().strftime('%H:%M:%S'), f"Deduped {len(AIdf)} headlines", flush=True)
+print(datetime.now().strftime('%H:%M:%S'),
+      f"Deduped {len(AIdf)} headlines", flush=True)
 
 
 ############################################################################################################
