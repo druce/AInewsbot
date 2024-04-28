@@ -1,11 +1,11 @@
 Ars Technica:
   include:
-  - ^https://arstechnica.com/gadgets/(\d+)/(\d+)/
+  - ^https://arstechnica.com/(\w+)/(\d+)/(\d+)/
   title: Ars Technica
   url: https://arstechnica.com/
 Bloomberg Tech:
   include:
-  - ^https://www.bloomberg.com/news/(\w+)/(\d+)-(\d+)-(\d+)
+  - ^https://www.bloomberg.com/news/
   title: Bloomberg Technology - Bloomberg
   url: https://www.bloomberg.com/technology
 Business Insider:
@@ -20,7 +20,11 @@ FT Tech:
   title: Technology
   url: https://www.ft.com/technology
 Feedly AI:
-  scroll: 2
+  exclude:
+  - ^https://feedly.com
+  - ^https://s1.feedly.com
+  - ^https://blog.feedly.com
+  scroll: 5
   title: Discover and Add New Feedly AI Feeds
   url: https://feedly.com/i/aiFeeds?options=eyJsYXllcnMiOlt7InBhcnRzIjpbeyJpZCI6Im5scC9mL3RvcGljLzMwMDAifV0sInNlYXJjaEhpbnQiOiJ0ZWNobm9sb2d5IiwidHlwZSI6Im1hdGNoZXMiLCJzYWxpZW5jZSI6ImFib3V0In1dLCJidW5kbGVzIjpbeyJ0eXBlIjoic3RyZWFtIiwiaWQiOiJ1c2VyLzYyZWViYjlmLTcxNTEtNGY5YS1hOGM3LTlhNTdiODIwNTMwOC9jYXRlZ29yeS9HYWRnZXRzIn1dfQ
 Google News:
@@ -36,10 +40,11 @@ Hacker News:
   - https://www.ycombinator.com/
   title: Hacker News Page 1
   url: https://news.ycombinator.com/
+  minlength: 5
 Hacker News 2:
   exclude:
-  - https://news.ycombinator.com/
-  - https://www.ycombinator.com/
+  - https://news.ycombinator.com
+  - https://www.ycombinator.com
   title: Hacker News Page 2
   url: https://news.ycombinator.com/?p=2
 HackerNoon:
@@ -57,18 +62,15 @@ HackerNoon:
   - ^https://hackernoon.com/techbeat$
   - ^https://hackernoon.com/why-i-write-on-hacker-noon-nl28335q$
   - ^https://hackernoon.com/writer-signup$
-  include:
-  - ^https://hackernoon.com/([^/])*$
   title: HackerNoon - read, write and learn about any technology
   url: https://hackernoon.com/
 NYT Tech:
   include:
-  - ^https://www.nytimes.com/(\d+)/(\d+)/(\d+)(.*).html$
+  - ^https://www.nytimes.com/(\d+)/(\d+)/(\d+)/
   title: Technology - The New York Times
   url: https://www.nytimes.com/section/technology
 Reddit:
   exclude:
-  - ^https://www.reddit.com/
   - ^https://chat.reddit.com/
   - ^https://i.redd.it/
   - ^https://redditblog.com/
@@ -77,6 +79,7 @@ Reddit:
   - ^https://itunes.apple.com/
   - ^https://play.google.com/
   scroll: 2
+  minlength: 8
   title: top scoring links _ multi
   url: https://www.reddit.com/r/ChatGPT+ChatGPTCoding+MacOS+MachineLearning+OpenAI+ProgrammerHumor+Windows10+battlestations+buildapc+cordcutters+dataisbeautiful+gadgets+hardware+linux+msp+programming+realtech+software+talesfromtechsupport+tech+technews+technology+techsupportgore+windows/top/?sort=top&t=day
 Techmeme:
