@@ -15,7 +15,8 @@ from ainb_const import SQLITE_DB
 ############################################################################################################
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG,
+# captures a ton of info from selenium and bs4 if level is DEBUG, might crash Jupyter
+logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("AInewsbot")
 
@@ -78,7 +79,7 @@ def delete_files(download_dir):
 
 def insert_article(conn, cursor, src, title, url, isAI, article_date):
     """
-    Inserts a new article into the database.
+    Inserts a new article record into the SQLite database.
 
     Args:
         conn (sqlite3.Connection): The connection object to the SQLite database.

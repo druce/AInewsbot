@@ -182,6 +182,7 @@ def init_browser(geckodriver_path=GECKODRIVER_PATH, firefox_profile_path=FIREFOX
 def get_file(sourcedict, driver=None):
     """
     Fetches a URL using a Selenium driver and parameters defined in sources.yaml.
+    Updates sourcedict['latest'] with the path to the downloaded file.
 
     Args:
         sourcedict (dict): A dictionary containing the parameters defined in sources.yaml.
@@ -248,7 +249,7 @@ def get_file(sourcedict, driver=None):
     destpath = DOWNLOAD_DIR + "/" + outfile
     with open(destpath, 'w', encoding=encoding) as file:
         file.write(html_source)
-    sourcedict['latest'] = file
+    sourcedict['latest'] = destpath
 
     return destpath
 

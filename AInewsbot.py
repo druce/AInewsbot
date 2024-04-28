@@ -23,6 +23,7 @@ from datetime import datetime
 import yaml
 import dotenv
 import sqlite3
+import argparse
 
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -46,6 +47,16 @@ from ainb_llm import paginate_df, process_pages
 # load secrets, credentials
 dotenv.load_dotenv()
 
+# Parse command line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('-n', '--nofetch', action='store_true',
+                    help='Disable web fetch, use existing HTML files in htmldata directory')
+args = parser.parse_args()
+
+# Set the boolean flag based on the command line argument
+disable_web_fetch = args.nofetch
+enable_web_fetch = not disable_web_fetch
+
 #  load sources to scrape from sources.yaml
 with open(SOURCECONFIG, "r") as stream:
     try:
@@ -53,60 +64,89 @@ with open(SOURCECONFIG, "r") as stream:
     except yaml.YAMLError as exc:
         print(exc)
 
-log("Load sources")
+log(f"Load {len(sources)} sources")
 sources_reverse = {}
 for k, v in sources.items():
     log(f"{k} -> {v['url']} -> {v['title']}.html")
     v['sourcename'] = k
     # map filename (title) to source name
-    sources_reverse['title'] = k
+    sources_reverse[v['title']] = k
 
 
 ############################################################################################################
 # Get HTML files
 ############################################################################################################
 # empty download directory
-delete_files(DOWNLOAD_DIR)
+if disable_web_fetch:
+    # get list of files in htmldata directory
+    # List all paths in the directory matching today's date
+    log(f"Web fetch disabled, using existing files in {DOWNLOAD_DIR}")
+    nfiles = 50
+    files = [os.path.join(DOWNLOAD_DIR, file)
+             for file in os.listdir(DOWNLOAD_DIR)]
 
-# launch browser via selenium driver
-driver = init_browser()
+    # Get the current date
+    today = datetime.now()
+    year, month, day = today.year, today.month, today.day
+    datestr = datetime.now().strftime("%m_%d_%Y")
 
-# save each file specified from sources
-log("Saving HTML files")
-saved_pages = []
-for sourcename, sourcedict in sources.items():
-    log(f'Processing {sourcename}')
-    sourcefile = get_file(sourcedict, driver=driver)
-    saved_pages.append((sourcename, sourcefile))
+    # filter files only
+    files = [file for file in files if os.path.isfile(file)]
 
-# Close the browser
-log("Quit webdriver")
-driver.quit()
-# finished downloading files
+    # Sort files by modification time and take top 50
+    files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+    file = files[:nfiles]
+
+    # filter files by with today's date ending in .html
+    files = [
+        file for file in files if datestr in file and file.endswith(".html")]
+    log(len(files))
+    for file in files:
+        log(file)
+
+    saved_pages = []
+    for file in files:
+        filename = os.path.basename(file)
+        # locate date like '01_14_2024' in filename
+        position = filename.find(" (" + datestr)
+        basename = filename[:position]
+        # match to source name
+        sourcename = sources_reverse.get(basename)
+        if sourcename is None:
+            log(f"Skipping {basename}, no sourcename metadata")
+            continue
+        sources[sourcename]['latest'] = file
+        saved_pages.append((sourcename, file))
+else:
+    # delete existing files and fetch all using selenium
+    delete_files(DOWNLOAD_DIR)
+
+    # launch browser via selenium driver
+    driver = init_browser()
+
+    # save each file specified from sources
+    log("Fetching HTML files")
+    saved_pages = []
+    for sourcename, sourcedict in sources.items():
+        log(f'Processing {sourcename}')
+        sourcefile = get_file(sourcedict, driver=driver)
+        saved_pages.append((sourcename, sourcefile))
+    # Close the browser
+    log("Quit webdriver")
+    driver.quit()
 
 ############################################################################################################
 # Parse news URLs and titles from downloaded HTML files
 ############################################################################################################
 
-all_urls = []
-
+# Parse news URLs and titles from downloaded HTML files
 log("parsing html files")
+all_urls = []
 for sourcename, filename in saved_pages:
+    print(sourcename, '->', filename, flush=True)
     log(f"{sourcename}", "parse loop")
-    sources[sourcename]["latest"] = filename
-    srcurl = sources[sourcename]['url']
-    exclude_pattern = sources[sourcename].get("exclude")
-    include_pattern = sources[sourcename].get("include")
-    minlength = sources[sourcename].get("minlength", 28) | 28
-
-    links = parse_file(filename,
-                       srcurl,
-                       exclude_pattern,
-                       include_pattern,
-                       minlength=minlength
-                       )
+    links = parse_file(sources[sourcename])
     log(f"{len(links)} links found", "parse loop")
-
     all_urls.extend(links)
 
 log(f"found {len(all_urls)} links", "parse loop")
@@ -122,6 +162,7 @@ orig_df = (
     .reset_index(drop=False)
     .rename(columns={"index": "id"})
 )
+orig_df.head()
 
 ############################################################################################################
 # Filter URLs, ignore previously sent, check if AI-related using ChatGPT
