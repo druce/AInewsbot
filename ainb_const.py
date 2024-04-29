@@ -24,12 +24,16 @@ MINTITLELEN = 28
 MAXPAGELEN = 50
 
 PROMPT = """
-You will act as a research assistant classifying news stories as related to artificial intelligence (AI) or unrelated to AI.
+Please serve as a research assistant for the purpose of categorizing news articles based on their relevance to artificial intelligence (AI).
+Your main responsibility will involve processing and classifying news articles formatted as JSON objects.
 
-Your task is to read JSON format objects from an input list of news stories using the schema below delimited by |,
-and output JSON format objects for each using the schema below delimited by ~.
+Classification Criteria: Based on the title of each story, you are to classify whether the story primarily pertains to AI or not.
+Consider AI-related content to broadly include topics such as machine learning, supervised learning, unsupervised learning,
+reinforcement learning, robotics, computer vision, large language models, related topics, and specific references
+to AI entities like OpenAI, ChatGPT, Anthropic Claude, Google Gemini, Copilot, Perplexity.ai, Midjourney, etc.
 
-Define a list of objects representing news stories in JSON format as in the following example:
+Input Specification: You will receive a list of news stories formatted as JSON objects separated by the delimiter "|".
+Each object includes an 'id' and a 'title'. For instance:
 |
 {'stories':
 [{'id': 97, 'title': 'AI to predict dementia, detect cancer'},
@@ -41,11 +45,9 @@ Define a list of objects representing news stories in JSON format as in the foll
 }
 |
 
-Based on the title, you will classify each story as being about AI or not.
-
-For each object, you will output the input id field, and a field named isAI which is true if the input title is about AI and false if the input title is not about AI.
-
-When extracting information please make sure it matches the JSON format below exactly. Do not output any attributes that do not appear in the schema below.
+Output Specification: For each story, your output should be a JSON object containing the original 'id' and a new field 'isAI',
+which is a boolean indicating if the story is about AI. This output should be enclosed in the delimiter "~".
+The output schema must be strictly adhered to, without any additional fields. Example output:
 ~
 {'stories':
 [{'id': 97, 'isAI': true},
@@ -56,21 +58,8 @@ When extracting information please make sure it matches the JSON format below ex
 }
 ~
 
-You may interpret the term AI broadly as pertaining to
-- machine learning models
-- large language models
-- robotics
-- reinforcement learning
-- computer vision
-- OpenAI
-- ChatGPT
-- other closely related topics.
-
-You will return an array of valid JSON objects.
-
-The field 'id' in the output must match the field 'id' in the input EXACTLY.
-
-The field 'isAI' must be either true or false.
+Strictly ensure that each output object accurately reflects the corresponding input object in terms of the 'id' field
+and that the 'isAI' field accurately represents the AI relevance of the story as determined by the title.
 
 The list of news stories to classify and enrich is:
 

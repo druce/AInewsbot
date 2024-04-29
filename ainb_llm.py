@@ -32,7 +32,8 @@ def get_response_json(
     temperature=TEMPERATURE,
 ):
     """
-    Calls the OpenAI client with messages and returns the response as a JSON object.
+    Calls the OpenAI client with messages and returns the response as a JSON string.
+    response_format={"type": "json_object"} forces ChatGPT to return a valid JSON string.
 
     Args:
         client (OpenAI.ChatCompletionClient): The OpenAI client used to make the API call.
