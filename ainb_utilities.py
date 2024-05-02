@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 import sqlite3
 
-from scipy.spatial.distance import cdist
+from scipy.spatial.distance import cdist, pdist
+from scipy.cluster.hierarchy import linkage, leaves_list
 
 from ainb_const import SQLITE_DB
 
@@ -180,3 +181,24 @@ def nearest_neighbor_sort(embedding_array, start_index=0):
         visited.add(nearest)
 
     return np.array(path)
+
+
+def agglomerative_cluster_sort(embedding_df):
+    """
+    Sorts embeddings using agglomerative clustering. Neither sort works perfectly, unclear which is better.
+    Agglomerative clustering divides the data into 2 clusters minimizing in-cluster distances and maximizing
+    between-cluster distances. Then you can recursively repeat on each cluster to get a hierarchy of clusters.
+    If you do a breadth-first traversal of the leaves which contain a single element, you get a sort order
+    that heuristically approximately minimizes the sum of distances between adjacent elements.
+
+    Parameters:
+    embedding_df (pandas.DataFrame): The dataframe containing the embeddings of the topics.
+
+    Returns:
+    list: An nparray of the sort order of the dataframe rows based on the agglomerative clustering.
+
+    """
+    distance_matrix = pdist(embedding_df.values, metric='cosine')
+    Z = linkage(distance_matrix, method='ward')
+    leaf_order = leaves_list(Z)
+    return leaf_order

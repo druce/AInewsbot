@@ -37,7 +37,7 @@ from openai import OpenAI
 
 from ainb_const import (DOWNLOAD_DIR,
                         SOURCECONFIG, PROMPT)
-from ainb_utilities import log, delete_files, filter_unseen_urls_db, insert_article, unicode_to_ascii, nearest_neighbor_sort
+from ainb_utilities import log, delete_files, filter_unseen_urls_db, insert_article, unicode_to_ascii, agglomerative_cluster_sort
 from ainb_webscrape import init_browser, get_file, parse_file
 from ainb_llm import paginate_df, process_pages
 ############################################################################################################
@@ -217,27 +217,31 @@ log(f"Found {len(AIdf)} unique AI headlines")
 
 # Attempt to order by topic by getting embeddings and solving a traveling salesman problem
 log(f"Fetching embeddings for {len(AIdf)} headlines")
-embedding_model = 'text-embedding-3-small'
+# get embeddings, small model not as efffective
+embedding_model = 'text-embedding-3-large'
 response = client.embeddings.create(input=AIdf['title'].tolist(),
                                     model=embedding_model)
-embedding_df = pd.DataFrame([e.dict()['embedding'] for e in response.data])
-embedding_array = embedding_df.values
+embedding_df = pd.DataFrame([e.model_dump()['embedding']
+                            for e in response.data])
+# embedding_array = embedding_df.values
 
-# find index of most central headline
-centroid = embedding_array.mean(axis=0)
-distances = np.linalg.norm(embedding_array - centroid, axis=1)
-start_index = np.argmin(distances)
+# # find index of most central headline
+# centroid = embedding_array.mean(axis=0)
+# distances = np.linalg.norm(embedding_array - centroid, axis=1)
+# start_index = np.argmin(distances)
 
-# Get the sorted indices and use them to sort the df
-sorted_indices = nearest_neighbor_sort(embedding_array, start_index)
+# # Get the sorted indices and use them to sort the df
+# sorted_indices = nearest_neighbor_sort(embedding_df.values, start_index)
+# not really sure if this is better than the greedy traveling salesman method
+
+sorted_indices = agglomerative_cluster_sort(embedding_df)
 AIdf = AIdf.iloc[sorted_indices]
 
 # create html message with formatted headlines
 html_str = ""
-for i, j in enumerate(sorted_indices):
-    row = AIdf.iloc[j]
-    log(f"[{i}. {row.title} - {row.src}]({row.url})")
-    html_str += f'{i}.<a href="{row.url}">{row.title} - {row.src}</a><br />\n'
+for row in AIdf.itertuples():
+    log(f"[{row.Index}. {row.title} - {row.src}]({row.url})")
+    html_str += f'{row.Index}.<a href="{row.url}">{row.title} - {row.src}</a><br />\n'
 
 # send mail
 log("Sending mail")
