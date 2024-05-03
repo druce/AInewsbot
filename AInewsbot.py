@@ -235,7 +235,7 @@ embedding_df = pd.DataFrame([e.model_dump()['embedding']
 # not really sure if this is better than the greedy traveling salesman method
 
 sorted_indices = agglomerative_cluster_sort(embedding_df)
-AIdf = AIdf.iloc[sorted_indices]
+AIdf = AIdf.iloc[sorted_indices].reset_index(drop=True)
 
 # create html message with formatted headlines
 html_str = ""

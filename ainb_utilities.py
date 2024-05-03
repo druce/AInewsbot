@@ -8,8 +8,12 @@ import sqlite3
 
 from scipy.spatial.distance import cdist, pdist
 from scipy.cluster.hierarchy import linkage, leaves_list
+from scipy.optimize import linear_sum_assignment
 
 from ainb_const import SQLITE_DB
+
+from ortools.constraint_solver import routing_enums_pb2
+from ortools.constraint_solver import pywrapcp
 
 ############################################################################################################
 # utility functions
@@ -202,3 +206,72 @@ def agglomerative_cluster_sort(embedding_df):
     Z = linkage(distance_matrix, method='ward')
     leaf_order = leaves_list(Z)
     return leaf_order
+
+
+def traveling_salesman_sort_scipy(df):
+    """
+    Given a dataframe of embeddings, sort the rows of the dataframe based on the order of nodes in the traveling salesman traversal.
+
+    Args:
+        df (pandas.DataFrame): The input dataframe to be sorted.
+
+    Returns:
+        numpy.ndarray: The sorted dataframe.
+
+    """
+
+    # Convert the dataframe to a distance matrix
+    distance_matrix = cdist(df, df, metric='euclidean')
+
+    # Solve the linear sum assignment problem to find the optimal assignment of rows
+    row_indices, _ = linear_sum_assignment(distance_matrix)
+
+    return row_indices
+
+
+def traveling_salesman_sort_ortools(df):
+    """
+    Given a dataframe of embeddings, sort the rows of the dataframe based on the order of nodes in the traveling salesman traversal
+    which minimizes the euclidean distance traveled in embedding space.
+
+    Args:
+        df (pandas.DataFrame): The input dataframe to be sorted.
+
+    Returns:
+        numpy.ndarray: The sort order.
+
+    """
+    # Convert the dataframe to a distance matrix
+    distance_matrix = cdist(df, df, metric='euclidean')
+
+    # Create the routing index manager
+    manager = pywrapcp.RoutingIndexManager(len(distance_matrix), 1, 0)
+
+    # Create the routing model
+    routing = pywrapcp.RoutingModel(manager)
+
+    # Create the distance callback
+    def distance_callback(from_index, to_index):
+        return distance_matrix[from_index][to_index]
+
+    transit_callback_index = routing.RegisterTransitCallback(distance_callback)
+
+    # Define the cost of each arc
+    routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
+
+    # Set the search parameters
+    search_parameters = pywrapcp.DefaultRoutingSearchParameters()
+    search_parameters.first_solution_strategy = (
+        routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC)
+
+    # Solve the problem
+    solution = routing.SolveWithParameters(search_parameters)
+
+    # Get the order of the nodes in the solution
+    order = []
+    index = routing.Start(0)
+    while not routing.IsEnd(index):
+        order.append(manager.IndexToNode(index))
+        index = solution.Value(routing.NextVar(index))
+
+    return order
