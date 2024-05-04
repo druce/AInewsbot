@@ -2,6 +2,8 @@ jupyter
 numpy
 pandas
 scipy
+scikit-learn
+ortools
 ipykernel
 selenium
 openai
