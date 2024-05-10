@@ -1,0 +1,11 @@
+ipykernel
+python-dotenv
+openbb[all]
+openbb-charting
+selenium
+openai
+tiktoken
+langchain
+wikipedia
+edgartools
+sec-api
