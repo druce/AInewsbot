@@ -9,3 +9,5 @@ langchain
 wikipedia
 edgartools
 sec-api
+sec-parser
+
