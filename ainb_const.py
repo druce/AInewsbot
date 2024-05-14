@@ -11,7 +11,7 @@ sleeptime = 10
 
 SQLITE_DB = 'articles.db'
 
-MODEL = "gpt-4-turbo"
+MODEL = "gpt-4o"
 
 MAX_INPUT_TOKENS = 8192     # includes text of all headlines
 MAX_OUTPUT_TOKENS = 4096    # max in current model

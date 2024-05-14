@@ -17,7 +17,8 @@ def count_tokens(s):
     Returns:
         int: The number of tokens in the input string.
     """
-    enc = tiktoken.encoding_for_model(MODEL)
+    # no tokeniser returned yet for gpt-4o-2024-05-13
+    enc = tiktoken.encoding_for_model('gpt-4')
     assert enc.decode(enc.encode("hello world")) == "hello world"
     return len(enc.encode(s))
 
