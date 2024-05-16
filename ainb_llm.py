@@ -98,31 +98,36 @@ def fetch_response(client, prompt, p):
 
     """
     retlist = []
-    response = get_response_json(client, prompt + json.dumps(p))
-    response_json = json.loads(response.choices[0].message.content)
 
-    if type(response_json) is dict:
-        for k, v in response_json.items():
-            if type(v) is list:
-                retlist.extend(v)
-            else:
-                retlist.append(v)
-        log(f"{datetime.now().strftime('%H:%M:%S')} got dict with {len(retlist)} items ")
-    elif type(response_json) is list:
-        retlist = response_json
-        log(f"{datetime.now().strftime('%H:%M:%S')} got list with {len(retlist)} items ")
-    else:
-        raise TypeError("Error: Invalid response type")
+    try:
+        response = get_response_json(client, prompt + json.dumps(p))
+        response_json = json.loads(response.choices[0].message.content)
 
-    sent_ids = [s['id'] for s in p]
-    received_ids = [r['id'] for r in response_json['stories']]
-    difference = set(sent_ids) - set(received_ids)
+        if type(response_json) is dict:
+            for k, v in response_json.items():
+                if type(v) is list:
+                    retlist.extend(v)
+                else:
+                    retlist.append(v)
+            log(f"{datetime.now().strftime('%H:%M:%S')} got dict with {len(retlist)} items ")
+        elif type(response_json) is list:
+            retlist = response_json
+            log(f"{datetime.now().strftime('%H:%M:%S')} got list with {len(retlist)} items ")
+        else:
+            raise TypeError("Error: Invalid response type")
 
-    if difference:
-        log(f"missing items, {str(difference)}")
+        sent_ids = [s['id'] for s in p]
+        received_ids = [r['id'] for r in response_json['stories']]
+        difference = set(sent_ids) - set(received_ids)
+        if difference:
+            log(f"missing items, {str(difference)}")
+            return []
+
+    except Exception as err:
+        log(f"Error in fetch_response: {err}")
         return []
-    else:
-        return retlist
+
+    return retlist
 
 
 def paginate_df(filtered_df, maxpagelen=MAXPAGELEN, max_input_tokens=MAX_INPUT_TOKENS):
