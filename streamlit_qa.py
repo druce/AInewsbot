@@ -1,4 +1,5 @@
 # pip install langchain langchain-openai streamlit
+# streamlit run streamlit_qa.py
 import streamlit as st
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -65,7 +66,7 @@ llm = get_llm()
 memory = get_memory()
 chain = get_chain()
 
-st.title("Stock Question Answering Chatbot")
+st.title(title)
 
 # show messages sent so far
 avatars = {'ai': "🖥️", 'human': '🧑'}
@@ -76,6 +77,7 @@ for message in memory.messages:
 
 # show input box, or get new user message if entered
 if prompt := st.chat_input("Enter a question about a stock or company:"):
+    # add user message to conversational memory and display it in the history
     memory.add_user_message(prompt)
     with st.chat_message("user", avatar=avatars['human']):
         st.markdown(prompt)
@@ -86,7 +88,8 @@ if prompt := st.chat_input("Enter a question about a stock or company:"):
         text_response = ""
         for chunk in chain.stream({"messages": memory.messages}):
             text_response += chunk.content
-            message_placeholder.markdown(text_response)
+            message_placeholder.markdown(text_response + "▌")
             if hasattr(chunk, 'response_metadata'):
                 response_metadata = chunk.response_metadata
+        message_placeholder.markdown(text_response)
         memory.add_ai_message(text_response)
