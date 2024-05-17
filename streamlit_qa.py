@@ -83,8 +83,7 @@ if prompt := st.chat_input("Enter a question about a stock or company:"):
         st.markdown(prompt)
     # process the user's question
     with st.chat_message("assistant", avatar=avatars['ai']):
-        message_placeholder = st.text("▌")  # st.empty()
-        # make callbacks point to the output
+        message_placeholder = st.text("▌")
         text_response = ""
         for chunk in chain.stream({"messages": memory.messages}):
             text_response += chunk.content
