@@ -81,11 +81,14 @@ class BB_agent_tool(object):
         try:
             # call the tool function
             obj = self.callable(**kwargs)
-            # if custom tool, it returns a list, wrap it similarly to openbb return dict
+            # if custom tool, it returns a list
             if type(obj) is list:
                 d = obj
-            # OpenBB returns objects
+            # OpenBB returns a rich object with some metadata, list of obb results
             elif obj and hasattr(obj, 'results'):
+                # this may be a hack, obj.json() dumps to json, then loads to a dict, gets results list
+                # could get results from obj which is a list of obb objects, so need to json them
+                # could loop through results and run model_dump()
                 d = json.loads(obj.json())['results']
             # singular should be 0 to return the full array, 1 for first element only, -1 for last element
             if self.singular:
