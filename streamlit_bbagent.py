@@ -96,6 +96,8 @@ if prompt := st.chat_input("Enter a question about a stock or company:"):
         message_placeholder = st.text("▌")
         response = chain.invoke({"input": prompt})
         text_response = response["output"]
+        text_response = escape_output(prompt)
+
         # for chunk in chain.stream({"messages": memory.messages}):
         #     text_response += chunk.content
         #     message_placeholder.markdown(text_response + "▌")

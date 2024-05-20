@@ -1,13 +1,16 @@
 ipykernel
 python-dotenv
-openbb[all]
-openbb-charting
+openbb==4.1.7
+# openbb-charting
 selenium
 openai
 tiktoken
-langchain
+pydantic # ==1.10
+langchain >= 0.2
+langchain-openai
+langchain-community
 wikipedia
 edgartools
 sec-api
 sec-parser
-
+streamlit

@@ -10,6 +10,7 @@
 import json
 from ainb_const import MODEL, bb_agent_system_prompt
 from IPython.display import Markdown, display
+import pdb
 
 import openai
 
@@ -37,7 +38,9 @@ class BB_agent_tool(object):
         - parameters (dict): The parameters for the tool.
         - example_parameter_values (list): The example parameter values for the tool.
         - callable (function, optional): The callable function for the tool. Defaults to None.
-        - singular (int, optional): The singular value for the tool. Defaults to 0.
+          If None, the callable function is constructed based on the openapi_path.
+          If not None, the callable function provided is used.
+        - singular (int, optional): whether to return the whole list from the callable (0), the first item (1) or last item(-1)
         """
         self.name = name
         self.description = description

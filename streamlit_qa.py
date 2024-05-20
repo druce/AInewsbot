@@ -59,6 +59,11 @@ def get_chain():
     return chain
 
 
+def escape_output(text):
+    # escape $ characters to avoid markdown interpreting them as latex
+    return text.replace('$', '\$')
+
+
 # Streamlit event loop starts here
 title = "Stock Question Answering Chatbot"
 st.set_page_config(page_title=title, page_icon=":robot:")
@@ -78,6 +83,7 @@ for message in memory.messages:
 # show input box, or get new user message if entered
 if prompt := st.chat_input("Enter a question about a stock or company:"):
     # add user message to conversational memory and display it in the history
+    prompt = escape_output(prompt)
     memory.add_user_message(prompt)
     with st.chat_message("user", avatar=avatars['human']):
         st.markdown(prompt)
@@ -86,7 +92,7 @@ if prompt := st.chat_input("Enter a question about a stock or company:"):
         message_placeholder = st.text("▌")
         text_response = ""
         for chunk in chain.stream({"messages": memory.messages}):
-            text_response += chunk.content
+            text_response += escape_output(chunk.content)
             message_placeholder.markdown(text_response + "▌")
             if hasattr(chunk, 'response_metadata'):
                 response_metadata = chunk.response_metadata
