@@ -1,5 +1,7 @@
 # pip install langchain langchain-openai streamlit
 # streamlit run streamlit_qa.py
+import dotenv
+from BB_agent_tool import bb_agent_system_prompt
 import streamlit as st
 
 from langchain_openai import ChatOpenAI
@@ -11,11 +13,10 @@ from langchain_core.prompts import (ChatPromptTemplate,
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain.memory import ChatMessageHistory
 
-from bb_tools import tool_list
-from BB_agent_tool import bb_agent_system_prompt
+from bb_tools import tool_dict
+tool_list = list(tool_dict.values())
 
 # import secrets from .env
-import dotenv
 dotenv.load_dotenv()
 
 MODEL = "gpt-4o"
@@ -69,6 +70,11 @@ def get_chain():
     return agent_executor
 
 
+def escape_output(text):
+    # escape $ characters to avoid markdown interpreting them as latex
+    return text.replace('$', '\$', )
+
+
 # Streamlit event loop starts here
 title = "Stock Question Answering Chatbot"
 st.set_page_config(page_title=title, page_icon=":robot:")
@@ -96,7 +102,7 @@ if prompt := st.chat_input("Enter a question about a stock or company:"):
         message_placeholder = st.text("▌")
         response = chain.invoke({"input": prompt})
         text_response = response["output"]
-        text_response = escape_output(prompt)
+        text_response = escape_output(text_response)
 
         # for chunk in chain.stream({"messages": memory.messages}):
         #     text_response += chunk.content
