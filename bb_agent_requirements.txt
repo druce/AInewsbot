@@ -1,6 +1,6 @@
 ipykernel
 python-dotenv
-openbb==4.1.7
+openbb
 # openbb-charting
 selenium
 openai
