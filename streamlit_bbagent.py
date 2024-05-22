@@ -94,13 +94,12 @@ for message in memory.messages:
 # show input box, or get new user message if entered
 if prompt := st.chat_input("Enter a question about a stock or company:"):
     # add user message to conversational memory and display it in the history
-    memory.add_user_message(prompt)
     with st.chat_message("user", avatar=avatars['human']):
         st.markdown(prompt)
     # process the user's question
     with st.chat_message("assistant", avatar=avatars['ai']):
         message_placeholder = st.text("▌")
-        response = chain.invoke({"input": prompt})
+        response = chain.invoke({"chat_history": memory.messages, "input": prompt})
         text_response = response["output"]
         text_response = escape_output(text_response)
 
@@ -110,4 +109,5 @@ if prompt := st.chat_input("Enter a question about a stock or company:"):
         #     if hasattr(chunk, 'response_metadata'):
         #         response_metadata = chunk.response_metadata
         message_placeholder.markdown(text_response)
+        memory.add_user_message(prompt)
         memory.add_ai_message(text_response)
