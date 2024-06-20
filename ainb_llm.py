@@ -1,9 +1,11 @@
+import os
 import time
 from datetime import datetime
 import json
 import tiktoken
-
-from ainb_const import MODEL, MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS, MAX_RETRIES, MAXPAGELEN, TEMPERATURE, sleeptime
+import asyncio
+import aiohttp
+from ainb_const import OPENAI_API_KEY, MODEL, MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS, MAX_RETRIES, MAXPAGELEN, TEMPERATURE, sleeptime
 from ainb_utilities import log
 
 
@@ -23,7 +25,7 @@ def count_tokens(s):
     return len(enc.encode(s))
 
 
-def get_response_json(
+async def get_response_json(
     client,
     messages,
     verbose=False,
@@ -82,7 +84,7 @@ def get_response_json(
     return None
 
 
-def fetch_response(client, prompt, p):
+async def fetch_response(client, prompt, p):
     """Fetches the response from the OpenAI client based on the given prompt and page.
 
     Args:
@@ -98,14 +100,14 @@ def fetch_response(client, prompt, p):
 
     """
     retlist = []
-    response = get_response_json(client, prompt + json.dumps(p))
+    response = await get_response_json(client, prompt + json.dumps(p))
     response_json = json.loads(response.choices[0].message.content)
 
     if type(response_json) is dict:
         for k, v in response_json.items():
-            if type(v) is list:
+            if type(v) is list:  # came back correctly as e.g. {'stories': []}
                 retlist.extend(v)
-            else:
+            else:  # maybe a weird dict with keys  of id
                 retlist.append(v)
         log(f"{datetime.now().strftime('%H:%M:%S')} got dict with {len(retlist)} items ")
     elif type(response_json) is list:
@@ -162,7 +164,7 @@ def paginate_df(filtered_df, maxpagelen=MAXPAGELEN, max_input_tokens=MAX_INPUT_T
     return pages
 
 
-def process_pages(client, prompt, pages):
+async def process_pages(client, prompt, pages):
     """
     Process a list of pages by sending them individually to the OpenAI API with the given prompt.
 
@@ -176,16 +178,102 @@ def process_pages(client, prompt, pages):
 
     """
     enriched_urls = []
+    tasks = []
     for i, p in enumerate(pages):
         log(f"send page {i+1} of {len(pages)}, {len(p)} items ")
-        for c in range(MAX_RETRIES):
-            if c:
-                log(f"Retrying, attempt {c+1}")
-            retlist = fetch_response(client, prompt, p)
-            if retlist:
-                break
+        task = asyncio.create_task(fetch_response(client, prompt, p))
+        tasks.append(task)
+    responses = await asyncio.gather(*tasks)
+    for retlist in responses:
         if retlist:
             enriched_urls.extend(retlist)
         else:
-            log(f"failed after {c+1} attempts")
+            log("process_pages failed")
     return enriched_urls
+
+
+# this version runs faster and hits the endpoint directly using aiohttp instead of the OpenAI Python client
+
+API_URL = 'https://api.openai.com/v1/chat/completions'
+
+headers = {
+    'Content-Type': 'application/json',
+    'Authorization': f'Bearer {os.getenv("OPENAI_API_KEY")}',
+}
+
+
+async def fetch_openai(session, payload):
+    """
+    Asynchronously fetches a response from the OpenAI URL using an aiohttp ClientSession.
+
+    Parameters:
+    - session (aiohttp.ClientSession): The aiohttp ClientSession object used for making HTTP requests.
+    - payload (dict): The payload to be sent in the request body as JSON.
+
+    Returns:
+    - dict: The full JSON response from the OpenAI API.
+
+    Raises:
+    - aiohttp.ClientError: If there is an error during the HTTP request.
+
+    Example usage:
+    ```
+    async with aiohttp.ClientSession() as session:
+        response = await fetch_openai(session, payload)
+        print(response)
+    ```
+    """
+    async with session.post(API_URL, headers=headers, json=payload) as response:
+        return await response.json()
+
+
+async def fetch_pages(prompt, pages):
+
+    # make a prompt and payload for each page
+    payloads = [{"model":  MODEL,
+                 "response_format": {"type": "json_object"},
+                 "messages": [{"role": "user",
+                               "content": prompt + json.dumps(p)
+                               }]
+                 } for p in pages]
+
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for payload in payloads:
+            task = asyncio.create_task(fetch_openai(session, payload))
+            tasks.append(task)
+
+        responses = await asyncio.gather(*tasks)
+
+    # validate and process the responses
+    log(f"{datetime.now().strftime('%H:%M:%S')} Processing responses... ")
+
+    retlist = []
+    for i, response in enumerate(responses):
+        try:
+            response_dict = json.loads(
+                response["choices"][0]["message"]["content"])
+        except Exception as e:
+            raise TypeError("Error: Invalid response " + str(e))
+
+        if type(response_dict) is dict:
+            response_list = response_dict.get("stories")
+        else:
+            raise TypeError("Error: Invalid response type")
+
+        if type(response_list) is not list:
+            raise TypeError("Error: Invalid response type")
+
+        log(f"{datetime.now().strftime('%H:%M:%S')} got list with {len(response_list)} items ")
+
+        sent_ids = [s['id'] for s in pages[i]]
+        received_ids = [r['id'] for r in response_list]
+        difference = set(sent_ids) - set(received_ids)
+        if difference:
+            log(f"mismatched items, {str(difference)}")
+
+        retlist.extend(response_list)
+
+    log(f"{datetime.now().strftime('%H:%M:%S')} Processed {len(retlist)} responses.")
+
+    return retlist

@@ -24,6 +24,7 @@ import yaml
 import dotenv
 import sqlite3
 import argparse
+import asyncio
 
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -38,13 +39,15 @@ from ainb_const import (DOWNLOAD_DIR,
                         SOURCECONFIG, PROMPT)
 from ainb_utilities import log, delete_files, filter_unseen_urls_db, insert_article, unicode_to_ascii, agglomerative_cluster_sort
 from ainb_webscrape import init_browser, get_file, parse_file
-from ainb_llm import paginate_df, process_pages
+from ainb_llm import paginate_df, fetch_pages, process_pages
 ############################################################################################################
 # initialize configs
 ############################################################################################################
 
 # load secrets, credentials
 dotenv.load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+client = OpenAI()
 
 # Parse command line arguments
 parser = argparse.ArgumentParser()
@@ -75,7 +78,6 @@ for k, v in sources.items():
 ############################################################################################################
 # Get HTML files
 ############################################################################################################
-# empty download directory
 if disable_web_fetch:
     # get list of files in htmldata directory
     # List all paths in the directory matching today's date
@@ -172,8 +174,8 @@ filtered_df = filter_unseen_urls_db(orig_df)
 # make pages that fit in a reasonably sized prompt
 pages = paginate_df(filtered_df)
 
-client = OpenAI()
-enriched_urls = process_pages(client, PROMPT, pages)
+enriched_urls = asyncio.run(fetch_pages(PROMPT, pages))
+# enriched_urls = process_pages(client, PROMPT, pages)
 
 enriched_df = pd.DataFrame(enriched_urls)
 enriched_df.head()

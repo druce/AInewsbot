@@ -27,7 +27,7 @@ class BB_agent_tool(object):
     # class variable keeping track of all agents created
     agent_registry = {}
 
-    def __init__(self, name, description, openapi_path, parameters, example_parameter_values, callable=None, singular=0):
+    def __init__(self, name, description, openapi_path, parameters, default_parameters, example_parameter_values, callable=None, singular=0):
         """
         Initialize the BB_agent_tool instance.
 
@@ -46,6 +46,7 @@ class BB_agent_tool(object):
         self.description = description
         self.openapi_path = openapi_path
         self.parameters = parameters
+        self.default_parameters = default_parameters
         self.example_parameter_values = example_parameter_values
         self.singular = singular
         # needs either openapi_path or callable
@@ -82,6 +83,10 @@ class BB_agent_tool(object):
         """
         retval = None
         try:
+            # add default parameters to kwargs
+            for k, v in self.default_parameters.items():
+                if k not in kwargs:
+                    kwargs[k] = v
             # call the tool function
             obj = self.callable(**kwargs)
             # if custom tool, it returns a list
@@ -335,7 +340,7 @@ def agent_query(client, user_message, raw=False, verbose=True):
 Available tools, with name, description, and calling example, delimited by ---:
 {tool_descs}
     """
-    # print(bb_agent_system_prompt)
+
     RETRIES = 3
     for retry in range(RETRIES):
         try:
@@ -343,6 +348,11 @@ Available tools, with name, description, and calling example, delimited by ---:
                 print(f"retrying, attempt {retry + 1}")
             messages = [{"role": "system", "content": current_system_prompt},
                         {"role": "user", "content": user_message}]
+            if verbose:
+                print(bb_agent_system_prompt)
+                for m in messages:
+                    print(f"{m['role']}: {m['content']}")
+
             response = get_response_and_eval(
                 client, messages, tools=openai_tools, raw=raw, verbose=verbose)
             response_str = response.choices[0].message.content
