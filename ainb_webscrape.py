@@ -1,6 +1,8 @@
 from datetime import datetime
 import time
 import re
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -19,6 +21,8 @@ from ainb_const import DOWNLOAD_DIR, GECKODRIVER_PATH, FIREFOX_PROFILE_PATH, MIN
 from ainb_utilities import log
 
 # get a page title from html or tags if you have not-descriptive link titles like 'link'
+
+DRIVERS = []
 
 
 def get_og_tags(url):
@@ -148,7 +152,7 @@ def get_encoding(driver):
     return "utf-8"
 
 
-def init_browser(geckodriver_path=GECKODRIVER_PATH, firefox_profile_path=FIREFOX_PROFILE_PATH):
+def get_driver(geckodriver_path=GECKODRIVER_PATH, firefox_profile_path=FIREFOX_PROFILE_PATH):
     """
     Initializes a Selenium webdriver with the specified geckodriver and Firefox profile.
 
@@ -160,23 +164,34 @@ def init_browser(geckodriver_path=GECKODRIVER_PATH, firefox_profile_path=FIREFOX
         webdriver.Firefox: The initialized Firefox webdriver.
 
     """
+
     # initialize selenium driver
     # Set up Firefox options to use existing profile
     # important for some sites that need a login, also a generic profile fingerlog that looks like a bot might get blocked
-    log("Initializing webdriver", "init_browser")
+    log(f"{os.getpid()} Initializing webdriver", "get_driver")
+
+    global DRIVERS
 
     options = Options()
     options.profile = firefox_profile_path
-    log("Initialized webdriver profile", "init_browser")
+    log("Initialized webdriver profile", "get_driver")
 
     # Create a Service object with the path
     service = Service(geckodriver_path)
-    log("Initialized webdriver service", "init_browser")
+    log("Initialized webdriver service", "get_driver")
 
     # Set up the Firefox driver
     driver = webdriver.Firefox(service=service, options=options)
-    log("Initialized webdriver", "init_browser")
+    DRIVERS.append(driver)
+    log("Initialized webdriver", "get_driver")
     return driver
+
+
+# this doesn't work as expected, DRIVERS is empty
+def quit_drivers():
+    log(f"quitting {len(DRIVERS)} webdrivers", "quit_drivers")
+    for driver in DRIVERS:
+        driver.quit()
 
 
 def get_file(sourcedict, driver=None):
@@ -196,14 +211,16 @@ def get_file(sourcedict, driver=None):
 
     """
     if not driver:
-        driver = init_browser()
+        driver = get_driver()
+
+    pid = os.getpid()
 
     title = sourcedict["title"]
     url = sourcedict.get("url")
     scroll = sourcedict.get("scroll", 0)
     click = sourcedict.get("click")
 
-    log(f"starting get_files {url}", f'get_files({title})')
+    log(f"{pid} starting get_files {url}", f'get_files({title})')
 
     # Open the page
     driver.get(url)
@@ -212,17 +229,18 @@ def get_file(sourcedict, driver=None):
     time.sleep(sleeptime)  # Adjust the sleep time as necessary
 
     if click:
-        log(f"Attempting to click on {click}", f'get_files({title})')
+        log(f"{pid} Attempting to click on {click}", f'get_files({title})')
         button = driver.find_element(By.XPATH, click)
         if button:
             button.click()
-            log("Clicked", 'get_files')
+            log(f"{pid} Clicked", 'get_files')
 
     for _ in range(scroll):
         # scroll to bottom of infinite scrolling window
         driver.execute_script(
             "window.scrollTo(0, document.body.scrollHeight);")
-        log("Loading additional infinite scroll items", f'get_files({title})')
+        log(f"{pid} Loading additional infinite scroll items",
+            f'get_files({title})')
         time.sleep(sleeptime)  # wait for it to load additional items
 
     # Get the HTML source of the page
@@ -245,7 +263,7 @@ def get_file(sourcedict, driver=None):
     # Save the HTML to a local file
     datestr = datetime.now().strftime("%m_%d_%Y %I_%M_%S %p")
     outfile = f'{title} ({datestr}).html'
-    log(f"Saving {outfile} as {encoding}", f'get_files({title})')
+    log(f"{pid} Saving {outfile} as {encoding}", f'get_files({title})')
     destpath = DOWNLOAD_DIR + "/" + outfile
     with open(destpath, 'w', encoding=encoding) as file:
         file.write(html_source)
@@ -348,3 +366,55 @@ def parse_file(sourcedict):
     log(f"found {len(retlist)} filtered links", "parse_file")
 
     return retlist
+
+
+def process_queue_factory(q):
+    """creates a queue processor function closure on the queue q
+
+    Args:
+        q (Queue): Multiprocessing queue containing the source dictionaries to process.
+    """
+    def process_queue():
+        """
+        Opens a browser using Selenium driver, processes the queue until it is empty,
+        saves the file names, and then closes the browser.
+
+        Returns:
+            A list of tuples containing the sourcename and sourcefile for each processed item.
+        """
+        # launch browser via selenium driver
+        driver = get_driver()
+        saved_pages = []
+        while not q.empty():
+            sourcedict = q.get()
+            sourcename = sourcedict['sourcename']
+            log(f'Processing {sourcename}')
+            sourcefile = get_file(sourcedict, driver)
+            saved_pages.append((sourcename, sourcefile))
+        # Close the browser
+        log("Quit webdriver")
+        driver.quit()
+        return saved_pages
+    return process_queue
+
+
+def launch_drivers(n, callable):
+    """
+    Launches n threads of callable (browser scrapers) and returns the collected results.
+
+    Parameters:
+    callable (function): The function to be executed by each thread.
+    n (int): The number of threads to launch.
+
+    Returns:
+    list: A list of results collected from each thread.
+
+    """
+    with ThreadPoolExecutor(max_workers=n) as executor:
+        # Create a list of future objects
+        futures = [executor.submit(callable) for _ in range(n)]
+
+        # Collect the results (web drivers) as they complete
+        retarray = [future.result() for future in as_completed(futures)]
+
+    return retarray

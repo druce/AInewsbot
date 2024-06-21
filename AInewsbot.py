@@ -26,6 +26,8 @@ import sqlite3
 import argparse
 import asyncio
 
+import multiprocessing
+
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -38,8 +40,9 @@ from openai import OpenAI
 from ainb_const import (DOWNLOAD_DIR,
                         SOURCECONFIG, PROMPT)
 from ainb_utilities import log, delete_files, filter_unseen_urls_db, insert_article, unicode_to_ascii, agglomerative_cluster_sort
-from ainb_webscrape import init_browser, get_file, parse_file
-from ainb_llm import paginate_df, fetch_pages, process_pages
+from ainb_webscrape import parse_file, process_queue_factory, launch_drivers
+from ainb_llm import paginate_df, fetch_pages
+
 ############################################################################################################
 # initialize configs
 ############################################################################################################
@@ -120,21 +123,28 @@ if disable_web_fetch:
         saved_pages.append((sourcename, file))
 else:
     # delete existing files and fetch all using selenium
+    log(f"Delete existing HTML files in {DOWNLOAD_DIR}")
     delete_files(DOWNLOAD_DIR)
 
-    # launch browser via selenium driver
-    driver = init_browser()
-
-    # save each file specified from sources
     log("Fetching HTML files")
+
+    # Create a queue for multiprocessing and populate it with 20 numbers
+    queue = multiprocessing.Queue()
+    for item in sources.values():
+        queue.put(item)
+
+    callable = process_queue_factory(queue)
+
+    NBROWSERS = 3
+    results = launch_drivers(NBROWSERS, callable)
+
+    # flatten results list of lists to a single list of tuples
     saved_pages = []
-    for sourcename, sourcedict in sources.items():
-        log(f'Processing {sourcename}')
-        sourcefile = get_file(sourcedict, driver=driver)
-        saved_pages.append((sourcename, sourcefile))
-    # Close the browser
-    log("Quit webdriver")
-    driver.quit()
+    for r in results:
+        saved_pages.extend(r)
+    # update sources with latest filename
+    for sourcename, filename in saved_pages:
+        sources[sourcename]['latest'] = filename
 
 ############################################################################################################
 # Parse news URLs and titles from downloaded HTML files
