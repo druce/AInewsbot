@@ -194,6 +194,71 @@ def quit_drivers():
         driver.quit()
 
 
+def get_url(url, driver=None):
+    """
+    Fetches a URL using a Selenium driver. TODO: call this within get_file
+
+    Args:
+        url (dict): A url
+        driver (WebDriver, optional): The Selenium driver to use. If not provided, a new driver will be initialized.
+
+    Returns:
+        str: The path to the downloaded file.
+
+    Raises:
+        Exception: If there is an error during the execution of the function.
+
+    """
+    if not driver:
+        driver = get_driver()
+
+    log(f"starting get_files {url}", f'get_url({url})')
+
+    # Open the page
+    driver.get(url)
+
+    # Wait for the page to load
+    time.sleep(sleeptime)  # Adjust the sleep time as necessary
+
+    # Get the HTML source of the page
+    html_source = driver.page_source
+
+    # get the title and sanitize
+    try:
+        title = re.sub(r'[^a-zA-Z0-9_\-]', '_', driver.title)
+        title = title[:200]
+    except Exception as exc:
+        print(exc)
+        title = ''
+    if len(title) < 6:
+        # Generate a  random UUID for title
+        title = uuid.uuid4()
+
+    # check encoding, default utf-8
+    encoding = "utf-8"  # Default to UTF-8 if not specified
+    # Retrieve the content-type meta tag from the HTML
+    try:
+        meta_tag = driver.find_element(
+            By.XPATH, "//meta[@http-equiv='Content-Type']")
+        content_type = meta_tag.get_attribute("content")
+        # Typical format is "text/html; charset=UTF-8"
+        charset_start = content_type.find("charset=")
+        if charset_start != -1:
+            encoding = content_type[charset_start + 8:]
+    except Exception as err:
+        log(str(err))
+
+    # Save the HTML to a local file
+    datestr = datetime.now().strftime('%Y%m%d_%H%M%S')
+    outfile = f'{title}_{datestr}.html'
+    log(f"Saving {outfile} as {encoding}", f'get_url({title})')
+    destpath = DOWNLOAD_DIR + "/" + outfile
+    with open(destpath, 'w', encoding=encoding) as file:
+        file.write(html_source)
+
+    return destpath
+
+
 def get_file(sourcedict, driver=None):
     """
     Fetches a URL using a Selenium driver and parameters defined in sources.yaml.
@@ -213,33 +278,34 @@ def get_file(sourcedict, driver=None):
     if not driver:
         driver = get_driver()
 
-    pid = os.getpid()
-
     title = sourcedict["title"]
     url = sourcedict.get("url")
     scroll = sourcedict.get("scroll", 0)
     click = sourcedict.get("click")
+    initial_sleep = sourcedict.get("initial_sleep")
 
-    log(f"{pid} starting get_files {url}", f'get_files({title})')
+    log(f"starting get_files {url}", f'get_files({title})')
 
     # Open the page
     driver.get(url)
 
     # Wait for the page to load
-    time.sleep(sleeptime)  # Adjust the sleep time as necessary
+    if not initial_sleep:
+        initial_sleep = sleeptime
+    time.sleep(initial_sleep)  # Adjust the sleep time as necessary
 
     if click:
-        log(f"{pid} Attempting to click on {click}", f'get_files({title})')
+        log(f"Attempting to click on {click}", f'get_files({title})')
         button = driver.find_element(By.XPATH, click)
         if button:
             button.click()
-            log(f"{pid} Clicked", 'get_files')
+            log(f"Clicked", 'get_files')
 
     for _ in range(scroll):
         # scroll to bottom of infinite scrolling window
         driver.execute_script(
             "window.scrollTo(0, document.body.scrollHeight);")
-        log(f"{pid} Loading additional infinite scroll items",
+        log("Loading additional infinite scroll items",
             f'get_files({title})')
         time.sleep(sleeptime)  # wait for it to load additional items
 
@@ -263,7 +329,7 @@ def get_file(sourcedict, driver=None):
     # Save the HTML to a local file
     datestr = datetime.now().strftime("%m_%d_%Y %I_%M_%S %p")
     outfile = f'{title} ({datestr}).html'
-    log(f"{pid} Saving {outfile} as {encoding}", f'get_files({title})')
+    log(f"Saving {outfile} as {encoding}", f'get_files({title})')
     destpath = DOWNLOAD_DIR + "/" + outfile
     with open(destpath, 'w', encoding=encoding) as file:
         file.write(html_source)

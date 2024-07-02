@@ -18,6 +18,7 @@
 #
 ############################################################################################################
 
+import pdb
 import os
 from datetime import datetime
 import yaml
@@ -151,6 +152,7 @@ else:
 ############################################################################################################
 
 # Parse news URLs and titles from downloaded HTML files
+
 log("parsing html files")
 all_urls = []
 for sourcename, filename in saved_pages:

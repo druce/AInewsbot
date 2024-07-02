@@ -5,7 +5,7 @@ import json
 import tiktoken
 import asyncio
 import aiohttp
-from ainb_const import OPENAI_API_KEY, MODEL, MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS, MAX_RETRIES, MAXPAGELEN, TEMPERATURE, sleeptime
+from ainb_const import LOWCOST_MODEL, MODEL, MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS, MAX_RETRIES, MAXPAGELEN, TEMPERATURE, sleeptime
 from ainb_utilities import log
 
 
@@ -20,7 +20,8 @@ def count_tokens(s):
         int: The number of tokens in the input string.
     """
     # no tokeniser returned yet for gpt-4o-2024-05-13
-    enc = tiktoken.encoding_for_model('gpt-4')
+    enc = tiktoken.encoding_for_model(MODEL)
+    # enc = tiktoken.get_encoding('o200k_base')
     assert enc.decode(enc.encode("hello world")) == "hello world"
     return len(enc.encode(s))
 
@@ -29,7 +30,7 @@ async def get_response_json(
     client,
     messages,
     verbose=False,
-    model=MODEL,
+    model=LOWCOST_MODEL,
     max_output_tokens=MAX_OUTPUT_TOKENS,
     max_retries=MAX_RETRIES,
     temperature=TEMPERATURE,
@@ -177,6 +178,7 @@ async def process_pages(client, prompt, pages):
         list: A list of enriched URLs.
 
     """
+    client = openai.ChatCompletion.create()
     enriched_urls = []
     tasks = []
     for i, p in enumerate(pages):

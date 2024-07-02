@@ -4,6 +4,9 @@ dotenv.load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 DOWNLOAD_DIR = "htmldata"
+if not os.path.exists(DOWNLOAD_DIR):
+    os.makedirs(DOWNLOAD_DIR)
+
 # Path to geckodriver
 GECKODRIVER_PATH = '/Users/drucev/webdrivers/geckodriver'
 # Path to browser app
@@ -16,6 +19,7 @@ sleeptime = 10
 SQLITE_DB = 'articles.db'
 
 MODEL = "gpt-4o"
+LOWCOST_MODEL = "gpt-3.5-turbo-0125"
 
 MAX_INPUT_TOKENS = 8192     # includes text of all headlines
 MAX_OUTPUT_TOKENS = 4096    # max in current model
