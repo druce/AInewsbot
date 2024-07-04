@@ -29,6 +29,8 @@ import asyncio
 
 import multiprocessing
 
+import markdown
+
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -39,14 +41,15 @@ import pandas as pd
 from openai import OpenAI
 
 from ainb_const import (DOWNLOAD_DIR,
-                        SOURCECONFIG, PROMPT)
+                        SOURCECONFIG, PROMPT, MODEL, FINAL_SUMMARY_PROMPT)
 from ainb_utilities import log, delete_files, filter_unseen_urls_db, insert_article, unicode_to_ascii, agglomerative_cluster_sort
-from ainb_webscrape import parse_file, process_queue_factory, launch_drivers
-from ainb_llm import paginate_df, fetch_pages
+from ainb_webscrape import parse_file, process_source_queue_factory, process_url_queue_factory, launch_drivers
+from ainb_llm import paginate_df, fetch_pages, fetch_all2
 
 ############################################################################################################
 # initialize configs
 ############################################################################################################
+
 
 # load secrets, credentials
 dotenv.load_dotenv()
@@ -134,7 +137,7 @@ else:
     for item in sources.values():
         queue.put(item)
 
-    callable = process_queue_factory(queue)
+    callable = process_source_queue_factory(queue)
 
     NBROWSERS = 3
     results = launch_drivers(NBROWSERS, callable)
@@ -185,19 +188,16 @@ filtered_df = filter_unseen_urls_db(orig_df)
 
 # make pages that fit in a reasonably sized prompt
 pages = paginate_df(filtered_df)
-
 enriched_urls = asyncio.run(fetch_pages(PROMPT, pages))
 # enriched_urls = process_pages(client, PROMPT, pages)
 
 enriched_df = pd.DataFrame(enriched_urls)
-enriched_df.head()
 
 log("isAI", len(enriched_df.loc[enriched_df["isAI"]]))
 log("not isAI", len(enriched_df.loc[~enriched_df["isAI"]]))
 
 merged_df = pd.merge(filtered_df, enriched_df, on="id", how="outer")
 merged_df['date'] = datetime.now().date()
-merged_df.head()
 
 # should be empty, shouldn't get back rows that don't match to existing
 log(f"Unmatched response rows: {len(merged_df.loc[merged_df['src'].isna()])}")
@@ -261,6 +261,116 @@ log("Sending mail")
 from_addr = os.getenv("GMAIL_USER")
 to_addr = os.getenv("GMAIL_USER")
 subject = 'AI news ' + datetime.now().strftime('%H:%M:%S')
+body = f"""
+<html>
+    <head></head>
+    <body>
+    <div>
+    {html_str}
+    </div>
+    </body>
+</html>
+"""
+
+# Setup the MIME
+message = MIMEMultipart()
+message['From'] = os.getenv("GMAIL_USER")
+message['To'] = os.getenv("GMAIL_USER")
+message['Subject'] = subject
+message.attach(MIMEText(body, 'html'))
+
+# Create SMTP session
+with smtplib.SMTP('smtp.gmail.com', 587) as server:
+    server.starttls()  # Secure the connection
+    server.login(os.getenv("GMAIL_USER"), os.getenv("GMAIL_PASSWORD"))
+    text = message.as_string()
+    server.sendmail(from_addr, to_addr, text)
+
+log("Enqueuing URLs")
+queue = multiprocessing.Queue()
+for row in AIdf.itertuples():
+    queue.put((row.id, row.url, row.title))
+
+callable = process_url_queue_factory(queue)
+
+num_browsers = 4
+log(f"fetching {len(AIdf)} pages using {num_browsers} browsers")
+results = launch_drivers(num_browsers, callable)
+
+# flatten results
+saved_pages = []
+for r in results:
+    saved_pages.extend(r)
+
+# merge with AIdf to get path
+pages_df = pd.DataFrame(saved_pages)
+pages_df.columns = ['id', 'url', 'title', 'path']
+AIdf = pd.merge(AIdf, pages_df[["id", "path"]], on='id', how="inner")
+
+log("Summarizing articles as bullet points")
+responses = asyncio.run(fetch_all2(AIdf))
+
+log("Converting bullet points to HTML")
+# bring summaries into dict
+response_dict = {}
+for i, response in responses:
+    try:
+        response_str = response["choices"][0]["message"]["content"]
+        response_dict[i] = response_str
+    except Exception as exc:
+        log(exc)
+
+markdown_str = ''
+for i, row in enumerate(AIdf.itertuples()):
+    mdstr = f"[{i+1}. {row.title}]({row.url})  \n\n{response_dict[row.id]} \n\n"
+    markdown_str += mdstr
+# Convert Markdown to HTML
+html_str = markdown.markdown(markdown_str, extensions=['extra'])
+
+log("Sending mail")
+from_addr = os.getenv("GMAIL_USER")
+to_addr = os.getenv("GMAIL_USER")
+subject = 'AI news summaries ' + datetime.now().strftime('%H:%M:%S')
+body = f"""
+<html>
+    <head></head>
+    <body>
+    <div>
+    {html_str}
+    </div>
+    </body>
+</html>
+"""
+
+# Setup the MIME
+message = MIMEMultipart()
+message['From'] = os.getenv("GMAIL_USER")
+message['To'] = os.getenv("GMAIL_USER")
+message['Subject'] = subject
+message.attach(MIMEText(body, 'html'))
+
+# Create SMTP session
+with smtplib.SMTP('smtp.gmail.com', 587) as server:
+    server.starttls()  # Secure the connection
+    server.login(os.getenv("GMAIL_USER"), os.getenv("GMAIL_PASSWORD"))
+    text = message.as_string()
+    server.sendmail(from_addr, to_addr, text)
+
+# summarize bullet points
+response = client.chat.completions.create(
+    model=MODEL,
+    messages=[{"role": "user", "content": FINAL_SUMMARY_PROMPT + markdown_str
+               }],
+    n=1,
+    temperature=0.5
+)
+markdown_str = response.choices[0].message.content
+# Convert Markdown to HTML
+html_str = markdown.markdown(markdown_str)
+log("Sending mail")
+from_addr = os.getenv("GMAIL_USER")
+to_addr = os.getenv("GMAIL_USER")
+subject = 'AI news summaries ' + datetime.now().strftime('%H:%M:%S')
 body = f"""
 <html>
     <head></head>

@@ -1,6 +1,7 @@
 import logging
 import os
 import unicodedata
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -103,8 +104,8 @@ def insert_article(conn, cursor, src, title, url, isAI, article_date):
         None
     """
     try:
-        cursor.execute("INSERT OR IGNORE INTO news_articles (src, title, url, isAI, article_date) VALUES (?, ?, ?, ?, ?)",
-                       (src, title, url, isAI, article_date))
+        cursor.execute("INSERT OR IGNORE INTO news_articles (src, title, url, isAI, article_date, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+                       (src, title, url, isAI, article_date, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         conn.commit()
     except sqlite3.IntegrityError:
         log(f"Duplicate entry for URL: {url}")

@@ -5,7 +5,11 @@ import json
 import tiktoken
 import asyncio
 import aiohttp
-from ainb_const import LOWCOST_MODEL, MODEL, MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS, MAX_RETRIES, MAXPAGELEN, TEMPERATURE, sleeptime
+import openai
+from bs4 import BeautifulSoup
+from ainb_const import (LOWCOST_MODEL, MODEL, MAX_OUTPUT_TOKENS, MAX_RETRIES, TEMPERATURE,
+                        sleeptime, MAX_INPUT_TOKENS, MAXPAGELEN,
+                        SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT)
 from ainb_utilities import log
 
 
@@ -232,7 +236,7 @@ async def fetch_openai(session, payload):
 async def fetch_pages(prompt, pages):
 
     # make a prompt and payload for each page
-    payloads = [{"model":  MODEL,
+    payloads = [{"model":  LOWCOST_MODEL,
                  "response_format": {"type": "json_object"},
                  "messages": [{"role": "user",
                                "content": prompt + json.dumps(p)
@@ -279,3 +283,79 @@ async def fetch_pages(prompt, pages):
     log(f"{datetime.now().strftime('%H:%M:%S')} Processed {len(retlist)} responses.")
 
     return retlist
+
+
+async def fetch_all2(page_df):
+
+    tasks = []
+    responses = []
+    async with aiohttp.ClientSession() as session:
+
+        for row in page_df.itertuples():
+
+            # Read the HTML file
+            try:
+                with open(row.path, 'r', encoding='utf-8') as file:
+                    html_content = file.read()
+            except Exception as exc:
+                print(exc)
+                print(f"Skipping {row.id} : {row.path}")
+                continue
+
+            # Parse the HTML content using BeautifulSoup
+            soup = BeautifulSoup(html_content, 'html.parser')
+
+            # Filter out script and style elements
+            for script_or_style in soup(['script', 'style']):
+                script_or_style.extract()
+
+            # Get text and strip leading/trailing whitespace
+            visible_text = soup.get_text(separator=' ', strip=True)
+            visible_text = visible_text[:MAX_INPUT_TOKENS]
+
+            userprompt = f"""{SUMMARIZE_USER_PROMPT}:
+{visible_text}
+            """
+
+            payload = {"model":  LOWCOST_MODEL,
+                       "messages": [{"role": "system",
+                                     "content": SUMMARIZE_SYSTEM_PROMPT
+                                     },
+                                    {"role": "user",
+                                     "content": userprompt
+                                     }]
+                       }
+
+            task = asyncio.create_task(fetch_openai2(session, payload, row.id))
+            tasks.append(task)
+
+        responses = await asyncio.gather(*tasks)
+        return responses
+
+
+async def fetch_openai2(session, payload, i):
+    """
+    Asynchronously fetches a response from the OpenAI URL using an aiohttp ClientSession.
+    This version returns the id as well as the response, to allow us to map the summary to the original request.
+
+    Parameters:
+    - session (aiohttp.ClientSession): The aiohttp ClientSession object used for making HTTP requests.
+    - payload (dict): The payload to be sent in the request body as JSON.
+    - i (int): an id to return, to allow us map summary to original request
+
+    Returns:
+    - dict: The full JSON response from the OpenAI API.
+
+    Raises:
+    - aiohttp.ClientError: If there is an error during the HTTP request.
+
+    Example usage:
+    ```
+    async with aiohttp.ClientSession() as session:
+        response = await fetch_openai(session, payload)
+        print(response)
+    ```
+    """
+    async with session.post(API_URL, headers=headers, json=payload) as response:
+        retval = await response.json()
+        return (i, retval)

@@ -2,6 +2,7 @@ from datetime import datetime
 import time
 import re
 import os
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from selenium import webdriver
@@ -194,7 +195,7 @@ def quit_drivers():
         driver.quit()
 
 
-def get_url(url, driver=None):
+def get_url(url, title, driver=None):
     """
     Fetches a URL using a Selenium driver. TODO: call this within get_file
 
@@ -223,34 +224,37 @@ def get_url(url, driver=None):
     # Get the HTML source of the page
     html_source = driver.page_source
 
-    # get the title and sanitize
-    try:
-        title = re.sub(r'[^a-zA-Z0-9_\-]', '_', driver.title)
-        title = title[:200]
-    except Exception as exc:
-        print(exc)
-        title = ''
-    if len(title) < 6:
-        # Generate a  random UUID for title
-        title = uuid.uuid4()
+    # get the page title and sanitize
+    # try:
+    #     title = re.sub(r'[^a-zA-Z0-9_\-]', '_', driver.title)
+    #     title = title[:200]
+    # except Exception as exc:
+    #     print(exc)
+    #     title = ''
+    # if len(title) < 6:
+    #     # Generate a  random UUID for title
+    #     title = uuid.uuid4()
 
     # check encoding, default utf-8
     encoding = "utf-8"  # Default to UTF-8 if not specified
     # Retrieve the content-type meta tag from the HTML
-    try:
-        meta_tag = driver.find_element(
-            By.XPATH, "//meta[@http-equiv='Content-Type']")
-        content_type = meta_tag.get_attribute("content")
-        # Typical format is "text/html; charset=UTF-8"
-        charset_start = content_type.find("charset=")
-        if charset_start != -1:
-            encoding = content_type[charset_start + 8:]
-    except Exception as err:
-        log(str(err))
+    # try:
+    #     meta_tag = driver.find_element(
+    #         By.XPATH, "//meta[@http-equiv='Content-Type']")
+    #     content_type = meta_tag.get_attribute("content")
+    #     # Typical format is "text/html; charset=UTF-8"
+    #     charset_start = content_type.find("charset=")
+    #     if charset_start != -1:
+    #         encoding = content_type[charset_start + 8:]
+    # except Exception as err:
+    #     log(str(err))
 
     # Save the HTML to a local file
     datestr = datetime.now().strftime('%Y%m%d_%H%M%S')
-    outfile = f'{title}_{datestr}.html'
+    filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', title)
+    trunclen = 255-len(datestr)-6
+    filename = filename[:trunclen]
+    outfile = f'{filename}_{datestr}.html'
     log(f"Saving {outfile} as {encoding}", f'get_url({title})')
     destpath = DOWNLOAD_DIR + "/" + outfile
     with open(destpath, 'w', encoding=encoding) as file:
@@ -299,7 +303,7 @@ def get_file(sourcedict, driver=None):
         button = driver.find_element(By.XPATH, click)
         if button:
             button.click()
-            log(f"Clicked", 'get_files')
+            log("Clicked", 'get_files')
 
     for _ in range(scroll):
         # scroll to bottom of infinite scrolling window
@@ -434,8 +438,10 @@ def parse_file(sourcedict):
     return retlist
 
 
-def process_queue_factory(q):
+def process_source_queue_factory(q):
     """creates a queue processor function closure on the queue q
+    This function expects a sourcedict in the queue
+    Used to launch parallel selenium workers on the front pages in sources.yaml
 
     Args:
         q (Queue): Multiprocessing queue containing the source dictionaries to process.
@@ -457,6 +463,35 @@ def process_queue_factory(q):
             log(f'Processing {sourcename}')
             sourcefile = get_file(sourcedict, driver)
             saved_pages.append((sourcename, sourcefile))
+        # Close the browser
+        log("Quit webdriver")
+        driver.quit()
+        return saved_pages
+    return process_queue
+
+
+def process_url_queue_factory(q):
+    """creates a queue processor function closure on the queue q
+
+    Args:
+        q (Queue): Multiprocessing queue containing the source dictionaries to process.
+    """
+    def process_queue():
+        """
+        Opens a browser using Selenium driver, processes the queue until it is empty,
+        saves the file names, and then closes the browser.
+
+        Returns:
+            A list of tuples containing the sourcename and sourcefile for each processed item.
+        """
+        # launch browser via selenium driver
+        driver = get_driver()
+        saved_pages = []
+        while not q.empty():
+            i, url, title = q.get()
+            log(f'Processing {url}')
+            savefile = get_url(url, title, driver)
+            saved_pages.append((i, url, title, savefile))
         # Close the browser
         log("Quit webdriver")
         driver.quit()
