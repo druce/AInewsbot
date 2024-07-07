@@ -1,6 +1,5 @@
 import os
 import time
-from datetime import datetime
 import json
 import tiktoken
 import asyncio
@@ -9,7 +8,7 @@ import openai
 from bs4 import BeautifulSoup
 from ainb_const import (LOWCOST_MODEL, MODEL, MAX_OUTPUT_TOKENS, MAX_RETRIES, TEMPERATURE,
                         sleeptime, MAX_INPUT_TOKENS, MAXPAGELEN,
-                        SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT)
+                        FILTER_PROMPT, SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT)
 from ainb_utilities import log
 
 
@@ -28,6 +27,19 @@ def count_tokens(s):
     # enc = tiktoken.get_encoding('o200k_base')
     assert enc.decode(enc.encode("hello world")) == "hello world"
     return len(enc.encode(s))
+
+
+def trunc_tokens(long_prompt, model=MODEL, maxtokens=MAX_INPUT_TOKENS):
+
+    # Initialize the encoding for the model you are using, e.g., 'gpt-4'
+    encoding = tiktoken.encoding_for_model(model)
+
+    # Encode the prompt into tokens, truncate, and return decoded prompt
+    tokens = encoding.encode(long_prompt)
+    tokens = tokens[:maxtokens]
+    truncated_prompt = encoding.decode(tokens)
+
+    return truncated_prompt
 
 
 async def get_response_json(
@@ -114,10 +126,10 @@ async def fetch_response(client, prompt, p):
                 retlist.extend(v)
             else:  # maybe a weird dict with keys  of id
                 retlist.append(v)
-        log(f"{datetime.now().strftime('%H:%M:%S')} got dict with {len(retlist)} items ")
+        log(f"got dict with {len(retlist)} items ")
     elif type(response_json) is list:
         retlist = response_json
-        log(f"{datetime.now().strftime('%H:%M:%S')} got list with {len(retlist)} items ")
+        log(f"got list with {len(retlist)} items ")
     else:
         raise TypeError("Error: Invalid response type")
 
@@ -233,60 +245,109 @@ async def fetch_openai(session, payload):
         return await response.json()
 
 
-async def fetch_pages(prompt, pages):
+async def async_filter_page(
+    p,
+    session,
+    prompt=FILTER_PROMPT,
+    model=LOWCOST_MODEL,
+    max_retries=MAX_RETRIES,
+    temperature=TEMPERATURE,
+    verbose=False,
+):
+    retlist = []
+    for i in range(max_retries):
+        try:
+            if i > 0:
+                log(f"Attempt {i+1}...")
 
-    # make a prompt and payload for each page
-    payloads = [{"model":  LOWCOST_MODEL,
-                 "response_format": {"type": "json_object"},
-                 "messages": [{"role": "user",
-                               "content": prompt + json.dumps(p)
-                               }]
-                 } for p in pages]
+            messages = [{"role": "user",
+                         "content": prompt + json.dumps(p)
+                         }]
 
+            payload = {"model":  model,
+                       "response_format": {"type": "json_object"},
+                       "messages": messages,
+                       "temperature": temperature
+                       }
+
+            log(f"sent {len(p)} items ")
+
+            response = await fetch_openai(session, payload)
+
+            # valid json
+            response_json = json.loads(
+                response["choices"][0]["message"]["content"])
+
+            if verbose:
+                print(response_json)
+
+            # valid dict in json
+            if type(response_json) is dict:
+                for k, v in response_json.items():
+                    # came back correctly as e.g. {'stories': []}
+                    if type(v) is list:
+                        retlist.extend(v)
+                    else:  # maybe a weird dict with keys  of id
+                        retlist.append(v)
+                log(f"got dict with {len(retlist)} items ")
+            elif type(response_json) is list:
+                retlist = response_json
+                log(f"got list with {len(retlist)} items ")
+            else:
+                raise TypeError("Error: Invalid response type")
+
+            # sent items match received items
+            sent_ids = [s['id'] for s in p]
+            received_ids = [r['id'] for r in retlist]
+            difference = set(sent_ids) - set(received_ids)
+
+            if verbose:
+                print(difference)
+
+            if difference:
+                log(f"missing items, {str(difference)}")
+                raise TypeError("Error: response mismatch")
+
+            # success
+            return retlist
+
+        except Exception as exc:
+            log(f"Error: {exc}")
+
+    # failed all retries, return []
+    log("MAX_RETRIES exceeded")
+    return retlist
+
+
+async def fetch_pages(pages,
+                      prompt=FILTER_PROMPT,
+                      model=LOWCOST_MODEL,
+                      max_retries=MAX_RETRIES,
+                      temperature=TEMPERATURE,
+                      verbose=False,):
+
+    tasks = []
     async with aiohttp.ClientSession() as session:
-        tasks = []
-        for payload in payloads:
-            task = asyncio.create_task(fetch_openai(session, payload))
+        for p in pages:
+            task = asyncio.create_task(async_filter_page(p,
+                                                         session,
+                                                         prompt=prompt,
+                                                         model=model,
+                                                         max_retries=max_retries,
+                                                         temperature=temperature,
+                                                         verbose=verbose,
+                                                         ))
             tasks.append(task)
 
         responses = await asyncio.gather(*tasks)
+    retlist = [item for sublist in responses for item in sublist]
 
-    # validate and process the responses
-    log(f"{datetime.now().strftime('%H:%M:%S')} Processing responses... ")
-
-    retlist = []
-    for i, response in enumerate(responses):
-        try:
-            response_dict = json.loads(
-                response["choices"][0]["message"]["content"])
-        except Exception as e:
-            raise TypeError("Error: Invalid response " + str(e))
-
-        if type(response_dict) is dict:
-            response_list = response_dict.get("stories")
-        else:
-            raise TypeError("Error: Invalid response type")
-
-        if type(response_list) is not list:
-            raise TypeError("Error: Invalid response type")
-
-        log(f"{datetime.now().strftime('%H:%M:%S')} got list with {len(response_list)} items ")
-
-        sent_ids = [s['id'] for s in pages[i]]
-        received_ids = [r['id'] for r in response_list]
-        difference = set(sent_ids) - set(received_ids)
-        if difference:
-            log(f"mismatched items, {str(difference)}")
-
-        retlist.extend(response_list)
-
-    log(f"{datetime.now().strftime('%H:%M:%S')} Processed {len(retlist)} responses.")
+    log(f"Processed {len(retlist)} responses.")
 
     return retlist
 
 
-async def fetch_all2(page_df):
-
+async def fetch_all_summaries(page_df):
     tasks = []
     responses = []
     async with aiohttp.ClientSession() as session:
@@ -298,20 +359,58 @@ async def fetch_all2(page_df):
                 with open(row.path, 'r', encoding='utf-8') as file:
                     html_content = file.read()
             except Exception as exc:
-                print(exc)
-                print(f"Skipping {row.id} : {row.path}")
+                log(f"Error: {str(exc)}")
+                log(f"Skipping {row.id} : {row.path}")
                 continue
 
             # Parse the HTML content using BeautifulSoup
             soup = BeautifulSoup(html_content, 'html.parser')
+
+            try:
+                # Try to get the title from the <title> tag
+                title_tag = soup.find("title")
+                title_str = "Page title: " + title_tag.string.strip() + \
+                    "\n" if title_tag and title_tag.string else ""
+            except Exception as exc:
+                log(str(exc), "fetch_all2 page_title")
+
+            try:
+                # Try to get the title from the Open Graph meta tag
+                og_title_tag = soup.find("meta", property="og:title")
+                og_title = og_title_tag["content"].strip(
+                ) + "\n" if og_title_tag and og_title_tag.get("content") else ""
+                if not og_title:
+                    og_title_tag = soup.find(
+                        "meta", attrs={"name": "twitter:title"})
+                    og_title = "Social card title: " + og_title_tag["content"].strip(
+                    ) + "\n" if og_title_tag and og_title_tag.get("content") else ""
+            except Exception as exc:
+                log(str(exc), "fetch_all2 og_title")
+
+            try:
+                # get summary from social media cards
+                og_desc_tag = soup.find("meta", property="og:description")
+                og_desc = f'Summary: {og_desc_tag["content"]}' + \
+                    "\n" if og_desc_tag else ""
+                if not og_desc:
+                    # Extract the Twitter description
+                    og_desc_tag = soup.find(
+                        "meta", attrs={"name": "twitter:description"})
+                    og_desc = f'Summary: {og_desc_tag["content"]}' + \
+                        "\n" if og_desc_tag else ""
+            except Exception as exc:
+                log(str(exc), "fetch_all2 og_desc")
 
             # Filter out script and style elements
             for script_or_style in soup(['script', 'style']):
                 script_or_style.extract()
 
             # Get text and strip leading/trailing whitespace
-            visible_text = soup.get_text(separator=' ', strip=True)
-            visible_text = visible_text[:MAX_INPUT_TOKENS]
+
+            visible_text = title_str + og_title + og_desc + \
+                soup.get_text(separator=' ', strip=True)
+            visible_text = trunc_tokens(
+                visible_text, model=MODEL, maxtokens=MAX_INPUT_TOKENS)
 
             userprompt = f"""{SUMMARIZE_USER_PROMPT}:
 {visible_text}
@@ -326,14 +425,15 @@ async def fetch_all2(page_df):
                                      }]
                        }
 
-            task = asyncio.create_task(fetch_openai2(session, payload, row.id))
+            task = asyncio.create_task(
+                fetch_openai_summary(session, payload, row.id))
             tasks.append(task)
 
         responses = await asyncio.gather(*tasks)
-        return responses
+    return responses
 
 
-async def fetch_openai2(session, payload, i):
+async def fetch_openai_summary(session, payload, i):
     """
     Asynchronously fetches a response from the OpenAI URL using an aiohttp ClientSession.
     This version returns the id as well as the response, to allow us to map the summary to the original request.

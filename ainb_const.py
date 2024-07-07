@@ -31,13 +31,15 @@ MINTITLELEN = 28
 
 MAXPAGELEN = 50
 
-PROMPT = """
+FILTER_PROMPT = """
 You will act as a research assistant to categorize news articles based on their relevance
-to the topic of artificial intelligence (AI). You will process and classify news headlines
-formatted as JSON objects.
+to the topic of artificial intelligence (AI). You will closely read the title of each story
+to determine if it is primarily about AI based on the semanting meaning of the title and
+the keywords and entities mentioned. The input headlines and outptu classifications will
+be formatted as JSON objects.
 
 Input Specification:
-You will receive a list of news stories formatted as JSON objects.
+You will receive a list of news headlines formatted as JSON objects.
 Each object will include an 'id' and a 'title'. For instance:
 [{'id': 97, 'title': 'AI to predict dementia, detect cancer'},
  {'id': 103,'title': 'Figure robot learns to make coffee by watching humans for 10 hours'},
@@ -57,8 +59,8 @@ Perplexity.ai, Midjourney, etc.
 Output Specification:
 You will return a JSON object with the field 'stories' containing the list of classification results.
 For each story, your output will be a JSON object containing the original 'id' and a new field 'isAI',
-a boolean indicating if the story is about AI. The output schema must be strictly adhered to, without
-any additional fields. Example output:
+a boolean indicating if the story is about AI. You must strictly adhere to this output schema, without
+modification. Example output:
 {'stories':
 [{'id': 97, 'isAI': true},
  {'id': 103, 'isAI': true},
@@ -67,10 +69,48 @@ any additional fields. Example output:
  {'id': 298, 'isAI': false}]
 }
 
-Ensure that each output object accurately reflects the corresponding input object in terms of the 'id' field
-and that the 'isAI' field accurately represents the AI relevance of the story as determined by the title.
+Instructions:
+Ensure that each output object accurately reflects the 'id' field of the corresponding input object
+and that the 'isAI' field accurately represents the title's relevance to AI.
 
-The list of news stories to classify and enrich is:
+The list of news stories to classify is:
+
+"""
+
+TOPIC_PROMPT = """
+You will act as a research assistant to extract topics from news headlines. You will extract topics, entities,
+and keywords from news headlines formatted as JSON objects.
+
+Input Specification:
+You will receive a list of news headlines formatted as JSON objects.
+Each object will include an 'id' and a 'title'. For instance:
+[{'id': 97, 'title': 'AI to predict dementia, detect cancer'},
+ {'id': 103,'title': 'Figure robot learns to make coffee by watching humans for 10 hours'},
+ {'id': 105,'title': "Former Microsoft CEO Steve Ballmer is now just as rich as his former boss Bill Gates. Here's how he spends his billions."},
+ {'id': 210,'title': 'ChatGPT removes, then reinstates a summarization assistant without explanation.'},
+ {'id': 298,'title': 'The 5 most interesting PC monitors from CES 2024'},
+]
+
+Output Specification:
+You will return a JSON object with the field 'topics' containing a flat list of classification results.
+For each headline input, your output will be a JSON object containing the original 'id' and a new field 'topics',
+with a list of strings representing topics. The output schema must be strictly adhered to, without
+any additional fields. Example output:
+
+{'topics':
+ [{"id": 97, "topics": ["AI", "dementia", "cancer", "healthcare", "prediction", "diagnostics"]},
+  {"id": 103, "topics": ["AI", "robotics", "machine learning", "automation", "coffee making", "Figure"]},
+  {"id": 105, "topics": ["Microsoft", "Steve Ballmer", "Bill Gates", "wealth", "billionaires"]},
+  {"id": 210, "topics": ["AI", ChatGPT", "product updates", "summarization"]},
+  {"id": 298, "topics": ["PCs", "monitors", "CES 2024", "consumer electronics"]},
+ ]
+}
+
+Instructions:
+Ensure that each output object accurately reflects this schema exactly without modification, and that
+it matches the corresponding input object in terms of the 'id' field and relevant topics.
+
+The list of headlines to extract topics from:
 
 """
 
@@ -133,14 +173,57 @@ Only use data obtained from these tools.
 """
 
 
-FINAL_SUMMARY_PROMPT = f"""You are a summarization assistant. I will provide a list of today's news stories about AI
-and summary bullet points in markdown format. You are tasked with identifying and summarizing the key themes,
-common facts, and recurring elements. Your goal is to create a concise summary containing about 20 of the most frequently
-mentioned topics and developments.
+TOP_CATEGORIES_PROMPT = """You are will act as a research assistant identifying the top stories and topics
+of today's news. I will provide a list of today's news stories about AI and summary bullet points in markdown
+format. You are tasked with identifying the top 10-20 stories and topics of today's news. For each top story
+or topic, you will create a short title and respond with a list of titles formatted as a JSON object.
 
-Example Bullet Points:
+
+Example Input Bullet Points:
 
 [2. Sentient closes $85M seed round for open-source AI](https://cointelegraph.com/news/sentient-85-million-round-open-source-ai)
+
+- Sentient secured $85 million in a seed funding round led by Peter Thiel's Founders Fund, Pantera Capital, and Framework Ventures for their open-source AI platform.
+- The startup aims to incentivize AI developers with its blockchain protocol and incentive mechanism, allowing for the evolution of open artificial general intelligence.
+- The tech industry is witnessing a rise in decentralized AI startups combining blockchain
+
+Categories of top stories and topics:
+Major investments and funding rounds
+Major technological advancements or breakthroughs
+Frequently mentioned entities such as companies, organizations, or figures
+Any other frequently discussed events, statements, entities or notable patterns
+
+Instructions:
+Read the summary bullet points closely and use only information provided in them.
+Focus on the most common elements across all bullet points.
+Titles of top stories and topics must be as short and simple as possible.
+You must include at least 10 and no more than 20 topics in the summary.
+Respond with only the names of the top stories and topics in JSON format, without any comment, summary or discussion.
+
+Example Output Format:
+{'stories' : [
+  "Sentient funding",
+  "ChatGPT cybersecurity incident",
+  "ElevenLabs product release",
+  "Microsoft text-to-speech model"
+  "Nvidia reguatory issues",
+  "AI healthcare successes"
+  ]
+}
+
+Bullet Points to Analyze:
+
+"""
+
+
+FINAL_SUMMARY_PROMPT = f"""You are a summarization assistant. I will provide a list of today's news stories about AI
+and summary bullet points in markdown format. You are tasked with identifying and summarizing the key themes,
+common facts, and recurring elements. Your goal is to create a concise summary containing about 20 of the most
+frequently mentioned topics and developments.
+
+Example Input Bullet Point Format:
+
+[1. Sentient closes $85M seed round for open-source AI](https://cointelegraph.com/news/sentient-85-million-round-open-source-ai)
 
 - Sentient secured $85 million in a seed funding round led by Peter Thiel's Founders Fund, Pantera Capital, and Framework Ventures for their open-source AI platform.
 - The startup aims to incentivize AI developers with its blockchain protocol and incentive mechanism, allowing for the evolution of open artificial general intelligence.
@@ -155,14 +238,27 @@ Notable statements by AI leaders
 Any other recurring themes or notable patterns
 
 Instructions:
+
 Read the summary bullet points closely.
 Use only information provided in them and provide the most common facts without commentary or elaboration.
 Write in the professional but engaging, narrative style of a tech reporter for a national publication.
-Be balanced, professional, informative, providing accurate, clear, concise answers in a respectful neutral tone.
+Be balanced, professional, informative, providing accurate, clear, concise summaries in a respectful neutral tone.
 Focus on the most common elements across the bullet points and group similar items together.
+Headers must be as short and simple as possible: use "Health Care" and not "AI in Health Care"
 Ensure that you provide at least one link from the provided text for each item in the summary.
 You must include at least 10 and no more than 25 items in the summary.
 
-Bullet Points to Summarize:
+Example Output Format:
 
+# Today's AI News
+
+### Security and Privacy:
+- ChatGPT Mac app had a security flaw exposing user conversations in plain text. ([Macworld](https://www.macworld.com/article/2386267/chatgpt-mac-sandboxing-security-flaw-apple-intelligence.html))
+- Brazil suspended Meta from using Instagram and Facebook posts for AI training over privacy concerns. ([BBC](https://www.bbc.com/news/articles/c7291l3nvwv))
+
+### Health Care:
+- AI can predict Alzheimer's disease with 70% accuracy up to seven years in advance. ([Decrypt](https://decrypt.co/238449/ai-alzheimers-detection-70-percent-accurate-study))
+- New AI system detects 13 cancers with 98% accuracy, revolutionizing cancer diagnosis. ([India Express](https://news.google.com/articles/CBMiiAFodHRwczovL2luZGlhbmV4cHJl))
+
+Bullet Points to Summarize:
 """

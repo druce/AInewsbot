@@ -518,4 +518,6 @@ def launch_drivers(n, callable):
         # Collect the results (web drivers) as they complete
         retarray = [future.result() for future in as_completed(futures)]
 
-    return retarray
+    # flatten results
+    retlist = [item for retarray in retarray for item in retarray]
+    return retlist

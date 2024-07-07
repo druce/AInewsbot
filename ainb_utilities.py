@@ -7,6 +7,10 @@ import numpy as np
 import pandas as pd
 import sqlite3
 
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
 from scipy.spatial.distance import cdist, pdist
 from scipy.cluster.hierarchy import linkage, leaves_list
 from scipy.optimize import linear_sum_assignment
@@ -276,3 +280,31 @@ def traveling_salesman_sort_ortools(df):
         index = solution.Value(routing.NextVar(index))
 
     return order
+
+
+def send_gmail(subject, html_str):
+    # body
+    body = f"""
+    <html>
+        <head></head>
+        <body>
+        <div>
+        {html_str}
+        </div>
+        </body>
+    </html>
+    """
+    # Setup the MIME
+    message = MIMEMultipart()
+    email_address = os.getenv("GMAIL_USER")
+    message['From'] = email_address
+    message['To'] = email_address
+    message['Subject'] = subject
+    message.attach(MIMEText(body, 'html'))
+
+    # Create SMTP session
+    with smtplib.SMTP('smtp.gmail.com', 587) as server:
+        server.starttls()  # Secure the connection
+        server.login(email_address, os.getenv("GMAIL_PASSWORD"))
+        text = message.as_string()
+        server.sendmail(email_address, email_address, text)
