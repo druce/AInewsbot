@@ -173,7 +173,7 @@ Only use data obtained from these tools.
 """
 
 
-TOP_CATEGORIES_PROMPT = """You are will act as a research assistant identifying the top stories and topics
+TOP_CATEGORIES_PROMPT = """You will act as a research assistant identifying the top stories and topics
 of today's news. I will provide a list of today's news stories about AI and summary bullet points in markdown
 format. You are tasked with identifying the top 10-20 stories and topics of today's news. For each top story
 or topic, you will create a short title and respond with a list of titles formatted as a JSON object.
