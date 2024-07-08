@@ -2,7 +2,7 @@ from datetime import datetime
 import time
 import re
 import os
-import uuid
+# import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from selenium import webdriver

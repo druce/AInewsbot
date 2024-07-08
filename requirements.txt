@@ -1,3 +1,8 @@
+# brew install graphviz
+# export C_INCLUDE_PATH=$(brew --prefix graphviz)/include
+# export LIBRARY_PATH=$(brew --prefix graphviz)/lib
+# pip install pygraphviz
+
 jupyter
 numpy
 pandas
@@ -11,6 +16,21 @@ tiktoken
 python-dotenv
 atproto
 pillow
-
+pygraphviz
+markdown
+umap-learn
+matplotlib
+yapf
 # alpha-vantage
 newsapi-python
+
+langchain
+langchain-community
+langchain-core
+# local models
+# langchain-huggingface
+# langchain-nomic
+langchain-openai
+langchain-text-splitters
+langchainhub
+langgraph

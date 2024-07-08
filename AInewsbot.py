@@ -19,6 +19,7 @@
 ############################################################################################################
 
 # import pdb
+import pdb
 import os
 from datetime import datetime
 import yaml
@@ -76,7 +77,6 @@ for k, v in sources.items():
     v['sourcename'] = k
     # map filename (title) to source name
     sources_reverse[v['title']] = k
-
 
 ############################################################################################################
 # Get HTML files
@@ -277,7 +277,7 @@ results = launch_drivers(num_browsers, callable)
 saved_pages = []
 for r in results:
     saved_pages.extend(r)
-
+pdb.set_trace()
 # merge with AIdf to get path
 pages_df = pd.DataFrame(saved_pages)
 pages_df.columns = ['id', 'url', 'title', 'path']
