@@ -213,54 +213,58 @@ def get_url(url, title, driver=None):
     if not driver:
         driver = get_driver()
 
-    log(f"starting get_files {url}", f'get_url({url})')
+    log(f"starting get_url {url}", f'get_url({url})')
 
-    # Open the page
-    driver.get(url)
+    try:
+        # Open the page
+        driver.get(url)
 
-    # Wait for the page to load
-    time.sleep(sleeptime)  # Adjust the sleep time as necessary
+        # Wait for the page to load
+        time.sleep(sleeptime)  # Adjust the sleep time as necessary
 
-    # Get the HTML source of the page
-    html_source = driver.page_source
+        # Get the HTML source of the page
+        html_source = driver.page_source
 
-    # get the page title and sanitize
-    # try:
-    #     title = re.sub(r'[^a-zA-Z0-9_\-]', '_', driver.title)
-    #     title = title[:200]
-    # except Exception as exc:
-    #     print(exc)
-    #     title = ''
-    # if len(title) < 6:
-    #     # Generate a  random UUID for title
-    #     title = uuid.uuid4()
+        # get the page title and sanitize
+        # try:
+        #     title = re.sub(r'[^a-zA-Z0-9_\-]', '_', driver.title)
+        #     title = title[:200]
+        # except Exception as exc:
+        #     print(exc)
+        #     title = ''
+        # if len(title) < 6:
+        #     # Generate a  random UUID for title
+        #     title = uuid.uuid4()
 
-    # check encoding, default utf-8
-    encoding = "utf-8"  # Default to UTF-8 if not specified
-    # Retrieve the content-type meta tag from the HTML
-    # try:
-    #     meta_tag = driver.find_element(
-    #         By.XPATH, "//meta[@http-equiv='Content-Type']")
-    #     content_type = meta_tag.get_attribute("content")
-    #     # Typical format is "text/html; charset=UTF-8"
-    #     charset_start = content_type.find("charset=")
-    #     if charset_start != -1:
-    #         encoding = content_type[charset_start + 8:]
-    # except Exception as err:
-    #     log(str(err))
+        # check encoding, default utf-8
+        encoding = "utf-8"  # Default to UTF-8 if not specified
+        # Retrieve the content-type meta tag from the HTML
+        # try:
+        #     meta_tag = driver.find_element(
+        #         By.XPATH, "//meta[@http-equiv='Content-Type']")
+        #     content_type = meta_tag.get_attribute("content")
+        #     # Typical format is "text/html; charset=UTF-8"
+        #     charset_start = content_type.find("charset=")
+        #     if charset_start != -1:
+        #         encoding = content_type[charset_start + 8:]
+        # except Exception as err:
+        #     log(str(err))
 
-    # Save the HTML to a local file
-    datestr = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', title)
-    trunclen = 255-len(datestr)-6
-    filename = filename[:trunclen]
-    outfile = f'{filename}_{datestr}.html'
-    log(f"Saving {outfile} as {encoding}", f'get_url({title})')
-    destpath = DOWNLOAD_DIR + "/" + outfile
-    with open(destpath, 'w', encoding=encoding) as file:
-        file.write(html_source)
+        # Save the HTML to a local file
+        datestr = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', title)
+        trunclen = 255-len(datestr)-6
+        filename = filename[:trunclen]
+        outfile = f'{filename}_{datestr}.html'
+        log(f"Saving {outfile} as {encoding}", f'get_url({title})')
+        destpath = DOWNLOAD_DIR + "/" + outfile
+        with open(destpath, 'w', encoding=encoding) as file:
+            file.write(html_source)
 
-    return destpath
+        return destpath
+    except Exception as exc:
+        log(f"Error fetching {url}: {exc}")
+        return None
 
 
 def get_file(sourcedict, driver=None):
@@ -491,7 +495,10 @@ def process_url_queue_factory(q):
             i, url, title = q.get()
             log(f'Processing {url}')
             savefile = get_url(url, title, driver)
-            saved_pages.append((i, url, title, savefile))
+            if savefile:
+                saved_pages.append((i, url, title, savefile))
+            else:
+                log(f"Error processing {url}, continuing...")
         # Close the browser
         log("Quit webdriver")
         driver.quit()

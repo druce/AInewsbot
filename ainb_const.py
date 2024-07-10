@@ -4,6 +4,7 @@ dotenv.load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 DOWNLOAD_DIR = "htmldata"
+
 if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
 
@@ -216,14 +217,18 @@ Bullet Points to Analyze:
 """
 
 
-FINAL_SUMMARY_PROMPT = f"""You are a summarization assistant. I will provide a list of today's news stories about AI
-and summary bullet points in markdown format. You are tasked with identifying and summarizing the key themes,
+FINAL_SUMMARY_PROMPT = f"""You are a summarization assistant. I will provide a list of today's news articlds about AI
+and summary bullet points in markdown format. Bullet points will contain a title and URL, a list of topics discussed,
+and a bullet-point summary of the article. You are tasked with identifying and summarizing the key themes,
 common facts, and recurring elements. Your goal is to create a concise summary containing about 20 of the most
 frequently mentioned topics and developments.
 
-Example Input Bullet Point Format:
 
-[1. Sentient closes $85M seed round for open-source AI](https://cointelegraph.com/news/sentient-85-million-round-open-source-ai)
+Example Input Bullet Points:
+
+[2. Sentient closes $85M seed round for open-source AI](https://cointelegraph.com/news/sentient-85-million-round-open-source-ai)
+
+AI startup funding, New AI products
 
 - Sentient secured $85 million in a seed funding round led by Peter Thiel's Founders Fund, Pantera Capital, and Framework Ventures for their open-source AI platform.
 - The startup aims to incentivize AI developers with its blockchain protocol and incentive mechanism, allowing for the evolution of open artificial general intelligence.
@@ -244,7 +249,7 @@ Use only information provided in them and provide the most common facts without 
 Write in the professional but engaging, narrative style of a tech reporter for a national publication.
 Be balanced, professional, informative, providing accurate, clear, concise summaries in a respectful neutral tone.
 Focus on the most common elements across the bullet points and group similar items together.
-Headers must be as short and simple as possible: use "Health Care" and not "AI in Health Care"
+Headers must be as short and simple as possible: use "Health Care" and not "AI developments in Health Care" or "AI in Health Care"
 Ensure that you provide at least one link from the provided text for each item in the summary.
 You must include at least 10 and no more than 25 items in the summary.
 
@@ -261,4 +266,81 @@ Example Output Format:
 - New AI system detects 13 cancers with 98% accuracy, revolutionizing cancer diagnosis. ([India Express](https://news.google.com/articles/CBMiiAFodHRwczovL2luZGlhbmV4cHJl))
 
 Bullet Points to Summarize:
+
 """
+
+CANONICAL_TOPICS = [
+    "Policy and regulation",
+    "AI economic impacts",
+    "Robots",
+    "Autonomous vehicles",
+    "AI job market",
+    "LLMs",
+    "Healthcare",
+    "Fintech",
+    "Education",
+    "Entertainment",
+    "Startup funding",
+    "IPOs",
+    "Ethical issues",
+    "Legal issues",
+    "Cybersecurity",
+    "AI doom",
+    'Stocks',
+    'Climate',
+    'Scams',
+    'Privacy',
+    'Intellectual Property',
+    'Code assistants',
+    'Customer service',
+    'Reinforcement Learning',
+    'Open Source',
+    'Language Models',
+    'China',
+    'Military',
+    'Semiconductor chips',
+    'Sustainability',
+    'Agriculture',
+    'Gen AI',
+    'Testing',
+    'Disinformation',
+    'Deepfakes',
+    'Virtual Reality',
+    'Cognitive Science',
+
+    'Nvidia',
+    'Google',
+    'OpenAI',
+    'Meta',
+    'Apple',
+    'Microsoft',
+    'Perplexity',
+    'Salesforce',
+    'Uber',
+    'AMD',
+    'Netflix',
+    'Disney',
+    'Amazon',
+    'Cloudflare',
+    'Anthropic',
+    'Cohere',
+    'Baidu',
+    'Big Tech',
+    'Samsung',
+    'Tesla',
+
+    'ChatGPT',
+    'WhatsApp',
+    'Gemini',
+    'Claude',
+    'Copilot',
+
+    'Elon Musk',
+    'Bill Gates',
+    'Sam Altman',
+    'Mustafa Suleyman',
+    'Sundar Pichai',
+    'Yann LeCun',
+    'Geoffrey Hinton',
+    'Mark Zuckerberg',
+]

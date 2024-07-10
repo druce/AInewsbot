@@ -19,7 +19,6 @@
 ############################################################################################################
 
 # import pdb
-import pdb
 import os
 from datetime import datetime
 import yaml
@@ -38,7 +37,7 @@ import pandas as pd
 from openai import OpenAI
 
 from ainb_const import (DOWNLOAD_DIR,
-                        SOURCECONFIG, FILTER_PROMPT, MODEL, FINAL_SUMMARY_PROMPT)
+                        SOURCECONFIG, MODEL, FINAL_SUMMARY_PROMPT)
 from ainb_utilities import log, delete_files, filter_unseen_urls_db, insert_article, unicode_to_ascii, agglomerative_cluster_sort, send_gmail
 from ainb_webscrape import parse_file, process_source_queue_factory, process_url_queue_factory, launch_drivers
 from ainb_llm import paginate_df, fetch_pages, fetch_all_summaries
@@ -90,8 +89,6 @@ if disable_web_fetch:
              for file in os.listdir(DOWNLOAD_DIR)]
 
     # Get the current date
-    today = datetime.now()
-    year, month, day = today.year, today.month, today.day
     datestr = datetime.now().strftime("%m_%d_%Y")
 
     # filter files only
@@ -136,12 +133,8 @@ else:
     callable = process_source_queue_factory(queue)
 
     NBROWSERS = 3
-    results = launch_drivers(NBROWSERS, callable)
+    saved_pages = launch_drivers(NBROWSERS, callable)
 
-    # flatten results list of lists to a single list of tuples
-    saved_pages = []
-    for r in results:
-        saved_pages.extend(r)
     # update sources with latest filename
     for sourcename, filename in saved_pages:
         sources[sourcename]['latest'] = filename
@@ -277,9 +270,8 @@ results = launch_drivers(num_browsers, callable)
 saved_pages = []
 for r in results:
     saved_pages.extend(r)
-pdb.set_trace()
 # merge with AIdf to get path
-pages_df = pd.DataFrame(saved_pages)
+pages_df = pd.DataFrame(results, columns=["id", "url", "title", "path"])
 pages_df.columns = ['id', 'url', 'title', 'path']
 AIdf = pd.merge(AIdf, pages_df[["id", "path"]], on='id', how="inner")
 

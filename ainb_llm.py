@@ -7,7 +7,7 @@ import aiohttp
 import openai
 from bs4 import BeautifulSoup
 from ainb_const import (LOWCOST_MODEL, MODEL, MAX_OUTPUT_TOKENS, MAX_RETRIES, TEMPERATURE,
-                        sleeptime, MAX_INPUT_TOKENS, MAXPAGELEN,
+                        sleeptime, MAX_INPUT_TOKENS, MAXPAGELEN, CANONICAL_TOPICS,
                         FILTER_PROMPT, SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT)
 from ainb_utilities import log
 
@@ -459,3 +459,77 @@ async def fetch_openai_summary(session, payload, i):
     async with session.post(API_URL, headers=headers, json=payload) as response:
         retval = await response.json()
         return (i, retval)
+
+
+async def categorize_headline(headline, categories, session,
+                              model=LOWCOST_MODEL,
+                              temperature=0.5,
+                              max_retries=MAX_RETRIES):
+    """Match headline to specified category(ies)"""
+    retlist = []
+    if type(categories) is not list:
+        categories = [categories]
+    for topic in categories:
+        cat_prompt = f"""You are a news topic categorizaton assistant. I will provide a headline
+and a topic. You will respond with a JSON object {{'response': 1}} if the news headline matches
+the news topic and {{'response': 0}} if it does not. Check carefully and only return {{'response': 1}}
+if the headline closely matches the topic. If the headline is not a close match or if unsure,
+return {{'response': 0}}
+Headline:
+{headline}
+Topic:
+{topic}
+"""
+        for i in range(max_retries):
+            try:
+                messages = [
+                    {"role": "user", "content": cat_prompt
+                     }]
+
+                payload = {"model":  model,
+                           "response_format": {"type": "json_object"},
+                           "messages": messages,
+                           "temperature": temperature
+                           }
+                response = await fetch_openai(session, payload)
+                response_dict = json.loads(
+                    response["choices"][0]["message"]["content"])
+                response_val = response_dict['response']
+                if response_val == 1:
+                    retlist.append(topic)
+                # success
+                return retlist
+            except Exception as exc:
+                log(f"Error: {exc}")
+
+    return retlist
+
+
+def clean_topics(row):
+    # clean up free form topics
+    topics = [x.title() for x in row.topics if x.lower()
+              not in {"ai", "artificial intelligence"}]
+    # clean up canonical topics
+    assigned_topics = [x.title() for x in row.assigned_topics]
+    combined = sorted(list(set(topics + assigned_topics)))
+    combined = [s.replace("Ai", "AI") for s in combined]
+    combined = [s.replace("Genai", "Gen AI") for s in combined]
+
+    return ", ".join(combined)
+
+
+async def categorize_df(AIdf):
+    catdict = {}
+    async with aiohttp.ClientSession() as session:
+        for i, row in enumerate(AIdf.itertuples()):
+            tasks = []
+            log(f"Categorizing headline {row.id+1} of {len(AIdf)}")
+            h = row.title
+            log(h)
+            for c in CANONICAL_TOPICS:
+                task = asyncio.create_task(categorize_headline(h, c, session))
+                tasks.append(task)
+            responses = await asyncio.gather(*tasks)
+            catdict[row.id] = [item for l in responses for item in l]
+            log(catdict[row.id])
+    return catdict

@@ -117,18 +117,31 @@ def insert_article(conn, cursor, src, title, url, isAI, article_date):
         log(err)
 
 
-def filter_unseen_urls_db(orig_df):
+def filter_unseen_urls_db(orig_df, before_date=None, after_date=None):
     """
-    Filters out rows from orig_df that have URLs already present in the database.
+    Filters out rows from orig_df that have URLs already present in the database during the specified time interval.
 
     Args:
         orig_df (pandas.DataFrame): The original DataFrame containing the URLs.
+        before_date (str): only query database for URLs from before this date
+        (e.g. rerun on todays urls even if already in database by specifying before_date = today)
+        after_date (str): only query database after this date
+        (e.g. as database gets large, only check against urls in last year by specifying after_date = 1 year ago)
 
     Returns:
         pandas.DataFrame: The filtered DataFrame with rows removed if their URLs are already present in the database.
     """
     conn = sqlite3.connect(SQLITE_DB)
-    existing_urls = pd.read_sql_query("SELECT url FROM news_articles", conn)
+    where_clause = ''
+    if before_date:
+        where_clause = f"WHERE timestamp < '{before_date}'"
+    if after_date:
+        if len(where_clause) == 0:
+            where_clause = f"WHERE timestamp > '{after_date}'"
+        else:
+            where_clause += f" AND timestamp > '{after_date}'"
+    existing_urls = pd.read_sql_query(
+        f"SELECT url FROM news_articles {where_clause}", conn)
     conn.close()
 
     existing_urls_list = existing_urls['url'].tolist()
