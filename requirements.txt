@@ -23,7 +23,7 @@ matplotlib
 yapf
 # alpha-vantage
 newsapi-python
-
+trafilatura
 langchain
 langchain-community
 langchain-core

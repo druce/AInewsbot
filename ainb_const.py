@@ -117,8 +117,9 @@ The list of headlines to extract topics from:
 
 SUMMARIZE_SYSTEM_PROMPT = """You are a summarization assistant.
 You will summarize the main content of provided text from HTML files in 3 bullet points or less.
-You will output Markdown format.
+You will focus on the top 3 points of the text and keep the response concise."
 You will ignore any content that appears to be navigation menus, footers, sidebars, or other boilerplate content.
+You will output Markdown format.
 You will provide the bullet points only, without any introduction such as 'here are' or any conclusion, or comment.
 """
 

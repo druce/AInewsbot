@@ -6,6 +6,8 @@ import asyncio
 import aiohttp
 import openai
 from bs4 import BeautifulSoup
+import trafilatura
+
 from ainb_const import (LOWCOST_MODEL, MODEL, MAX_OUTPUT_TOKENS, MAX_RETRIES, TEMPERATURE,
                         sleeptime, MAX_INPUT_TOKENS, MAXPAGELEN, CANONICAL_TOPICS,
                         FILTER_PROMPT, SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT)
@@ -363,7 +365,7 @@ async def fetch_all_summaries(page_df):
                 log(f"Skipping {row.id} : {row.path}")
                 continue
 
-            # Parse the HTML content using BeautifulSoup
+            # Parse the HTML content using trafilatura
             soup = BeautifulSoup(html_content, 'html.parser')
 
             try:
@@ -372,43 +374,42 @@ async def fetch_all_summaries(page_df):
                 title_str = "Page title: " + title_tag.string.strip() + \
                     "\n" if title_tag and title_tag.string else ""
             except Exception as exc:
-                log(str(exc), "fetch_all2 page_title")
+                log(str(exc), "fetch_all_summaries page_title")
 
             try:
                 # Try to get the title from the Open Graph meta tag
                 og_title_tag = soup.find("meta", property="og:title")
-                og_title = og_title_tag["content"].strip(
-                ) + "\n" if og_title_tag and og_title_tag.get("content") else ""
-                if not og_title:
+                if not og_title_tag:
                     og_title_tag = soup.find(
                         "meta", attrs={"name": "twitter:title"})
-                    og_title = "Social card title: " + og_title_tag["content"].strip(
-                    ) + "\n" if og_title_tag and og_title_tag.get("content") else ""
+                og_title = og_title_tag["content"].strip(
+                ) + "\n" if og_title_tag and og_title_tag.get("content") else ""
+                og_title = "Social card title: " + og_title if og_title else ""
             except Exception as exc:
-                log(str(exc), "fetch_all2 og_title")
+                log(str(exc), "fetch_all_summaries og_title")
 
             try:
                 # get summary from social media cards
                 og_desc_tag = soup.find("meta", property="og:description")
-                og_desc = f'Summary: {og_desc_tag["content"]}' + \
-                    "\n" if og_desc_tag else ""
-                if not og_desc:
+                if not og_desc_tag:
                     # Extract the Twitter description
                     og_desc_tag = soup.find(
                         "meta", attrs={"name": "twitter:description"})
-                    og_desc = f'Summary: {og_desc_tag["content"]}' + \
-                        "\n" if og_desc_tag else ""
+                og_desc = og_desc_tag["content"] + "\n" if og_desc_tag else ""
+                og_desc = 'Social card description: ' + og_desc if og_desc else ""
             except Exception as exc:
-                log(str(exc), "fetch_all2 og_desc")
-
-            # Filter out script and style elements
-            for script_or_style in soup(['script', 'style']):
-                script_or_style.extract()
+                log(str(exc), "fetch_all_summaries og_desc")
 
             # Get text and strip leading/trailing whitespace
+            log(title_str + og_title + og_desc, "fetch_all_summaries")
+            plaintext = ""
+            try:
+                plaintext = trafilatura.extract(html_content)
+                plaintext = plaintext.strip() if plaintext else ""
+            except Exception as exc:
+                log(str(exc), "fetch_all_summaries trafilatura")
 
-            visible_text = title_str + og_title + og_desc + \
-                soup.get_text(separator=' ', strip=True)
+            visible_text = title_str + og_title + og_desc + plaintext
             visible_text = trunc_tokens(
                 visible_text, model=MODEL, maxtokens=MAX_INPUT_TOKENS)
 
