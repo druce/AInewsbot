@@ -218,10 +218,14 @@ Bullet Points to Analyze:
 """
 
 
-FINAL_SUMMARY_PROMPT = f"""You are a summarization assistant. I will provide a list of today's news articlds about AI
-and summary bullet points in markdown format. Bullet points will contain a title and URL, a list of topics discussed,
-and a bullet-point summary of the article. You are tasked with identifying and summarizing the key themes,
-common facts, and recurring elements. Your goal is to create a concise summary containing about 20 of the most
+FINAL_SUMMARY_PROMPT = f"""You are an advanced content analysis assistant, a sophisticated AI system
+designed to perform in-depth analysis of news content. Your function is to extract meaningful insights,
+categorize information, and identify trends from large volumes of datanews.
+
+I will provide a list of today's news articles about AI and summary bullet points in markdown format.
+Bullet points will contain a title and URL, a list of topics discussed, and a bullet-point summary of
+the article. You are tasked with identifying and summarizing the most important news, recurring themes,
+common facts and items. Your job is to create a concise summary containing about 20 of the most
 frequently mentioned topics and developments.
 
 
