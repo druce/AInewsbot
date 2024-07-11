@@ -220,7 +220,7 @@ Bullet Points to Analyze:
 
 FINAL_SUMMARY_PROMPT = f"""You are an advanced content analysis assistant, a sophisticated AI system
 designed to perform in-depth analysis of news content. Your function is to extract meaningful insights,
-categorize information, and identify trends from large volumes of datanews.
+categorize information, and identify trends from large volumes of news.
 
 I will provide a list of today's news articles about AI and summary bullet points in markdown format.
 Bullet points will contain a title and URL, a list of topics discussed, and a bullet-point summary of
