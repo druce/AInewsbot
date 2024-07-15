@@ -87,7 +87,7 @@ def delete_files(download_dir):
             print(f'Failed to delete {file_path}. Reason: {e}')
 
 
-def insert_article(conn, cursor, src, title, url, isAI, article_date):
+def insert_article(conn, cursor, src, actual_src, title, url, actual_url, isAI, article_date):
     """
     Inserts a new article record into the SQLite database.
 
@@ -97,6 +97,7 @@ def insert_article(conn, cursor, src, title, url, isAI, article_date):
         src (str): The source of the article.
         title (str): The title of the article.
         url (str): The URL of the article.
+        actual_url (str): The actual URL of the article (URL shorteners and aggregators like Google News will redirect url to actual_url).
         isAI (bool): Indicates whether the article is related to AI.
         article_date (str): The date of the article.
 
@@ -108,8 +109,8 @@ def insert_article(conn, cursor, src, title, url, isAI, article_date):
         None
     """
     try:
-        cursor.execute("INSERT OR IGNORE INTO news_articles (src, title, url, isAI, article_date, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
-                       (src, title, url, isAI, article_date, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        cursor.execute("INSERT OR IGNORE INTO news_articles (src, actual_src, title, url, actual_url, isAI, article_date, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                       (src, actual_src, title, url, actual_url, isAI, article_date, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         conn.commit()
     except sqlite3.IntegrityError:
         log(f"Duplicate entry for URL: {url}")
@@ -141,13 +142,13 @@ def filter_unseen_urls_db(orig_df, before_date=None, after_date=None):
         else:
             where_clause += f" AND timestamp > '{after_date}'"
     existing_urls = pd.read_sql_query(
-        f"SELECT url FROM news_articles {where_clause}", conn)
+        f"SELECT actual_url FROM news_articles {where_clause}", conn)
     conn.close()
 
-    existing_urls_list = existing_urls['url'].tolist()
+    existing_urls_list = existing_urls['actual_url'].tolist()
     log(f"Existing URLs: {len(existing_urls_list)}")
 
-    filtered_df = orig_df[~orig_df['url'].isin(existing_urls_list)]
+    filtered_df = orig_df[~orig_df['actual_url'].isin(existing_urls_list)]
     log(f"New URLs: {len(filtered_df)}")
     return filtered_df
 

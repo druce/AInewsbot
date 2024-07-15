@@ -34,3 +34,4 @@ langchain-openai
 langchain-text-splitters
 langchainhub
 langgraph
+chromadb

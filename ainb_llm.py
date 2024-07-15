@@ -501,6 +501,7 @@ Topic:
                 # success
                 return retlist
             except Exception as exc:
+                log(cat_prompt)
                 log(f"Error: {exc}")
 
     return retlist
