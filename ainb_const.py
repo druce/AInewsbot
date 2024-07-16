@@ -323,6 +323,7 @@ CANONICAL_TOPICS = [
     'Authors, Writing',
     'Books, Publishing',
     'TV, Film, Movies',
+    'Streaming',
     'Hollywood',
     'Music',
     'Art, Design',
@@ -342,6 +343,16 @@ CANONICAL_TOPICS = [
     'Products',
     'Opinion',
     'Review',
+    'Artificial General Intelligence',
+    'Singularity',
+    'Consciousness',
+    'Facial Recognition',
+    'Manufacturing',
+    'Supply chain optimization',
+    'Transportation',
+    'Smart grid',
+    'Recommendation systems',
+    
 
     'Nvidia',
     'Google',
@@ -389,3 +400,4 @@ CANONICAL_TOPICS = [
     'Korea',
     'Taiwan',
 ]
+
