@@ -20,7 +20,7 @@ sleeptime = 10
 SQLITE_DB = 'articles.db'
 
 MODEL = "gpt-4o"
-LOWCOST_MODEL = "gpt-3.5-turbo-0125"
+LOWCOST_MODEL = "gpt-4o-mini"
 
 MAX_INPUT_TOKENS = 8192     # includes text of all headlines
 MAX_OUTPUT_TOKENS = 4096    # max in current model
@@ -35,7 +35,7 @@ MAXPAGELEN = 50
 FILTER_PROMPT = """
 You will act as a research assistant to categorize news articles based on their relevance
 to the topic of artificial intelligence (AI). You will closely read the title of each story
-to determine if it is primarily about AI based on the semanting meaning of the title and
+to determine if it is primarily about AI based on the semantic meaning of the title and
 the keywords and entities mentioned. The input headlines and outptu classifications will
 be formatted as JSON objects.
 
@@ -285,6 +285,7 @@ CANONICAL_TOPICS = [
     "Education",
     "Entertainment",
     "Funding",
+    "Venture Capital",
     "Mergers and acquisitions",
     "Deals",
     "IPOs",
@@ -352,7 +353,6 @@ CANONICAL_TOPICS = [
     'Transportation',
     'Smart grid',
     'Recommendation systems',
-    
 
     'Nvidia',
     'Google',
@@ -400,4 +400,3 @@ CANONICAL_TOPICS = [
     'Korea',
     'Taiwan',
 ]
-

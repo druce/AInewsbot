@@ -442,6 +442,38 @@ def parse_file(sourcedict):
     return retlist
 
 
+# map google news headlines to redirect
+
+
+def get_google_news_redirects(orig_df):
+    redirect_dict = {}
+    for row in orig_df.itertuples():
+        parsed_url = urlparse(row.url)
+        netloc = parsed_url.netloc
+        if netloc == 'news.google.com':
+            logstr = netloc + " -> "
+            response = requests.get(row.url, allow_redirects=False)
+            # The URL to which it would have redirected
+            redirect_url = response.headers.get('Location')
+            redirect_dict[row.url] = redirect_url
+            parsed_url2 = urlparse(redirect_url)
+            netloc2 = parsed_url2.netloc
+            if netloc2 == 'news.google.com':
+                #                 logstr += netloc2 + " -> "
+                response = requests.get(redirect_url, allow_redirects=False)
+            # The URL to which it would have redirected
+                redirect_url = response.headers.get('Location')
+                if redirect_url:
+                    redirect_dict[row.url] = redirect_url
+                    logstr += redirect_url
+            log(logstr, "get_google_news_redirects")
+
+    orig_df['actual_url'] = orig_df['url'].apply(
+        lambda url: redirect_dict.get(url, url))
+
+    return orig_df
+
+
 def process_source_queue_factory(q):
     """creates a queue processor function closure on the queue q
     This function expects a sourcedict in the queue

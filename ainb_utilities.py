@@ -19,16 +19,37 @@ from ainb_const import SQLITE_DB
 
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
+import logging
+import os
+import unicodedata
+from datetime import datetime
+import numpy as np
+import pandas as pd
+import sqlite3
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from scipy.spatial.distance import cdist, pdist
+from scipy.cluster.hierarchy import linkage, leaves_list
+from scipy.optimize import linear_sum_assignment
+from ainb_const import SQLITE_DB
+from ortools.constraint_solver import routing_enums_pb2
+from ortools.constraint_solver import pywrapcp
 
 ############################################################################################################
 # utility functions
 ############################################################################################################
-
+VERBOSE = 1
 # Configure logging
 # captures a ton of info from selenium and bs4 if level is DEBUG, might crash Jupyter
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("AInewsbot")
+
+# Check if VERBOSE variable exists and is set to 1
+if 'VERBOSE' in globals() and VERBOSE == 1:
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger("AInewsbot")
+else:
+    logger = None
 
 
 def log(action_str, source_str="", level=logging.INFO):
@@ -42,18 +63,25 @@ def log(action_str, source_str="", level=logging.INFO):
     Returns:
         int: severity
     """
-    if source_str:
-        message = f"{source_str} - {action_str}"
-    else:
-        message = action_str
+    if logger:
+        if source_str:
+            message = f"{source_str} - {action_str}"
+        else:
+            message = action_str
 
-    logger.log(level, message)
+        logger.log(level, message)
 
     return level
 
 
 # Example usage
 # log("This is a test message", "TestModule", logging.INFO)
+# Configure logging
+# captures a ton of info from selenium and bs4 if level is DEBUG, might crash Jupyter
+############################################################################################################
+# utility functions
+############################################################################################################
+
 
 def delete_files(download_dir):
     """
@@ -142,13 +170,13 @@ def filter_unseen_urls_db(orig_df, before_date=None, after_date=None):
         else:
             where_clause += f" AND timestamp > '{after_date}'"
     existing_urls = pd.read_sql_query(
-        f"SELECT actual_url FROM news_articles {where_clause}", conn)
+        f"SELECT url FROM news_articles {where_clause}", conn)
     conn.close()
 
-    existing_urls_list = existing_urls['actual_url'].tolist()
+    existing_urls_list = existing_urls['url'].tolist()
     log(f"Existing URLs: {len(existing_urls_list)}")
 
-    filtered_df = orig_df[~orig_df['actual_url'].isin(existing_urls_list)]
+    filtered_df = orig_df[~orig_df['url'].isin(existing_urls_list)]
     log(f"New URLs: {len(filtered_df)}")
     return filtered_df
 
@@ -165,9 +193,15 @@ def unicode_to_ascii(input_string):
         str: The converted ASCII string.
 
     """
+    # Normalize the Unicode string to NFKD form
     normalized_string = unicodedata.normalize('NFKD', input_string)
+
+    # Encode to ASCII bytes, ignoring characters that cannot be converted
     ascii_bytes = normalized_string.encode('ascii', 'ignore')
+
+    # Convert bytes back to a string
     ascii_string = ascii_bytes.decode('ascii')
+
     return ascii_string
 
 

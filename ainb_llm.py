@@ -329,6 +329,8 @@ async def fetch_pages(pages,
                       verbose=False,):
 
     tasks = []
+    log(f"Applying prompt to {len(pages)} pages using {model}")
+
     async with aiohttp.ClientSession() as session:
         for p in pages:
             task = asyncio.create_task(async_filter_page(p,
