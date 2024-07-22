@@ -65,13 +65,13 @@ def log(action_str, source_str="", level=logging.INFO):
     """
     if logger:
         if source_str:
-            message = f"{source_str} - {action_str}"
+            message = f"{str(source_str)} - {str(action_str)}"
         else:
-            message = action_str
+            message = str(action_str)
 
         logger.log(level, message)
 
-    return level
+    return None
 
 
 # Example usage

@@ -23,8 +23,6 @@ from ainb_utilities import log
 
 # get a page title from html or tags if you have not-descriptive link titles like 'link'
 
-DRIVERS = []
-
 
 def get_og_tags(url):
     """
@@ -171,8 +169,6 @@ def get_driver(geckodriver_path=GECKODRIVER_PATH, firefox_profile_path=FIREFOX_P
     # important for some sites that need a login, also a generic profile fingerlog that looks like a bot might get blocked
     log(f"{os.getpid()} Initializing webdriver", "get_driver")
 
-    global DRIVERS
-
     options = Options()
     options.profile = firefox_profile_path
     log("Initialized webdriver profile", "get_driver")
@@ -183,15 +179,13 @@ def get_driver(geckodriver_path=GECKODRIVER_PATH, firefox_profile_path=FIREFOX_P
 
     # Set up the Firefox driver
     driver = webdriver.Firefox(service=service, options=options)
-    DRIVERS.append(driver)
     log("Initialized webdriver", "get_driver")
     return driver
 
 
-# this doesn't work as expected, DRIVERS is empty
-def quit_drivers():
-    log(f"quitting {len(DRIVERS)} webdrivers", "quit_drivers")
-    for driver in DRIVERS:
+def quit_drivers(drivers):
+    log(f"quitting {len(drivers)} webdrivers", "quit_drivers")
+    for driver in drivers:
         driver.quit()
 
 
@@ -560,3 +554,24 @@ def launch_drivers(n, callable):
     # flatten results
     retlist = [item for retarray in retarray for item in retarray]
     return retlist
+
+# this should work with multiprocessing.Pool and be simpler but gives an error
+# might not like returning a webdriver object
+# def simple_parallel_download(sources):
+#     num_drivers = min(3, cpu_count())  # Use 3 or the number of CPUs available, whichever is less
+
+#     with Pool(num_drivers) as pool:
+#         # Initialize drivers in parallel
+#         drivers = pool.map(get_driver, range(num_drivers))
+
+#         # Create argument list for starmap, distributing sources over drivers
+#         args = [(source, drivers[i % num_drivers]) for i, source in enumerate(sources)]
+
+#         # Download files in parallel
+#         result = pool.starmap(get_file, args)
+
+#         # Quit drivers
+#         for driver in drivers:
+#             driver.quit()
+
+#     return result
