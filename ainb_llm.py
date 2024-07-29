@@ -485,6 +485,7 @@ Topic:
 """
         for i in range(max_retries):
             try:
+                response = None
                 messages = [
                     {"role": "user", "content": cat_prompt
                      }]
@@ -503,7 +504,8 @@ Topic:
                 # success
                 return retlist
             except Exception as exc:
-                log(cat_prompt)
+                if response:
+                    log(response)
                 log(f"Error: {exc}")
 
     return retlist
