@@ -3,11 +3,11 @@ Ars Technica:
   - ^https://arstechnica.com/(\w+)/(\d+)/(\d+)/
   title: Ars Technica
   url: https://arstechnica.com/
-Bloomberg Tech:
-  include:
-  - ^https://www.bloomberg.com/news/
-  title: Bloomberg Technology - Bloomberg
-  url: https://www.bloomberg.com/technology
+# Bloomberg Tech:
+#   include:
+#   - ^https://www.bloomberg.com/news/
+#   title: Bloomberg Technology - Bloomberg
+#  url: https://www.bloomberg.com/technology
 Business Insider:
   exclude:
   - ^https://www.insider.com
@@ -31,8 +31,8 @@ Feedly AI:
 Google News:
   click: //*[@aria-label="Artificial intelligence"]
   include:
-  - ^https://news.google.com/articles/
-  scroll: 2
+  - ^https://news.google.com/read/
+  scroll: 1
   title: Google News - Technology - Artificial intelligence
   url: https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US%3Aen
 Hacker News:

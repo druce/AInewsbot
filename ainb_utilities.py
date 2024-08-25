@@ -169,15 +169,26 @@ def filter_unseen_urls_db(orig_df, before_date=None, after_date=None):
             where_clause = f"WHERE timestamp > '{after_date}'"
         else:
             where_clause += f" AND timestamp > '{after_date}'"
+    log(f"Querying SQLite with where_clause: {where_clause}")
     existing_urls = pd.read_sql_query(
-        f"SELECT url FROM news_articles {where_clause}", conn)
+        f"SELECT url, src, title FROM news_articles {where_clause}", conn)
     conn.close()
 
     existing_urls_list = existing_urls['url'].tolist()
     log(f"Existing URLs: {len(existing_urls_list)}")
-
     filtered_df = orig_df[~orig_df['url'].isin(existing_urls_list)]
     log(f"New URLs: {len(filtered_df)}")
+
+    existing_urls = existing_urls.drop('url', axis=1)
+    existing_urls = existing_urls.drop_duplicates()
+    drop_df = pd.merge(existing_urls, filtered_df,
+                       how='inner',
+                       on=['src', 'title'])[["src", "title", "id"]]
+    log(f"Existing src+title: {len(drop_df)}")
+
+    filtered_df = filtered_df.loc[~filtered_df["id"].isin(drop_df["id"])]
+    log(f"New src+title: {len(filtered_df)}")
+
     return filtered_df
 
 

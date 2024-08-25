@@ -528,6 +528,8 @@ def process_url_queue_factory(q):
         # Close the browser
         log("Quit webdriver")
         driver.quit()
+        log(f"{len(saved_pages)} pages saved")
+
         return saved_pages
     return process_queue
 
@@ -553,6 +555,8 @@ def launch_drivers(n, callable):
 
     # flatten results
     retlist = [item for retarray in retarray for item in retarray]
+    log(f"returned {len(retlist)}")
+
     return retlist
 
 # this should work with multiprocessing.Pool and be simpler but gives an error

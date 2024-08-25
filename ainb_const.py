@@ -19,7 +19,7 @@ sleeptime = 10
 
 SQLITE_DB = 'articles.db'
 
-MODEL = "gpt-4o"
+MODEL = "gpt-4o-2024-08-06"
 LOWCOST_MODEL = "gpt-4o-mini"
 
 MAX_INPUT_TOKENS = 8192     # includes text of all headlines
