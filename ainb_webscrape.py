@@ -18,7 +18,7 @@ from bs4 import BeautifulSoup
 import requests
 from urllib.parse import urljoin, urlparse
 
-from ainb_const import DOWNLOAD_DIR, GECKODRIVER_PATH, FIREFOX_PROFILE_PATH, MINTITLELEN, sleeptime
+from ainb_const import DOWNLOAD_DIR, PAGES_DIR, GECKODRIVER_PATH, FIREFOX_PROFILE_PATH, MINTITLELEN, sleeptime
 from ainb_utilities import log
 
 # get a page title from html or tags if you have not-descriptive link titles like 'link'
@@ -251,7 +251,9 @@ def get_url(url, title, driver=None):
         filename = filename[:trunclen]
         outfile = f'{filename}_{datestr}.html'
         log(f"Saving {outfile} as {encoding}", f'get_url({title})')
-        destpath = DOWNLOAD_DIR + "/" + outfile
+        if not os.path.exists(PAGES_DIR):
+            os.makedirs(PAGES_DIR)
+        destpath = PAGES_DIR + "/" + outfile
         with open(destpath, 'w', encoding=encoding) as file:
             file.write(html_source)
 

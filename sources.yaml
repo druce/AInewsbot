@@ -3,21 +3,21 @@ Ars Technica:
   - ^https://arstechnica.com/(\w+)/(\d+)/(\d+)/
   title: Ars Technica
   url: https://arstechnica.com/
-# Bloomberg Tech:
-#   include:
-#   - ^https://www.bloomberg.com/news/
-#   title: Bloomberg Technology - Bloomberg
-#  url: https://www.bloomberg.com/technology
+Bloomberg Tech:
+  include:
+  - ^https://www.bloomberg.com/news/
+  title: Bloomberg Technology
+  url: https://www.bloomberg.com/technology
 Business Insider:
   exclude:
   - ^https://www.insider.com
   - ^https://www.passionfroot.me
-  title: Tech - Business Insider
+  title: Business Insider Tech
   url: https://www.businessinsider.com/tech
 FT Tech:
   include:
   - https://www.ft.com/content/
-  title: Technology
+  title: FT Technology
   url: https://www.ft.com/technology
 Feedly AI:
   exclude:
@@ -26,7 +26,7 @@ Feedly AI:
   - ^https://blog.feedly.com
   scroll: 5
   initial_sleep: 30
-  title: Discover and Add New Feedly AI Feeds
+  title: Feedly AI
   url: https://feedly.com/i/aiFeeds?options=eyJsYXllcnMiOlt7InBhcnRzIjpbeyJpZCI6Im5scC9mL3RvcGljLzMwMDAifV0sInNlYXJjaEhpbnQiOiJ0ZWNobm9sb2d5IiwidHlwZSI6Im1hdGNoZXMiLCJzYWxpZW5jZSI6ImFib3V0In1dLCJidW5kbGVzIjpbeyJ0eXBlIjoic3RyZWFtIiwiaWQiOiJ1c2VyLzYyZWViYjlmLTcxNTEtNGY5YS1hOGM3LTlhNTdiODIwNTMwOC9jYXRlZ29yeS9HYWRnZXRzIn1dfQ
 Google News:
   click: //*[@aria-label="Artificial intelligence"]
@@ -63,12 +63,12 @@ HackerNoon:
   - ^https://hackernoon.com/techbeat$
   - ^https://hackernoon.com/why-i-write-on-hacker-noon-nl28335q$
   - ^https://hackernoon.com/writer-signup$
-  title: HackerNoon - read, write and learn about any technology
+  title: HackerNoon
   url: https://hackernoon.com/
 NYT Tech:
   include:
   - ^https://www.nytimes.com/(\d+)/(\d+)/(\d+)/
-  title: Technology - The New York Times
+  title: New York Times Technology
   url: https://www.nytimes.com/section/technology
 Reddit:
   exclude:
@@ -81,7 +81,7 @@ Reddit:
   - ^https://play.google.com/
   scroll: 2
   minlength: 8
-  title: top scoring links _ multi
+  title: Reddit multiple subreddits
   url: https://www.reddit.com/r/ChatGPT+ChatGPTCoding+MacOS+MachineLearning+OpenAI+ProgrammerHumor+Windows10+battlestations+buildapc+cordcutters+dataisbeautiful+gadgets+hardware+linux+msp+programming+realtech+software+talesfromtechsupport+tech+technews+technology+techsupportgore+windows/top/?sort=top&t=day
 Techmeme:
   exclude:
@@ -96,26 +96,21 @@ Techmeme:
 The Register:
   include:
   - ^https://www.theregister.com/(\d+)/(\d+)/(\d+)/
-  title: The Register_ Enterprise Technology News and Analysis
+  title: The Register
   url: https://www.theregister.com/
 The Verge:
   include:
   - ^https://www.theverge.com/(\d+)/(\d+)/(\d+)/(\d+)/
-  title: Artificial Intelligence - The Verge
+  title: The Verge AI
   url: https://www.theverge.com/ai-artificial-intelligence
 VentureBeat:
-  title: AI News _ VentureBeat
+  title: VentureBeat AI
   url: https://venturebeat.com/category/ai/
 WSJ Tech:
-  include:
-  - ^https://www.wsj.com/articles/
-  title: Technology - WSJ.com
+  title: WSJ Technology
   url: https://www.wsj.com/tech
 WaPo Tech:
   include:
   - https://www.washingtonpost.com/(\w+)/(\d+)/(\d+)/(\d+)/
-  title: Technology - The Washington Post
+  title: Washington Post Technology
   url: https://www.washingtonpost.com/business/technology/
-
-
-

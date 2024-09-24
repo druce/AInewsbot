@@ -1,14 +1,17 @@
 import os
 import time
 import json
-import tiktoken
-import asyncio
+from collections import defaultdict
+
 import aiohttp
+import asyncio
+
+import tiktoken
 import openai
 from bs4 import BeautifulSoup
 import trafilatura
 
-from ainb_const import (LOWCOST_MODEL, MODEL, MAX_OUTPUT_TOKENS, MAX_RETRIES, TEMPERATURE,
+from ainb_const import (LOWCOST_MODEL, BASEMODEL, MODEL, MAX_OUTPUT_TOKENS, MAX_RETRIES, TEMPERATURE,
                         sleeptime, MAX_INPUT_TOKENS, MAXPAGELEN, CANONICAL_TOPICS,
                         FILTER_PROMPT, SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT)
 from ainb_utilities import log
@@ -25,7 +28,7 @@ def count_tokens(s):
         int: The number of tokens in the input string.
     """
     # no tokeniser returned yet for gpt-4o-2024-05-13
-    enc = tiktoken.encoding_for_model(MODEL)
+    enc = tiktoken.encoding_for_model(BASEMODEL)
     # enc = tiktoken.get_encoding('o200k_base')
     assert enc.decode(enc.encode("hello world")) == "hello world"
     return len(enc.encode(s))
@@ -48,6 +51,7 @@ async def get_response_json(
     client,
     messages,
     verbose=False,
+    json_schema=None,
     model=LOWCOST_MODEL,
     max_output_tokens=MAX_OUTPUT_TOKENS,
     max_retries=MAX_RETRIES,
@@ -85,13 +89,27 @@ async def get_response_json(
         if i > 0:
             log(f"Attempt {i+1}...")
         try:
-            response = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_output_tokens,
-                response_format={"type": "json_object"},
-            )
+            if json_schema:
+                # use schema given
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_output_tokens,
+                    response_format={
+                        "type": "json_schema",
+                        "json_schema": json_schema
+                    }
+                )
+            else:
+                # no schema given
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_output_tokens,
+                    response_format={"type": "json_object"},
+                )
             # no exception thrown
             return response
         except Exception as error:
@@ -252,6 +270,7 @@ async def async_filter_page(
     session,
     prompt=FILTER_PROMPT,
     model=LOWCOST_MODEL,
+    json_schema=None,
     max_retries=MAX_RETRIES,
     temperature=TEMPERATURE,
     verbose=False,
@@ -263,11 +282,17 @@ async def async_filter_page(
                 log(f"Attempt {i+1}...")
 
             messages = [{"role": "user",
-                         "content": prompt + json.dumps(p)
+                        "content": prompt + json.dumps(p)
                          }]
 
+            if json_schema:
+                response_format = {"type": "json_schema",
+                                   "json_schema": json_schema}
+            else:
+                response_format = {"type": "json_object"}
+
             payload = {"model":  model,
-                       "response_format": {"type": "json_object"},
+                       "response_format": response_format,
                        "messages": messages,
                        "temperature": temperature
                        }
@@ -275,7 +300,8 @@ async def async_filter_page(
             log(f"sent {len(p)} items ")
 
             response = await fetch_openai(session, payload)
-
+            # log(type(response))
+            # log(response)
             # valid json
             response_json = json.loads(
                 response["choices"][0]["message"]["content"])
@@ -324,6 +350,7 @@ async def async_filter_page(
 async def fetch_pages(pages,
                       prompt=FILTER_PROMPT,
                       model=LOWCOST_MODEL,
+                      json_schema=None,
                       max_retries=MAX_RETRIES,
                       temperature=TEMPERATURE,
                       verbose=False,):
@@ -337,6 +364,7 @@ async def fetch_pages(pages,
                                                          session,
                                                          prompt=prompt,
                                                          model=model,
+                                                         json_schema=json_schema,
                                                          max_retries=max_retries,
                                                          temperature=temperature,
                                                          verbose=verbose,
@@ -464,14 +492,119 @@ async def fetch_openai_summary(session, payload, i):
         return (i, retval)
 
 
-async def categorize_headline(headline, categories, session,
-                              model=LOWCOST_MODEL,
-                              temperature=0.5,
-                              max_retries=MAX_RETRIES):
+async def categorize_headline(AIdf,
+                              categories=CANONICAL_TOPICS,
+                              maxpagelen=MAXPAGELEN,
+                              model=LOWCOST_MODEL):
+
+    topic_prompt_template = """
+You will act as a research assistant to categorize news headlines based whether they discuss {topic}.
+The input will be formatted as a list of JSON objects.
+You will closely read each headline to determine if it discusses {topic}.
+You will respond with a list of JSON objects.
+
+Input Specification:
+You will receive a list of news headlines formatted as JSON objects.
+Each object will include an 'id' and a 'headline'.
+
+Classification Criteria:
+Classify each story based on its headline to determine whether it discusses {topic}.
+
+Output Specification:
+You will return a JSON object with the field 'headlines' containing an array of classification results.
+For each headline, your output will be a JSON object containing the original 'id' and a new field 'relevant',
+a boolean indicating if the story is about {topic}. You must strictly adhere to this output schema, without
+modification.
+
+Example Output Format:
+{{'headlines':
+  [{{'id': 97, 'relevant': true}},
+   {{'id': 103, 'relevant': true}},
+   {{'id': 103, 'relevant': false}},
+   {{'id': 210, 'relevant': true}},
+   {{'id': 298, 'relevant': false}}]
+}}
+
+Instructions:
+Ensure that each output object accurately reflects the 'id' field of the corresponding input object
+and that the 'relevant' field accurately represents the title's relevance to {topic}.
+
+The list of headlines to classify is:"""
+
+    # structured response format
+    json_schema = {
+        "name": "headline_schema",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "headlines": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "number"
+                                    },
+                                    "relevant": {
+                                        "type": "boolean"
+                                    }
+                                },
+                        "required": ["id", "relevant"],
+                        "additionalProperties": False
+                    }
+                }
+            },
+            "required": ["headlines"],
+            "additionalProperties": False
+        }
+    }
+
+    log("Start canonical topic classification")
+    # Create a defaultdict where each element is a list
+    canonical_dict = defaultdict(list)
+    pages = paginate_df(AIdf, maxpagelen=maxpagelen)
+    for tid, topic in enumerate(categories):
+        log(f"{topic}, topic {tid+1} of {len(categories)}")
+        enriched_urls = asyncio.run(fetch_pages(pages,
+                                                model=model,
+                                                prompt=topic_prompt_template.format(
+                                                    topic=topic),
+                                                json_schema=json_schema))
+        relevant_ids = [d['id'] for d in enriched_urls if d['relevant']]
+        for relevant_id in relevant_ids:
+            canonical_dict[relevant_id].append(topic)
+    log("end canonical topic classification")
+    return canonical_dict
+
+
+async def categorize_headline_old(headline, categories, session,
+                                  model=LOWCOST_MODEL,
+                                  temperature=0.5,
+                                  max_retries=MAX_RETRIES):
     """Match headline to specified category(ies)"""
+    # TODO: refactor to to send all headlines at once per keyword using async_filter_page
+
     retlist = []
     if type(categories) is not list:
         categories = [categories]
+
+    # structured response format
+    json_schema = {
+        "name": "extracted_topics",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "response": {
+                    "type": "number",
+                }
+            },
+            "required": ["response"],
+            "additionalProperties": False,
+        }
+    }
+
     for topic in categories:
         cat_prompt = f"""You are a news topic categorizaton assistant. I will provide a headline
 and a topic. You will respond with a JSON object {{'response': 1}} if the news headline matches
@@ -489,11 +622,10 @@ Topic:
                 messages = [
                     {"role": "user", "content": cat_prompt
                      }]
-
                 payload = {"model":  model,
-                           "response_format": {"type": "json_object"},
-                           "messages": messages,
-                           "temperature": temperature
+                           'response_format': {"type": "json_schema",
+                                               "json_schema": json_schema},                           "messages": messages,
+                           "temperature": temperature,
                            }
                 response = await fetch_openai(session, payload)
                 response_dict = json.loads(

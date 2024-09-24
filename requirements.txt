@@ -33,5 +33,7 @@ langchain-core
 langchain-openai
 langchain-text-splitters
 langchainhub
+langgraph-checkpoint-sqlite
 langgraph
 chromadb
+protobuf==3.20.*

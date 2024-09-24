@@ -8,4 +8,4 @@ source /opt/anaconda3/etc/profile.d/conda.sh
 conda activate ainewsbot
 
 # Run the Python script
-python /Users/drucev/projects/AInewsbot/AInewsbot.py > AInewsbot.out 2>&1
+python /Users/drucev/projects/AInewsbot/AInewsbot2.py > AInewsbot.out 2>&1

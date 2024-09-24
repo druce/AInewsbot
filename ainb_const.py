@@ -4,6 +4,7 @@ dotenv.load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 DOWNLOAD_DIR = "htmldata"
+PAGES_DIR = 'htmlpages'
 
 if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
@@ -19,8 +20,10 @@ sleeptime = 10
 
 SQLITE_DB = 'articles.db'
 
-MODEL = "gpt-4o-2024-08-06"
-LOWCOST_MODEL = "gpt-4o-mini"
+BASEMODEL = 'gpt-4o'  # tiktoken doesn't always map latest model
+MODEL = 'gpt-4o-2024-08-06'
+LOWCOST_MODEL = 'gpt-4o-mini'
+HIGHCOST_MODEL = 'o1-preview'
 
 MAX_INPUT_TOKENS = 8192     # includes text of all headlines
 MAX_OUTPUT_TOKENS = 4096    # max in current model
@@ -31,6 +34,9 @@ SOURCECONFIG = "sources.yaml"
 MINTITLELEN = 28
 
 MAXPAGELEN = 50
+
+HOSTNAME_SKIPLIST = ['finbold.com']
+SITE_NAME_SKIPLIST = ['finbold']
 
 FILTER_PROMPT = """
 You will act as a research assistant to categorize news articles based on their relevance
@@ -123,7 +129,10 @@ You will output Markdown format.
 You will provide the bullet points only, without any introduction such as 'here are' or any conclusion, or comment.
 """
 
-SUMMARIZE_USER_PROMPT = """Summarize the main points of the following text concisely in at most 3 bullet points:
+SUMMARIZE_USER_PROMPT = """Summarize the main points of the following text concisely in 3 bullet points or less.
+Ignore any content that is navigation, user instructions, disclaimers, sidebars, or boilerplate hype about the site.
+If the text contains primarily boilerplate content, or a request for the user to log in or perform an action to prove they are human,
+return a single bullet point describing what was found. Text:
 """
 
 bb_agent_system_prompt = """
@@ -277,9 +286,48 @@ Bullet Points to Summarize:
 CANONICAL_TOPICS = [
     "Policy and regulation",
     "Economics",
+    "Governance",
+    "Safety and Alignment",
+    "Bias and Fairness",
+    "Privacy & Surveillance",
+    "Inequality",
+    "Job Automation",
+    'Disinformation',
+    'Deepfakes',
+    'Sustainability',
+
+    "Virtual Assistants",
+    "Chatbots",
     "Robots",
     "Autonomous vehicles",
-    "LLMs",
+    "Drones",
+    'Virtual & Augmented Reality',
+
+    # 'Machine learning',
+    # 'Deep Learning',
+    # "Neural Networks",
+    # "Generative Adversarial Networks",
+
+    'Reinforcement Learning',
+    'Language Models',
+    'Transformers',
+    'Gen AI',
+    'Retrieval Augmented Generation',
+    "Computer Vision",
+    'Facial Recognition',
+    'Speech Recognition & Synthesis',
+
+    'Open Source',
+
+    'Internet of Things',
+    'Quantum Computing',
+    'Brain-Computer Interfaces',
+
+    "Hardware",
+    "Infrastructure",
+    'Semiconductor Chips',
+    'Neuromorphic Computing',
+
     "Healthcare",
     "Fintech",
     "Education",
@@ -290,7 +338,7 @@ CANONICAL_TOPICS = [
     "Deals",
     "IPOs",
     "Ethics",
-    "Laws",
+    "Legal issues",
     "Cybersecurity",
     "AI doom",
     'Stocks',
@@ -304,50 +352,37 @@ CANONICAL_TOPICS = [
     'Intellectual Property',
     'Code assistants',
     'Customer service',
-    'Machine learning',
-    'Reinforcement Learning',
-    'Open Source',
-    'Language Models',
     'Military',
-    'Semiconductor chips',
-    'Sustainability',
     'Agriculture',
-    'Gen AI',
     'Testing',
-    'RAG',
-    'Data',
-    'Disinformation',
-    'Deepfakes',
-    'Virtual Reality',
-    'Cognitive Science',
-    'Smart Home',
-    'Authors, Writing',
-    'Books, Publishing',
-    'TV, Film, Movies',
+    'Authors & Writing',
+    'Books & Publishing',
+    'TV & Film & Movies',
     'Streaming',
     'Hollywood',
     'Music',
-    'Art, Design',
+    'Art & Design',
     'Fashion',
-    'Food, Drink',
-    'Travel, Adventure',
-    'Health, Fitness',
+    'Food & Drink',
+    'Travel',
+    'Health & Fitness',
     'Sports',
     'Gaming',
     'Science',
     'Politics',
     'Finance',
     'History',
-    'Society, Culture',
-    'Lifestyle, Travel',
-    'Jobs, Careers, Labor Market',
+    'Society & Culture',
+    'Lifestyle & Travel',
+    'Jobs & Careers'
+    'Labor Market',
     'Products',
     'Opinion',
     'Review',
+    'Cognitive Science',
+    'Consciousness',
     'Artificial General Intelligence',
     'Singularity',
-    'Consciousness',
-    'Facial Recognition',
     'Manufacturing',
     'Supply chain optimization',
     'Transportation',
@@ -375,6 +410,16 @@ CANONICAL_TOPICS = [
     'Samsung',
     'Tesla',
     'Reddit',
+    "DeepMind",
+    "Intel",
+    "Qualcomm",
+    "Oracle",
+    "SAP",
+    "Alibaba",
+    "Tencent",
+    "Hugging Face",
+    "Stability AI",
+    "Midjourney",
 
     'ChatGPT',
     'WhatsApp',
@@ -390,6 +435,16 @@ CANONICAL_TOPICS = [
     'Yann LeCun',
     'Geoffrey Hinton',
     'Mark Zuckerberg',
+    "Demis Hassabis",
+    "Andrew Ng",
+    "Yoshua Bengio",
+    "Ilya Sutskever",
+    "Dario Amodei",
+    "Richard Socher",
+    "Sergey Brin",
+    "Larry Page",
+    "Satya Nadella",
+    "Jensen Huang",
 
     'China',
     'European Union',

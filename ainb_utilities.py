@@ -174,10 +174,12 @@ def filter_unseen_urls_db(orig_df, before_date=None, after_date=None):
         f"SELECT url, src, title FROM news_articles {where_clause}", conn)
     conn.close()
 
+    log(f"URLs in orig_df: {len(orig_df)}")
+
     existing_urls_list = existing_urls['url'].tolist()
-    log(f"Existing URLs: {len(existing_urls_list)}")
+    log(f"Existing URLs in DB: {len(existing_urls_list)}")
     filtered_df = orig_df[~orig_df['url'].isin(existing_urls_list)]
-    log(f"New URLs: {len(filtered_df)}")
+    log(f"New URLs in df filtered by URL: {len(filtered_df)}")
 
     existing_urls = existing_urls.drop('url', axis=1)
     existing_urls = existing_urls.drop_duplicates()
@@ -187,7 +189,7 @@ def filter_unseen_urls_db(orig_df, before_date=None, after_date=None):
     log(f"Existing src+title: {len(drop_df)}")
 
     filtered_df = filtered_df.loc[~filtered_df["id"].isin(drop_df["id"])]
-    log(f"New src+title: {len(filtered_df)}")
+    log(f"New URLs in df filtered by src+title: {len(filtered_df)}")
 
     return filtered_df
 
@@ -216,7 +218,7 @@ def unicode_to_ascii(input_string):
     return ascii_string
 
 
-def nearest_neighbor_sort(embedding_array, start_index=0):
+def nearest_neighbor_sort(embedding_array, start_index=None):
     """
     Sorts the embeddings in a greedy traveling salesman traversal order based on their pairwise Euclidean distances.
 
@@ -235,7 +237,12 @@ def nearest_neighbor_sort(embedding_array, start_index=0):
     # Compute the pairwise Euclidean distances between all embeddings
     distances = cdist(embedding_array, embedding_array, metric='euclidean')
 
-    # Start from the first headline as the initial point
+    if start_index is None:
+        # Find closest neighbor to the centroid
+        centroid = np.mean(embedding_array, axis=0)
+        centroid_dist = np.linalg.norm(embedding_array - centroid, axis=1)
+        start_index = np.argmin(centroid_dist)
+
     path = [start_index]
     visited = set(path)
 
