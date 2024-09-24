@@ -34,10 +34,9 @@ def count_tokens(s):
     return len(enc.encode(s))
 
 
-def trunc_tokens(long_prompt, model=MODEL, maxtokens=MAX_INPUT_TOKENS):
-
+def trunc_tokens(long_prompt, model=BASEMODEL, maxtokens=MAX_INPUT_TOKENS):
     # Initialize the encoding for the model you are using, e.g., 'gpt-4'
-    encoding = tiktoken.encoding_for_model(model)
+    encoding = tiktoken.encoding_for_model(BASEMODEL)
 
     # Encode the prompt into tokens, truncate, and return decoded prompt
     tokens = encoding.encode(long_prompt)
@@ -671,3 +670,54 @@ async def categorize_df(AIdf):
             catdict[row.id] = [item for l in responses for item in l]
             log(catdict[row.id])
     return catdict
+
+
+async def get_site_name(session, row):
+    """
+    Asynchronously gets a name for a website based on its URL from OpenAI.
+
+    Args:
+        session(aiohttp.ClientSession): The aiohttp session used to make the request.
+        row(object): An object containing the hostname attribute, which is the URL of the site.
+
+    Returns:
+        dict: A dictionary containing the URL and the site name in the format:
+            {"url": "www.example.com", "site_name": "Example Site"}.
+
+    Raises:
+        Exception: If there is an error during the request or response processing.
+    """
+
+    cat_prompt = f"""
+based on this url and your knowledge of the Web, what is the name of the site? https://{row.hostname}
+
+return the response as a json object of the form {{"url": "www.yankodesign.com", "site_name": "Yanko Design"}}
+
+    """
+    try:
+        messages = [
+            {"role": "user", "content": cat_prompt
+             }]
+
+        payload = {"model":  LOWCOST_MODEL,
+                   "response_format": {"type": "json_object"},
+                   "messages": messages,
+                   "temperature": 0
+                   }
+        response = await fetch_openai(session, payload)
+        response_dict = json.loads(
+            response["choices"][0]["message"]["content"])
+        return response_dict
+    except Exception as exc:
+        print(exc)
+
+
+async def fetch_missing_site_names(AIdf):
+    """fetch all missing site names"""
+    tasks = []
+    async with aiohttp.ClientSession() as session:
+        for row in AIdf.loc[AIdf['site_name'] == ""].itertuples():
+            task = asyncio.create_task(get_site_name(session, row))
+            tasks.append(task)
+        responses = await asyncio.gather(*tasks)
+    return responses

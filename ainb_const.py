@@ -21,7 +21,7 @@ sleeptime = 10
 SQLITE_DB = 'articles.db'
 
 BASEMODEL = 'gpt-4o'  # tiktoken doesn't always map latest model
-MODEL = 'gpt-4o-2024-08-06'
+MODEL = 'chatgpt-4o-latest'
 LOWCOST_MODEL = 'gpt-4o-mini'
 HIGHCOST_MODEL = 'o1-preview'
 
