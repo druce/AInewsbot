@@ -123,16 +123,16 @@ The list of headlines to extract topics from:
 
 SUMMARIZE_SYSTEM_PROMPT = """You are a summarization assistant.
 You will summarize the main content of provided text from HTML files in 3 bullet points or less.
-You will focus on the top 3 points of the text and keep the response concise."
-You will ignore any content that appears to be navigation menus, footers, sidebars, or other boilerplate content.
-You will output Markdown format.
-You will provide the bullet points only, without any introduction such as 'here are' or any conclusion, or comment.
+Focus on the top 3 points of the text. Keep the bullet points concise.
+Ignore any navigation menus, footers, sidebars, advertisements, boilerplate disclaimers, instructions to the user such as, log in, or perform an action to prove they are not a robot.
+If the text contains no substantive content to summarize, return a single bullet point describing what was found.
+Output Markdown format.
+Provide the bullet points only, without any introduction such as 'here are' or any conclusion, or comment.
 """
 
 SUMMARIZE_USER_PROMPT = """Summarize the main points of the following text concisely in 3 bullet points or less.
-Ignore any content that is navigation, user instructions, disclaimers, sidebars, or boilerplate hype about the site.
-If the text contains primarily boilerplate content, or a request for the user to log in or perform an action to prove they are human,
-return a single bullet point describing what was found. Text:
+Ignore any content that is navigation, user instructions, disclaimers, sidebars, ads, or boilerplate.
+Text:
 """
 
 bb_agent_system_prompt = """
