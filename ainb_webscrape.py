@@ -521,7 +521,7 @@ def process_url_queue_factory(q):
         saved_pages = []
         while not q.empty():
             i, url, title = q.get()
-            log(f'Processing {url}')
+            log(f'Processing page {i}: {url}')
             savefile = get_url(url, title, driver)
             if savefile:
                 saved_pages.append((i, url, title, savefile))

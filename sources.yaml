@@ -7,7 +7,7 @@ Bloomberg Tech:
   include:
   - ^https://www.bloomberg.com/news/
   title: Bloomberg Technology
-  url: https://www.bloomberg.com/technology
+  url: https://www.bloomberg.com/ai
 Business Insider:
   exclude:
   - ^https://www.insider.com
@@ -97,7 +97,7 @@ The Register:
   include:
   - ^https://www.theregister.com/(\d+)/(\d+)/(\d+)/
   title: The Register
-  url: https://www.theregister.com/
+  url: https://www.theregister.com/software/ai_ml/
 The Verge:
   include:
   - ^https://www.theverge.com/(\d+)/(\d+)/(\d+)/(\d+)/
@@ -108,7 +108,7 @@ VentureBeat:
   url: https://venturebeat.com/category/ai/
 WSJ Tech:
   title: WSJ Technology
-  url: https://www.wsj.com/tech
+  url: https://www.wsj.com/tech/ai
 WaPo Tech:
   include:
   - https://www.washingtonpost.com/(\w+)/(\d+)/(\d+)/(\d+)/
