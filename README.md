@@ -1,7 +1,7 @@
 # AInewsbot
 A Python notebook/script to help find the latest news about AI (or other subjects)
 
-[AInewsbot_langraph.ipynb](AInewsbot_langraph.ipynb)
+[AInewsbot_langraph.ipynb](https://github.com/druce/AInewsbot/blob/main/AInewsbot_langgraph.ipynb)
 
 - Save a list of HTML files from sources.yaml (tech news sites)
 - Extract URLs for the news stories based on a regexp
