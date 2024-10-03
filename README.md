@@ -1,12 +1,14 @@
 # AInewsbot
 A Python notebook/script to help find the latest news about AI (or other subjects)
 
-AInewsbot.ipynb
+[AInewsbot_langraph.ipynb](AInewsbot_langraph.ipynb)
 
-- Open URLs of news sites specififed in sources.yaml using Selenium and Firefox
-- Save HTML of each URL in htmldata directory
-- Extract URLs from all files, create a pandas dataframe with url, title, src
-- Use ChatGPT to filter only AI-related headlines
-- Use SQLite to store headlines previously seen and not show them again
-- Send a mail with the latest headlines
-- Requires Firefox / geckodriver, doesn't run headless currently, needs interactive session
+- Save a list of HTML files from sources.yaml (tech news sites)
+- Extract URLs for the news stories based on a regexp
+- Filter URLs to remove duplicates, articles seen before (using a SQLite history), and non-AI articles (using a ChatGPT prompt)
+- Perform headline topic analysis and sort by topic to help the AI structure the response by topic
+- Scrape and summarize individual articles
+- Compose, edit, and email the summary newsletter
+- Requires Firefox / geckodriver, doesn't run headless, needs interactive session
+- Human should review and edit categories proposed, should check after downloading files that all are present, if any got an are-you-a-bot block, download manually.
+- Usually the newsletter composed using OpenAI o1-preview is pretty good as a first iteration, sometimes hit-or-miss. But reading the summary bullets gives a pretty comprehensive overview.
