@@ -10,7 +10,8 @@ A Python notebook/script to help find the latest news about AI (or other subject
 - Scrape and summarize individual articles
 - Compose, edit, and email the summary newsletter
 - Requires Firefox / geckodriver, doesn't run headless, needs interactive session
-- Human should review and edit categories proposed, should check after downloading files that all are present, if any got an are-you-a-bot block, download manually.
-- Usually the newsletter composed using OpenAI o1-preview is pretty good as a first iteration, sometimes hit-or-miss. But reading the summary bullets gives a pretty comprehensive overview.
+- Human should check after downloading files that all are present, if any triggered a bot block, download those manually.
+- Human should review and edit categories proposed
+- Usually the newsletter composed using OpenAI o1-preview is pretty good as a first iteration, sometimes it's hit-or-miss. The summary bullets of all the day's stories also give a pretty comprehensive overview.
 
 ![flowchart](https://github.com/druce/AInewsbot/blob/main/graph.jpeg?raw=true)
