@@ -4,6 +4,7 @@ A Python notebook/script to help find the latest news about AI (or other subject
 [AInewsbot_langraph.ipynb](https://github.com/druce/AInewsbot/blob/main/AInewsbot_langgraph.ipynb)
 
 - Save a list of HTML files from sources.yaml (tech news sites)
+- Also searched for AI news on a bunch of sites using [newscatcher](https://www.newscatcherapi.com/) (see my marketdata repo for some other news APIs)
 - Extract URLs for the news stories based on a regexp
 - Filter URLs to remove duplicates, articles seen before (using a SQLite history), and non-AI articles (using a ChatGPT prompt)
 - Perform headline topic analysis and sort by topic to help the AI structure the response by topic
