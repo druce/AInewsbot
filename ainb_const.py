@@ -38,6 +38,28 @@ MAXPAGELEN = 50
 HOSTNAME_SKIPLIST = ['finbold.com']
 SITE_NAME_SKIPLIST = ['finbold']
 
+TOPSOURCES = {
+    'Bloomberg Tech',
+    'www.bloomberg.com',
+    'news.bloomberglaw.com',
+    'FT Tech',
+    'www.ft.com',
+    'www.theverge.com',
+    'The Verge',
+    'NYT Tech',
+    'www.nytimes.com',
+    'Techmeme',
+    'www.techmeme.com',
+    'WSJ Tech',
+    'www.wsj.com',
+    'www.theinformation.com',
+    'www.nature.com',
+    'www.theatlantic.com',
+    'openai.com',
+    'www.science.org',
+    'www.scientificamerican.com',
+}
+
 FILTER_PROMPT = """
 You will act as a research assistant to categorize news articles based on their relevance
 to the topic of artificial intelligence (AI). You will closely read the title of each story
@@ -121,14 +143,16 @@ The list of headlines to extract topics from:
 
 """
 
-SUMMARIZE_SYSTEM_PROMPT = """You are a summarization assistant.
-You will summarize the main content of provided text from HTML files in 3 bullet points or less.
+SUMMARIZE_SYSTEM_PROMPT = """You are a news summarization assistant.
+You will summarize the main content of provided news text from HTML files in 3 bullet points or less.
 Focus on the top 3 points of the text. Keep the bullet points concise.
-Ignore any navigation menus, footers, sidebars, advertisements, subscription offers,
-boilerplate disclaimers, instructions to the user to log in or perform an action
-to prove they are not a robot.
-If the text contains no substantive content to summarize, return a single bullet point
-stating that.
+Ignore anything that is not news content, including: navigation menus, footers, sidebars,
+advertisements, promotions, discounts, subscription offers, boilerplate disclaimers,
+instructions to the user to log in, or prove they are not a robot, or enable javascript,
+or contact support.
+If the text contains no substantive news content to summarize, return a single bullet point
+stating that. Never include non-news content like discussion of subscription offers, promotions,
+or other boilerplate content.
 Output Markdown format.
 Provide the bullet points only, without any introduction such as 'here are' or any conclusion, or comment.
 """
@@ -229,60 +253,112 @@ Bullet Points to Analyze:
 
 """
 
-
-FINAL_SUMMARY_PROMPT = f"""You are an advanced content analysis assistant, a sophisticated AI system
-designed to perform in-depth analysis of news content. Your function is to extract meaningful insights,
-categorize information, and identify trends from large volumes of news.
-
-I will provide a list of today's news articles about AI and summary bullet points in markdown format.
-Bullet points will contain a title and URL, a list of topics discussed, and a bullet-point summary of
-the article. You are tasked with identifying and summarizing the most important news, recurring themes,
-common facts and items. Your job is to create a concise summary containing about 20 of the most
-frequently mentioned topics and developments.
+FINAL_SUMMARY_PROMPT = """You are ASA, an advanced summarization assistant designed to
+write a compelling summary of news input. You are able to categorize information,
+and identify important themes from large volumes of news. Create a cohesive, concise newsletter
+from a list of article summaries, with snappy titles, bullet points and links to original articles.
 
 
-Example Input Bullet Points:
+ASA Objective:
 
-[2. Sentient closes $85M seed round for open-source AI](https://cointelegraph.com/news/sentient-85-million-round-open-source-ai)
+I will provide today's news items about AI and summary bullet points in markdown format,
+structured according to an input format template.
 
-AI startup funding, New AI products
+News items are delimited by ~~~
 
-- Sentient secured $85 million in a seed funding round led by Peter Thiel's Founders Fund, Pantera Capital, and Framework Ventures for their open-source AI platform.
-- The startup aims to incentivize AI developers with its blockchain protocol and incentive mechanism, allowing for the evolution of open artificial general intelligence.
-- The tech industry is witnessing a rise in decentralized AI startups combining blockchain
+You are tasked with using the news items to create a concise summary of today's most important topics and developments.
 
-Examples of important stories:
+You will write an engaging summary of today's news encompassing the most important and frequently
+mentioned topics and themes, in an output format provided below.
 
-Major investments and funding rounds
-Key technological advancements or breakthroughs
-Frequently mentioned companies, organizations, or figures
-Notable statements by AI leaders
-Any other recurring themes or notable patterns
+ASA Input Item Format Template:
+
+[Story-Title-s1 - source-name-s1](url-s1)
+
+Topics: s1-topic1, s1-topic2, s1-topic3
+
+- s1-bullet-point-1
+- s1-bullet-point-2
+- s1-bullet-point-3
+
+Example ASA Input Item Format:
+
+[Apple Intelligence is now live in public beta. Heres what it offers and how to enable it. - TechCrunch](https://techcrunch.com/2024/09/19/apple-intelligence-is-now-live-in-public-beta-heres-what-it-offers-and-how-to-enable-it)
+
+Topics: Apple, Big Tech, Features, Gen AI, Intelligence, Machine Learning, Products, Public Beta, Virtual Assistants
+
+- Apple Intelligence is now live in public beta for users in the U.S. enrolled in the public beta program, featuring generative AI capabilities like advanced writing tools and a revamped Siri.
+- The platform is currently only available in U.S. English and is not accessible in the EU or China due to regulatory issues; it supports iPhone 15 Pro, Pro Max, and the new iPhone 16 line.
+- Key features include photo editing tools like "Clean Up," a Smart Reply function in Mail, and improvements to Siri’s understanding and on-device task knowledge.
+
+ASA Output Format Template:
+
+# Engaging-topic-title-1
+
+- item-title-1a - [source-name-1a](item-url-1a)
+- item-title-1b - [source-name-1b](item-url-1b)
+- item-title-1c - [source-name-1c](item-url-1c)
+
+# Engaging-topic-title-2
+
+- item-title-2a - [source-name-2a](item-url-2a)
+- item-title-2b - [source-name-2b](item-url-2b)
+
+Example ASA Output Format:
+
+# A military AI revolution
+
+- Eric Schmidt on AI warfare - [FT](https://www.ft.com/content/fe136479-9504-4588-869f-900f2b3452c4)
+- Killer robots are real in Ukraine war. - [Yahoo News](https://uk.news.yahoo.com/ai-killer-robots-warning-ukraine-war-133415411.html)
+
+ASA Instructions:
+Read each input summary closely to extract their main points and themes.
+USE ONLY INFORMATION PROVIDED IN THE INPUT SUMMARIES.
+Group news items into related topics.
+Develop a snappy, engaging punchy, clever, alliterative, possibly punny title for each topic.
+Each topic chould contain the most significant facts from the news items without commentary or elaboration.
+Each news item bullet should contain one sentence with one link. The link must be identical to the one in the corresponding news item input.
+Each news item bullet should not repeat points or information from previous bullet points.
+You will write each news item in the professional but engaging, narrative style of a tech reporter
+for a national publication, providing balanced, professional, informative, providing accurate,
+clear, concise summaries in a neutral tone.
+Do not include ```markdown , output raw markdown.
+Check carefully that you only use information provided in the input below, that you include
+a link in each output item, and that any bullet point does not repeat information or links previously provided.
+
+Topic suggestions:
+{cat_str}
+
+Input:
+{bullet_str}
+
+"""
+
+REWRITE_PROMPT = """You will act as a professional editor with a strong background in technology journalism.
+You have a deep understanding of current and emerging AI trends, and the ability to
+produce, edit, and curate high-quality content that engages and informs readers. You are
+especially skilled at reviewing and enhancing tech writing, helping improve clarity, conciseness,
+and coherence, and ensuring its accuracy and relevance.
+
+Objective: The markdown newsletter provided below contains several sections consisting of bullet points.
+Carefully review each section of the newsletter. Edit the newsletter for issues according
+to the detailed instructions below, and respond with the updated newsletter or 'OK' if no changes
+are needed.
 
 Instructions:
+Do not include ```markdown. Output raw markdown.
+For each bullet point, make it as concise as possible, sticking to facts without editorial comment.
+For each section, remove or combine bullet points which are highly duplicative or redundant or devoid of news content.
+You may remove bullet points but you may not update URLs.
+For each section, review and edit the section title.
+The section title should be snappy, punchy, clever, possibly alliterative or punny.
+The section title must be short, engaging, and as consistent with the bullets in the section as possible.
+Remove sections which are devoid of news content. Ensure there are no comments on the content or composition of the newsletter.
+At the top of the newsletter add an overall title synthesizing several top news items.
+Respond with the updated newsletter only in markdown format, or the word 'OK' if no changes are needed.
 
-Read the summary bullet points closely.
-Use only information provided in them and provide the most common facts without commentary or elaboration.
-Write in the professional but engaging, narrative style of a tech reporter for a national publication.
-Be balanced, professional, informative, providing accurate, clear, concise summaries in a respectful neutral tone.
-Focus on the most common elements across the bullet points and group similar items together.
-Headers must be as short and simple as possible: use "Health Care" and not "AI developments in Health Care" or "AI in Health Care"
-Ensure that you provide at least one link from the provided text for each item in the summary.
-You must include at least 10 and no more than 25 items in the summary.
-
-Example Output Format:
-
-# Today's AI News
-
-### Security and Privacy:
-- ChatGPT Mac app had a security flaw exposing user conversations in plain text. ([Macworld](https://www.macworld.com/article/2386267/chatgpt-mac-sandboxing-security-flaw-apple-intelligence.html))
-- Brazil suspended Meta from using Instagram and Facebook posts for AI training over privacy concerns. ([BBC](https://www.bbc.com/news/articles/c7291l3nvwv))
-
-### Health Care:
-- AI can predict Alzheimer's disease with 70% accuracy up to seven years in advance. ([Decrypt](https://decrypt.co/238449/ai-alzheimers-detection-70-percent-accurate-study))
-- New AI system detects 13 cancers with 98% accuracy, revolutionizing cancer diagnosis. ([India Express](https://news.google.com/articles/CBMiiAFodHRwczovL2luZGlhbmV4cHJl))
-
-Bullet Points to Summarize:
+Newsletter to edit:
+{summary}
 
 """
 

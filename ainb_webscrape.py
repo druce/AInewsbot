@@ -204,12 +204,26 @@ def get_url(url, title, driver=None):
         Exception: If there is an error during the execution of the function.
 
     """
-    if not driver:
-        driver = get_driver()
-
     log(f"starting get_url {url}", f'get_url({url})')
 
     try:
+        if not os.path.exists(PAGES_DIR):
+            os.makedirs(PAGES_DIR)
+        # make a clean output filename
+        # datestr = datetime.now().strftime('%Y%m%d_%H%M%S')
+        # sep = "_"
+        sep = ""
+        datestr = ""
+        filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', title)
+        trunclen = 255-len(datestr)-len(sep)
+        filename = filename[:trunclen]
+        outfile = f'{filename}{sep}{datestr}.html'
+        destpath = PAGES_DIR + "/" + outfile
+        if os.path.exists(destpath):
+            return destpath
+
+        if not driver:
+            driver = get_driver()
         # Open the page
         driver.get(url)
 
@@ -243,17 +257,8 @@ def get_url(url, title, driver=None):
         #         encoding = content_type[charset_start + 8:]
         # except Exception as err:
         #     log(str(err))
-
-        # Save the HTML to a local file
-        datestr = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', title)
-        trunclen = 255-len(datestr)-6
-        filename = filename[:trunclen]
-        outfile = f'{filename}_{datestr}.html'
         log(f"Saving {outfile} as {encoding}", f'get_url({title})')
-        if not os.path.exists(PAGES_DIR):
-            os.makedirs(PAGES_DIR)
-        destpath = PAGES_DIR + "/" + outfile
+
         with open(destpath, 'w', encoding=encoding) as file:
             file.write(html_source)
 
