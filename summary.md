@@ -1,23 +1,68 @@
-# Artists Protest as AI Takes the Wheel
+Anthropic updated Sonnet, said it beats everything else, updates smaller faster cheaper Haiku model. Also 'computer use', watching and operating your computer? - Anthropic
+https://www.anthropic.com/news/3-5-models-and-computer-use
 
-## Deepfakes Disrupt Democracy
+In maybe a year or two we should see models that understand what you are doing on your screen and you can tell them to write a script to automate it.
 
-- Celebrities warn voters about AI deepfakes in new PSA - [Google News](https://news.google.com/read/CBMixAFBVV95cUxQa3g1eVNISERsMU5RS05NdmhQc0JaUHBtY0FJLU1DMDRPU2VxMUk4STU3Q0k0RnBHRHlzQ1dQelJ5cXVQZlFZMEV3X0pNQVVaX3p2eTZXQmZ3LUREZTZ6Y1NSUkQ1Z00xWGpBSHdGSjJUZkstUzFTYzZtYm53UDlnRl9MX2phQU40T0dIZlVCbkF3c2p4MEdkUHVjMFNieHplTmRLMTBuSlMzMGt6VE5GR25xd3BrajRhODg2QjgwUTRwcXkx0gFkQVVfeXFMT3dsN0owRXNGYWRWU3Q3a3ZON184eFM4WnFDM084T2hhbzBjRG9MNlNUQU5lc2daWkM0WndkQzFlbmJzQW92cFpEc1VTbG1GVTZtNDZDeGxLSnNXNlZDSWthYnBycg)
-- Generative AI increasingly used for fraud - [Hacker Noon](https://hackernoon.com/ai-deception-how-generative-ai-is-being-weaponized-for-fraud)
+Joanna Stern talks with Craig Federighi, discusses Apple AI features about to be released, and the roadmap. - WSJ
+https://www.wsj.com/tech/personal-tech/apple-intelligence-3833c320
 
-## AI Faces the Music
 
-- Over 11,000 artists including ABBA and Radiohead protest AI's unlicensed use of creative works - [Financial Times](https://www.ft.com/content/c7c0e8bf-9cdd-4a42-8e01-d2a36ba06298)
+Apple’s Tim Cook meets Chinese regulators but no word on AI roll-out. They will presumably want everything localized and nerfed to avoid sensitive topics. - South China Morning Post
+https://www.scmp.com/news/article/3283475/apples-tim-cook-meets-china-regulator-beijing-no-final-word-apple-intelligence
 
-## Stable Diffusion 3.5 Sharpens the Focus
+AI to detect when your phone is snatched and automatically lock it.
+https://www.bbc.com/news/articles/c1484r0r3m6o
 
-- StabilityAI releases Stable Diffusion 3.5 with improved realism - [Tom's Guide](https://www.tomsguide.com/ai/stabilityai-releases-stable-diffusion-3-5-a-step-up-in-realism)
+In a lawsuit, the mother of a 14-year-old Florida boy says he became obsessed with a chatbot on Character.AI before he committed suicide. (But maybe lock up the .45 tho?) - NY Times
+https://www.nytimes.com/2024/10/23/technology/characterai-lawsuit-teen-suicide.html
 
-## AI Hits the Road
+Enterprise process automation company UiPath adds gen-AI agents. - SiliconANGLE
+https://siliconangle.com/2024/10/22/uipath-marrying-generative-ai-robots-accelerate-business-automation/
 
-- Google and Qualcomm partner to bring generative AI to cars - [Google News](https://news.google.com/read/CBMib0FVX3lxTE92X3NwaEc2M0dYV2UyN0s3emFMYTdHbGpNODQxS09TaVlTM1VpTDh3YU83UU1GVl81Y182QzFmQnMxQlpUMnMyQVRTVGQybXFvOFFwTUdhSUtDcmlXcDZ2cEJSZXRocll4OXNTUVF2cw)
-- Qualcomm unveils automotive chips enhancing AI and ADAS - [Google News](https://news.google.com/read/CBMilgFBVV95cUxPbWxlY3Z0dEFYTlk1WXJWaEExcjF3OW5KTy1aNHBzc1BKeVRXeTRZOGVlVDhuMWVNcGZIQmFfSGY0WjVHZmFvOTdhT1huRVBrSmRJYVdFNmtXQzc4YnFyS2ZoOEN3VHpyTEowaW5qMDh5MThQRHZUMVZFUWt2WmFrTGZGanMtczNZejgzaGR6bXdlazctQnc)
+Highlight AI is an always-on assistant that run on Macs with Apple Silicon, that transcribes, summarizes, critiques, finds your calendar availability.
+https://highlightai.com/
 
-## Claude Commands
+AI in space at low power, high latency. - Fast Company
+https://www.fastcompany.com/91214275/why-its-so-challenging-to-deploy-ai-on-space-missions
 
-- Anthropic releases Claude 3.5 model that can control desktop apps via API - [TechCrunch](https://techcrunch.com/2024/10/22/anthropics-new-ai-can-control-your-pc/)
+AI tech lets police follow suspects' cars from camera to camera without license plate reading. - Fox News
+https://www.foxnews.com/video/6363607217112
+
+The FTC issued rules against fake product reviews. - Futurism
+https://futurism.com/the-byte/illegal-fake-reviews-ai
+
+AI to automatically analyze your bowel movements. - digitalcameraworld
+https://www.digitalcameraworld.com/news/toilet-camera-uses-ai-to-analyze-pics-of-poop-and-measure-your-gut-health
+
+
+Qualcomm, Google partner to create intense AI-powered car dashboards and voice controls. - Android Central
+https://www.androidcentral.com/apps-software/qualcomm-announces-snapdragon-cockpit-elite-ride-elite-for-ai-in-cars
+
+ABBA, Radiohead, The Cure, Kevin Bacon, Kate McKinnon and thousands of artists signed an AI protest letter against 'unlicensed use' of works - ABC News
+https://abcnews.go.com/Business/wireStory/abba-radiohead-cure-musicians-sign-ai-protest-letter-115042563
+
+Joseph Gordon-Levitt says if he'd known his contracts let AI train on his performance and recreate his image, he wouldn't have signed them. We must go deeper. I say: don't think about AI. What are you thinking about? - WSJ
+https://www.wsj.com/tech/ai/meet-hollywoods-ai-doomsayer-joseph-gordon-levitt-27b82d69
+
+Runway introduces a sick motion-capture tool that lets your characters adopt your facial expressions. - Runway ML
+https://runwayml.com/research/introducing-act-one
+
+Can you sus out the deepfakes? Likenesses Of Michael Douglas, Amy Schumer And Chris Rock Warn Voters Of Election “Deepfakes” In New PSA - Deadline
+https://deadline.com/2024/10/deepfakes-ai-2024-election-michael-douglas-psa-1236136198/
+
+Genmo says its Mochi 1 model the best open source text-to-video system. - Genmo
+https://www.genmo.ai/blog
+
+
+Meta tests facial recognition to help combat ads using celebrity images, and to facilitate account recovery. - TechCrunch
+https://techcrunch.com/2024/10/21/meta-tests-facial-recognition-for-spotting-celeb-bait-ads-scams-and-easier-account-recovery/
+
+Stability AI releases Stable Diffusion 3.5 - Stability AI
+https://stability.ai/news/introducing-stable-diffusion-3-5
+
+Two Virginia congressional candidates discussed the issues with an AI chatbot of their opponent, in a surprisingly rational debate. Maybe having an AI that's the best version of one candidate debating an AI that's the best version of the other candidate, and only making points that are linked to reputable sources, would be a step up. - Fast Company
+https://www.fastcompany.com/91212424/virginia-congressional-candidates-debated-ai-chatbot
+
+You can also follow the latest AI headlines via SkynetAndChill.com on Bluesky
+
+
