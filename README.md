@@ -1,5 +1,5 @@
 # AInewsbot
-A Python notebook/script to help find the latest news about AI (potentially other subjects my modifying source URLs and search keywords)
+A Python notebook/script to help find the latest news about AI (potentially other subjects by modifying source URLs and search keywords)
 
 [AInewsbot_langraph.ipynb](https://github.com/druce/AInewsbot/blob/main/AInewsbot_langgraph.ipynb)
 
