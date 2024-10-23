@@ -16,6 +16,6 @@ A Python notebook/script to help find the latest news about AI (potentially othe
 - Uses human-in-the loop to ensure AI doesn't go off the rails. Human should check after downloading files that all are present, if any triggered a bot block, download those manually.
 - Human should review and edit categories proposed
 - Usually the newsletter composed using OpenAI o1-preview is pretty good as a first iteration, sometimes it's a bit hit-or-miss and need to retry. 
-- Used to generate a daily newsletter at [skynetandchill.com](skynetandchill.com) 
+- Used to generate a daily newsletter at [skynetandchill.com](https://skynetandchill.com) 
 
 ![flowchart](https://github.com/druce/AInewsbot/blob/main/graph.jpeg?raw=true)
