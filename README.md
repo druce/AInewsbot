@@ -19,3 +19,5 @@ A Python notebook/script to help find the latest news about AI (potentially othe
 - Used to generate a daily newsletter at https://www.skynetandchill.com/
 
 ![flowchart](https://github.com/druce/AInewsbot/blob/main/graph.jpeg?raw=true)
+
+[![A podcast created with ElevenLabs and podcastfy](https://img.youtube.com/vi/-wn2sjzpbXY/0.jpg)](https://youtu.be/-wn2sjzpbXY) 
