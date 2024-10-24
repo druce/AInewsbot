@@ -20,4 +20,5 @@ A Python notebook/script to help find the latest news about AI (potentially othe
 
 ![flowchart](https://github.com/druce/AInewsbot/blob/main/graph.jpeg?raw=true)
 
+## Podcast generated with ElevenLabs and podcastfy.ai
 [![A podcast created with ElevenLabs and podcastfy](https://img.youtube.com/vi/-wn2sjzpbXY/0.jpg)](https://youtu.be/-wn2sjzpbXY) 
