@@ -5,10 +5,15 @@ import os
 # import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+# import undetected_chromedriver as uc
+# from selenium.webdriver.chrome.options import Options
+
 # use firefox v. chrome b/c it updates less often, can disable updates
-# recommend importing profile from Chrome for cookies, passwords
+# chrome is faster, can use undetected_chromedriver, but harder to manage versions and profiles, firefox is more stable
+# recommend importing a main profile from Chrome or other browser for cookies, passwords
 # looks less like a bot with more user cruft in the profile
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
@@ -19,6 +24,7 @@ import requests
 from urllib.parse import urljoin, urlparse
 
 from ainb_const import DOWNLOAD_DIR, PAGES_DIR, GECKODRIVER_PATH, FIREFOX_PROFILE_PATH, MINTITLELEN, sleeptime
+# CHROME_PROFILE_PATH, CHROME_PROFILE, CHROME_DRIVER_PATH,
 from ainb_utilities import log
 
 # get a page title from html or tags if you have not-descriptive link titles like 'link'
@@ -169,6 +175,9 @@ def get_driver(geckodriver_path=GECKODRIVER_PATH, firefox_profile_path=FIREFOX_P
     # important for some sites that need a login, also a generic profile fingerlog that looks like a bot might get blocked
     log(f"{os.getpid()} Initializing webdriver", "get_driver")
 
+    # options = uc.ChromeOptions()
+    # options.add_argument(f'--user-data-dir={CHROME_PROFILE_PATH}')
+    # options.add_argument(f'--profile-directory={CHROME_PROFILE}')
     options = Options()
     options.profile = firefox_profile_path
     log("Initialized webdriver profile", "get_driver")
@@ -179,6 +188,13 @@ def get_driver(geckodriver_path=GECKODRIVER_PATH, firefox_profile_path=FIREFOX_P
 
     # Set up the Firefox driver
     driver = webdriver.Firefox(service=service, options=options)
+    driver.get("https://www.google.com")
+
+    # driver = uc.Chrome(options=options,
+    #                    driver_executable_path=CHROME_DRIVER_PATH,
+    #                    version_main=130,
+    #                    )
+
     log("Initialized webdriver", "get_driver")
     return driver
 

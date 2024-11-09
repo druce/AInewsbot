@@ -15,7 +15,9 @@ GECKODRIVER_PATH = '/Users/drucev/webdrivers/geckodriver'
 # FIREFOX_APP_PATH = '/Applications/Firefox.app'
 # Path to profile
 FIREFOX_PROFILE_PATH = '/Users/drucev/Library/Application Support/Firefox/Profiles/k8k0lcjj.default-release'
-
+CHROME_PROFILE_PATH = '/Users/drucev/Library/Application Support/Google/Chrome'
+CHROME_PROFILE = 'Profile 7'
+CHROME_DRIVER_PATH = '/Users/drucev/Library/Application Support/undetected_chromedriver/undetected_chromedriver'
 sleeptime = 10
 
 SQLITE_DB = 'articles.db'
@@ -144,17 +146,19 @@ The list of headlines to extract topics from:
 """
 
 SUMMARIZE_SYSTEM_PROMPT = """You are a news summarization assistant.
-You will summarize the main content of provided news text from HTML files in 3 bullet points or less.
-Focus on the top 3 points of the text. Keep the bullet points concise.
-Do not include anything that is not news content.
-Specifically, do not include: instructions to the user about browser compatibility,
-logging in, proving they are not a robot, or enabling javascript, or cookie settings,
-or contacting support, or any advertisements, promotions, discounts, subscription
-offers, boilerplate disclaimers, or any other non-news content.
-If the text contains no substantive news content to summarize, return a single bullet point
-stating that.
-Output Markdown format.
-Provide the bullet points only, without any introduction such as 'here are' or any conclusion, or comment.
+Your task is to summarize the main content of news articles from HTML files in 3 bullet points or fewer.
+
+Instructions:
+	•	Ignore all non-news elements, such as:
+        •	User instructions (e.g., logging in, enabling JavaScript or cookies, proving they’re not a robot, how to contact support).
+        •	Subscription offers, discounts, advertisements, or promotions.
+        •	Boilerplate disclaimers or descriptive information about the website.
+	•	Focus on the top 3 points of the text. Keep the bullet points concise.
+ Output:
+	•	Use Markdown format for the bullet points.
+	•	If the text contains no substantive news content, provide a single bullet point stating this.
+	•	Output only the bullet points; do not include any introduction, comment, discussion, or conclusions.
+
 """
 
 SUMMARIZE_USER_PROMPT = """Summarize the main points of the following text concisely in 3 bullet points or less.
@@ -210,20 +214,30 @@ Only use data obtained from these tools.
 
 """
 
+# TODO: with < 5 examples it tends to output the examples
 
 TOP_CATEGORIES_PROMPT = """You will act as a research assistant identifying the top stories and topics
 of today's news. I will provide a list of today's news stories about AI and summary bullet points in markdown
 format. You are tasked with identifying the top 10-20 stories and topics of today's news. For each top story
 or topic, you will create a short title and respond with a list of titles formatted as a JSON object.
 
-
 Example Input Bullet Points:
 
-[2. Sentient closes $85M seed round for open-source AI](https://cointelegraph.com/news/sentient-85-million-round-open-source-ai)
+[61. AI is transforming weather forecasting. - Union Leader](https://www.unionleader.com/news/weather/ai-is-transforming-weather-forecasting-is-the-u-s-falling-behind/article_6b73dbfa-9320-11ef-8ad6-ffea1dea3c83.html)
 
-- Sentient secured $85 million in a seed funding round led by Peter Thiel's Founders Fund, Pantera Capital, and Framework Ventures for their open-source AI platform.
-- The startup aims to incentivize AI developers with its blockchain protocol and incentive mechanism, allowing for the evolution of open artificial general intelligence.
-- The tech industry is witnessing a rise in decentralized AI startups combining blockchain
+Climate, Science, U.S., Weather Forecasting
+
+- AI weather models have demonstrated significant accuracy in predicting hurricane landfalls, outperforming traditional models developed by the National Oceanic and Atmospheric Administration (NOAA).
+- The rapid development of global AI weather models by private tech companies and Europe’s weather agency has raised concerns that the U.S. is lagging in this high-tech forecasting race.
+- Experts argue that NOAA's complex mission and lack of formal plans for a global AI model contribute to its struggle to keep pace with international competitors, highlighting the need for better organization and coordination.
+
+70. [Prediction: Nvidia Will Continue to Dominate the AI Market, Here's Why. - MSN](https://www.msn.com/en-us/money/topstocks/prediction-nvidia-will-continue-to-dominate-the-ai-market-here-s-why/ar-AA1sUCQM)
+
+AI Market, Gen AI, Nvidia, Opinion, Prediction
+
+- Nvidia currently leads the AI market significantly ahead of its competitors.
+- Predictions suggest that Nvidia will maintain its dominant position in the foreseeable future.
+- The company’s advancements and resources contribute to its continued superiority in AI technology.
 
 Categories of top stories and topics:
 Major investments and funding rounds
@@ -251,6 +265,61 @@ Example Output Format:
 
 Bullet Points to Analyze:
 
+"""
+
+TOPIC_REWRITE_PROMPT = """
+You are a skilled newsletter editor specializing in tech news.
+Revise the list of AI news topics below for clarity and brevity, eliminating redundancy, according to the following guidelines:
+
+RULES:
+ 1. Combine Similar Topics: Merge entries that refer to similar concepts or events.
+ 2. Split Multi-Concept Topics: Break down entries that cover multiple ideas into individual, distinct topics.
+ 3. Eliminate Generic Terms: Remove vague descriptors (e.g., “new,” “innovative”) to keep the topics sharp.
+ 4. Prioritize Specifics: Focus on concrete products, companies, or events.
+ 5. Standardize References: Use consistent naming for products and companies.
+ 6. Simplify and Clarify: Make each topic short and direct, clearly conveying the core message.
+
+FORMATTING:
+ • Return a JSON list of strings
+ • One topic per headline
+ • Use title case
+ • Keep topics clear, simple and concise (1-7 words)
+ • Remove redundant "AI" mentions
+ • No bullet points, numbering, or additional formatting.
+
+STYLE EXAMPLES:
+✗ "AI Integration in Microsoft Notepad"
+✓ "Microsoft Notepad AI"
+
+✗ "Microsoft's New AI Features in Office Suite"
+✓ "Microsoft Office Updates"
+
+✗ "OpenAI Releases GPT-4 Language Model Update"
+✓ "OpenAI GPT-4 Release"
+
+✗ "AI cybersecurity threats"
+✓ "Cybersecurity"
+
+✗ "AI Integration in Microsoft Notepad"
+✓ "Microsoft Notepad AI"
+
+✗ "Lawsuits Against AI for Copyright Infringement"
+✓ "Copyright Infringement Lawsuits"
+
+✗ "Microsoft Copilot and AI Automation"
+✓ "Microsoft Copilot"
+
+✗ "Nvidia AI chip leadership"
+✓ "Nvidia"
+
+✗ "Rabbit AI hardware funding round"
+✓ "Rabbit AI"
+
+✗ "Apple iOS 18.2 AI features"
+✓ "Apple iOS 18.2"
+
+TRANSFORM THIS LIST:
+{topics_str}
 """
 
 FINAL_SUMMARY_PROMPT = """You are ASA, an advanced summarization assistant designed to
@@ -347,13 +416,14 @@ are needed.
 
 Instructions:
 Do not include ```markdown. Output raw markdown.
+Remove any text which is not news content, such as instructions, comments, informational alerts about processing.
 For each bullet point, make it as concise as possible, sticking to facts without editorial comment.
-For each section, remove or combine bullet points which are highly duplicative or redundant or devoid of news content.
-You may remove bullet points but you may not update URLs.
+For each section, combine any bullet points which are highly duplicative into a summary bullet point with multiple hyperlinks.
+You may remove bullet points but you may not modify URLs.
 For each section, review and edit the section title.
 The section title should be snappy, punchy, clever, possibly alliterative or punny.
 The section title must be short, engaging, and as consistent with the bullets in the section as possible.
-Remove sections which are devoid of news content. Ensure there are no comments on the content or composition of the newsletter.
+Remove sections which are devoid of news content. Check carefully to ensure there are no comments on the content or composition of the newsletter.
 At the top of the newsletter add an overall title synthesizing several top news items.
 Respond with the updated newsletter only in markdown format, or the word 'OK' if no changes are needed.
 
