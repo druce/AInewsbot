@@ -188,7 +188,7 @@ def get_driver(geckodriver_path=GECKODRIVER_PATH, firefox_profile_path=FIREFOX_P
 
     # Set up the Firefox driver
     driver = webdriver.Firefox(service=service, options=options)
-    driver.get("https://www.google.com")
+    # driver.get("https://www.google.com")
 
     # driver = uc.Chrome(options=options,
     #                    driver_executable_path=CHROME_DRIVER_PATH,

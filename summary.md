@@ -1,68 +1,40 @@
-Anthropic updated Sonnet, said it beats everything else, updates smaller faster cheaper Haiku model. Also 'computer use', watching and operating your computer? - Anthropic
-https://www.anthropic.com/news/3-5-models-and-computer-use
+# AI Unleashed: Gemini on iOS, Grok Goes Free, AI Talent Race Intensifies
 
-In maybe a year or two we should see models that understand what you are doing on your screen and you can tell them to write a script to automate it.
+## Gemini Graces iOS
 
-Joanna Stern talks with Craig Federighi, discusses Apple AI features about to be released, and the roadmap. - WSJ
-https://www.wsj.com/tech/personal-tech/apple-intelligence-3833c320
+- Google releases Gemini AI assistant app for iPhone, featuring image generation and voice conversations. The app is available for testing in select regions like the Philippines. - [Google News](https://news.google.com/read/CBMicEFVX3lxTE5UR1FoOGF3c0lFRFcwNGtkT2FRWkIwcExXTl8tbXZSUFM1N3doczVEcEwxdTBQeDF5djRzOUNNWWpSMDdxVVFGZkhKdFVWb0lNS2wtbEdJOTlBWEFtVl94cDVMREhYdkR5NnJOZkN2dFg), [Google News](https://news.google.com/read/CBMilgFBVV95cUxORm05Umd1UGM1OUhPVDFuVXBHc29DS211LURNMjFYMU14UHRKWW10Q1NpRDBRLXNCZTlCTlN2MFdDbVYzbFBZOHFkRzlETjdyblQxaE1Ma2ViQkVuRWRMX3E3NjZvYmg5LTRlcld1NVVFLWxpSUQzV2hNWWV4SnJRclotbFNnSnM2b2lUZzBTZ3JpYVNiN2fSAZsBQVVfeXFMTWZqR1JOZW1jcWFMcm96bzM5T2thSURtRjhWZzlDazZaVmRuaVE3Y3luamNpMVozQUJ0U2ZtZlhxUmc4dk5TOWgxN0dJdXZSbzBqVk0yT1NBTGFLaDlURnNuN3k4VFpxeWx5OWdsRzhlbGItZWh6aWFremVNMGdJZzhMM1BEUTlOdE5ESjM4eExqT3FObDRwU2NrbTQ), [Google News](https://news.google.com/read/CBMia0FVX3lxTE5HVTkyNDl5UUR2TW5qdm4wN1UwUjVocGxZQ1N6c2Z4a1BaeENFUTJqMUw4NXhpa2xTbGxLejdIOTNvNkw5MzNBekdSdGZudG1qNk4zSTU2TmNjQ3ZCenhHdnBnSjNFSXZNOFZj)
 
+## Chip Wars Intensify: US Blocks AI Exports, China Preps IPO
 
-Apple’s Tim Cook meets Chinese regulators but no word on AI roll-out. They will presumably want everything localized and nerfed to avoid sensitive topics. - South China Morning Post
-https://www.scmp.com/news/article/3283475/apples-tim-cook-meets-china-regulator-beijing-no-final-word-apple-intelligence
+- Chinese AI chip designer Moore Threads becomes a joint-stock company, increasing capital base to 330 million yuan, paving the way for a potential IPO. - [South China Morning Post](https://www.scmp.com/tech/tech-war/article/3286061/us-sanctioned-moore-threads-chinas-ai-chip-unicorn-moves-closer-possible-ipo)
+- U.S. orders TSMC to stop shipping advanced AI chips to Chinese customers like Huawei, citing export controls. - [Gadgets360](https://www.gadgets360.com/ai/news/us-order-tsmc-halt-ai-chip-shipments-china-6991729)
 
-AI to detect when your phone is snatched and automatically lock it.
-https://www.bbc.com/news/articles/c1484r0r3m6o
+## Grok Unleashed: Free Chatbot and API Access
 
-In a lawsuit, the mother of a 14-year-old Florida boy says he became obsessed with a chatbot on Character.AI before he committed suicide. (But maybe lock up the .45 tho?) - NY Times
-https://www.nytimes.com/2024/10/23/technology/characterai-lawsuit-teen-suicide.html
+- X launches a free version of its AI chatbot Grok to select users in New Zealand, with plans for broader rollout. - [Tech.co](https://tech.co/news/x-offers-free-grok-ai-plan)
+- xAI launches public beta API service, allowing developers to integrate Grok models into applications. - [Google News](https://news.google.com/read/CBMiXEFVX3lxTE1EelBKQi1LRjV1WFF1T3hBVFhrb0JfV0ppX2VtYmxrRFc0R1N3WXVmNDh1Ums5QTI2bnBQd2V0NzZaZUU2bkRMTHVSdnBhV2pRblBhREN0Z1h1Z1F0)
 
-Enterprise process automation company UiPath adds gen-AI agents. - SiliconANGLE
-https://siliconangle.com/2024/10/22/uipath-marrying-generative-ai-robots-accelerate-business-automation/
+## Healing with AI: NHS Trials and Georgia's Initiatives
 
-Highlight AI is an always-on assistant that run on Macs with Apple Silicon, that transcribes, summarizes, critiques, finds your calendar availability.
-https://highlightai.com/
+- NHS doctors test AI assistant Tortus to transcribe appointments, letting clinicians focus on patients. - [Yahoo](https://www.yahoo.com/news/nhs-doctors-ai-assistant-listen-062100051.html)
+- Georgia lawmakers study AI applications in hospitals, including fall prediction and faster image reviews. - [Yahoo](https://www.yahoo.com/news/georgia-lawmakers-study-ways-ai-060031639.html)
 
-AI in space at low power, high latency. - Fast Company
-https://www.fastcompany.com/91214275/why-its-so-challenging-to-deploy-ai-on-space-missions
+## Doubao Dazzles: ByteDance Adds Text-to-Video AI
 
-AI tech lets police follow suspects' cars from camera to camera without license plate reading. - Fox News
-https://www.foxnews.com/video/6363607217112
+- ByteDance upgrades its AI chatbot Doubao with text-to-video generation, positioning it as a strong contender in China's generative AI market. - [South China Morning Post](https://www.scmp.com/tech/big-tech/article/3285886/bytedance-adds-video-generator-chinas-most-popular-ai-chatbot-doubao), [Yahoo Finance](https://uk.finance.yahoo.com/news/bytedance-adds-video-generator-chinas-093000339.html)
 
-The FTC issued rules against fake product reviews. - Futurism
-https://futurism.com/the-byte/illegal-fake-reviews-ai
+## AI Talent Frenzy: China's Firms Boost Salaries
 
-AI to automatically analyze your bowel movements. - digitalcameraworld
-https://www.digitalcameraworld.com/news/toilet-camera-uses-ai-to-analyze-pics-of-poop-and-measure-your-gut-health
+- Chinese tech firms intensify AI talent race, offering high salaries to specialists in NLP and deep learning, greatly surpassing average IT pay. - [Yahoo Finance](https://finance.yahoo.com/news/fight-ai-talent-heats-china-093000988.html), [South China Morning Post](https://www.scmp.com/tech/tech-trends/article/3285878/fight-ai-talent-heats-china-tech-employers-boost-pay)
 
+## Heretic's AI Warning: Directors Raise the Alarm
 
-Qualcomm, Google partner to create intense AI-powered car dashboards and voice controls. - Android Central
-https://www.androidcentral.com/apps-software/qualcomm-announces-snapdragon-cockpit-elite-ride-elite-for-ai-in-cars
+- Directors of 'Heretic' warn about the dangers of generative AI in end credits, stating no AI was used in making the film. - [Far Out Magazine](https://faroutmagazine.co.uk/heretic-directors-take-swipe-at-ai-in-end-credits-it-might-kill-us-all/)
 
-ABBA, Radiohead, The Cure, Kevin Bacon, Kate McKinnon and thousands of artists signed an AI protest letter against 'unlicensed use' of works - ABC News
-https://abcnews.go.com/Business/wireStory/abba-radiohead-cure-musicians-sign-ai-protest-letter-115042563
+## Ai-Da's Art Sells Big: Robot Fetches $1 Million
 
-Joseph Gordon-Levitt says if he'd known his contracts let AI train on his performance and recreate his image, he wouldn't have signed them. We must go deeper. I say: don't think about AI. What are you thinking about? - WSJ
-https://www.wsj.com/tech/ai/meet-hollywoods-ai-doomsayer-joseph-gordon-levitt-27b82d69
+- Painting by humanoid robot Ai-Da sells at Sotheby's for over $1 million, far exceeding its $180,000 estimate. - [Google News](https://news.google.com/read/CBMiwgFBVV95cUxPSlplbk0wektPTjk0TVFfUzZrNFQ4NnowbWVldEMyNjVhdGdKOXdnVVlDVjdWTU9KRDd3VWRDQnc5emFWX3pSVmQyX0N5RkVLdG0zN3BGdzlWSVN0ZUV0NGg0Qy0wdWt2OGUxUjhISUwtYU9YaURtTXpuMHpXdkFMSXExMDQxVTRGNGx0c2ZpWDVxRmdoSkVmNm83R1U3Nm5KcGZtYkYxQmRRWTNrOEZnaXlxY19RR0RUOXBJWkd1RlFrdw)
 
-Runway introduces a sick motion-capture tool that lets your characters adopt your facial expressions. - Runway ML
-https://runwayml.com/research/introducing-act-one
+## History in HD: NVIDIA's AI Revives Old Photos
 
-Can you sus out the deepfakes? Likenesses Of Michael Douglas, Amy Schumer And Chris Rock Warn Voters Of Election “Deepfakes” In New PSA - Deadline
-https://deadline.com/2024/10/deepfakes-ai-2024-election-michael-douglas-psa-1236136198/
-
-Genmo says its Mochi 1 model the best open source text-to-video system. - Genmo
-https://www.genmo.ai/blog
-
-
-Meta tests facial recognition to help combat ads using celebrity images, and to facilitate account recovery. - TechCrunch
-https://techcrunch.com/2024/10/21/meta-tests-facial-recognition-for-spotting-celeb-bait-ads-scams-and-easier-account-recovery/
-
-Stability AI releases Stable Diffusion 3.5 - Stability AI
-https://stability.ai/news/introducing-stable-diffusion-3-5
-
-Two Virginia congressional candidates discussed the issues with an AI chatbot of their opponent, in a surprisingly rational debate. Maybe having an AI that's the best version of one candidate debating an AI that's the best version of the other candidate, and only making points that are linked to reputable sources, would be a step up. - Fast Company
-https://www.fastcompany.com/91212424/virginia-congressional-candidates-debated-ai-chatbot
-
-You can also follow the latest AI headlines via SkynetAndChill.com on Bluesky
-
-
+- NVIDIA's RTX 40-Series GPUs enhance AI photo restoration and upscaling, preserving historical images with better clarity. - [Mashable](https://sea.mashable.com/tech/35067/how-ai-technology-can-save-historical-photos)
