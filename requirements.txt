@@ -36,5 +36,7 @@ langchainhub
 langgraph-checkpoint-sqlite
 langgraph
 chromadb
-protobuf==3.20.*
+protobuf
+pyperclip
 # newscatcher
+podcastfy
