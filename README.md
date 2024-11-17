@@ -22,4 +22,4 @@ A Python notebook/script to help find the latest news about AI (potentially othe
 
 ## Podcast generated with ElevenLabs and podcastfy.ai
 
-[![A podcast created with ElevenLabs and podcastfy](https://img.youtube.com/vi/Fl0xP1Io72k/0.jpg)](https://youtu.be/Fl0xP1Io72k) 
+[![A podcast created with ElevenLabs and podcastfy](https://img.youtube.com/vi/Fl0xP1Io72k/0.jpg)](https://youtu.be/6tnUp_MjyRU) 
