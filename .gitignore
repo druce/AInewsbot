@@ -37,3 +37,5 @@ build/
 Thumbs.db
 ~*
 \#*
+.aider*
+.env

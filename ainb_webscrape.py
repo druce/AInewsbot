@@ -8,6 +8,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+
 # import undetected_chromedriver as uc
 # from selenium.webdriver.chrome.options import Options
 
@@ -23,7 +25,7 @@ from bs4 import BeautifulSoup
 import requests
 from urllib.parse import urljoin, urlparse
 
-from ainb_const import DOWNLOAD_DIR, PAGES_DIR, GECKODRIVER_PATH, FIREFOX_PROFILE_PATH, MINTITLELEN, sleeptime
+from ainb_const import DOWNLOAD_DIR, PAGES_DIR, SCREENSHOT_DIR, GECKODRIVER_PATH, FIREFOX_PROFILE_PATH, MINTITLELEN, sleeptime
 # CHROME_PROFILE_PATH, CHROME_PROFILE, CHROME_DRIVER_PATH,
 from ainb_utilities import log
 
@@ -225,14 +227,24 @@ def get_url(url, title, driver=None):
     try:
         if not os.path.exists(PAGES_DIR):
             os.makedirs(PAGES_DIR)
+        if not os.path.exists(SCREENSHOT_DIR):
+            os.makedirs(SCREENSHOT_DIR)
+
         # make a clean output filename
         # datestr = datetime.now().strftime('%Y%m%d_%H%M%S')
         # sep = "_"
         sep = ""
         datestr = ""
-        filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', title)
+
+        filename = re.sub(r'[<>:"/\\|?*]', '_', title)
+        # Remove any other unsafe characters
+        filename = re.sub(r'[^\w\-_\.]', '_', filename)
+        # Remove leading or trailing underscores
+        filename = filename.strip('_')
+        # filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', title)
         trunclen = 255-len(datestr)-len(sep)
         filename = filename[:trunclen]
+        pngfile = f'{filename}{sep}{datestr}.png'
         outfile = f'{filename}{sep}{datestr}.html'
         destpath = PAGES_DIR + "/" + outfile
         if os.path.exists(destpath):
@@ -244,7 +256,9 @@ def get_url(url, title, driver=None):
         driver.get(url)
 
         # Wait for the page to load
-        time.sleep(sleeptime)  # Adjust the sleep time as necessary
+        WebDriverWait(driver, sleeptime).until(
+            lambda d: d.execute_script('return document.readyState') == 'complete')
+        # time.sleep(sleeptime)  # Adjust the sleep time as necessary
 
         # Get the HTML source of the page
         html_source = driver.page_source
@@ -273,6 +287,8 @@ def get_url(url, title, driver=None):
         #         encoding = content_type[charset_start + 8:]
         # except Exception as err:
         #     log(str(err))
+        driver.save_screenshot(f"{SCREENSHOT_DIR}/{pngfile}")
+
         log(f"Saving {outfile} as {encoding}", f'get_url({title})')
 
         with open(destpath, 'w', encoding=encoding) as file:

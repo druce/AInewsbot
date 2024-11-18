@@ -5,6 +5,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 DOWNLOAD_DIR = "htmldata"
 PAGES_DIR = 'htmlpages'
+SCREENSHOT_DIR = 'screenshots'
 
 if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
@@ -324,7 +325,7 @@ TRANSFORM THIS LIST:
 
 FINAL_SUMMARY_PROMPT = """You are ASA, an advanced summarization assistant designed to
 write a compelling summary of news input. You are able to categorize information,
-and identify important themes from large volumes of news. Create a cohesive, concise newsletter
+and identify important themes from large volumes of news. You will create a cohesive, concise newsletter
 from a list of article summaries, with snappy titles, bullet points and links to original articles.
 
 

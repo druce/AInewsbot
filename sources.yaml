@@ -28,13 +28,13 @@ Feedly AI:
   initial_sleep: 30
   title: Feedly AI
   url: https://feedly.com/i/aiFeeds?options=eyJsYXllcnMiOlt7InBhcnRzIjpbeyJpZCI6Im5scC9mL3RvcGljLzMwMDAifV0sInNlYXJjaEhpbnQiOiJ0ZWNobm9sb2d5IiwidHlwZSI6Im1hdGNoZXMiLCJzYWxpZW5jZSI6ImFib3V0In1dLCJidW5kbGVzIjpbeyJ0eXBlIjoic3RyZWFtIiwiaWQiOiJ1c2VyLzYyZWViYjlmLTcxNTEtNGY5YS1hOGM3LTlhNTdiODIwNTMwOC9jYXRlZ29yeS9HYWRnZXRzIn1dfQ
-Google News:
-  click: //*[@aria-label="Artificial intelligence"]
-  include:
-  - ^https://news.google.com/read/
-  scroll: 1
-  title: Google News - Technology - Artificial intelligence
-  url: https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US%3Aen
+# Google News:  # started blocking more effectively
+#   click: //*[@aria-label="Artificial intelligence"]
+#   include:
+#   - ^https://news.google.com/read/
+#   scroll: 1
+#   title: Google News - Technology - Artificial intelligence
+#   url: https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US%3Aen
 Hacker News:
   exclude:
   - https://news.ycombinator.com/
