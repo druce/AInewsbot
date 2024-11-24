@@ -190,6 +190,13 @@ def get_driver(geckodriver_path=GECKODRIVER_PATH, firefox_profile_path=FIREFOX_P
 
     # Set up the Firefox driver
     driver = webdriver.Firefox(service=service, options=options)
+    log("Initialized webdriver", "get_driver")
+
+    # attempt to set window size for screenshot
+    log("Resizing window", "get_driver")
+    size = 1600
+    driver.set_window_size(size+100, size+100)
+
     # driver.get("https://www.google.com")
 
     # driver = uc.Chrome(options=options,
@@ -197,7 +204,6 @@ def get_driver(geckodriver_path=GECKODRIVER_PATH, firefox_profile_path=FIREFOX_P
     #                    version_main=130,
     #                    )
 
-    log("Initialized webdriver", "get_driver")
     return driver
 
 
@@ -258,6 +264,17 @@ def get_url(url, title, driver=None):
         # Wait for the page to load
         WebDriverWait(driver, sleeptime).until(
             lambda d: d.execute_script('return document.readyState') == 'complete')
+
+        # Set viewport size using JavaScript
+        size = 1600
+        driver.execute_script(f"""
+            window.scrollTo(0, 0);
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden';
+            window.visualViewport.width = {size};
+            window.visualViewport.height = {size};
+        """)
+
         # time.sleep(sleeptime)  # Adjust the sleep time as necessary
 
         # Get the HTML source of the page
