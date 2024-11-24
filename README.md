@@ -17,7 +17,7 @@ A Python notebook/script to help find the latest news about AI (potentially othe
 - Human should review and edit categories proposed
 - Usually the newsletter composed using OpenAI o1-preview is pretty good as a first iteration, sometimes it's a bit hit-or-miss and need to retry. 
 - Used to help generate a daily newsletter at https://www.skynetandchill.com/
-- Also generates a podcast using podcastfy, which uses a complex prompt to write a script and then does text-to-speech.
+- Also generates a podcast using podcastfy, which uses a complex prompt to write a script and then perform text-to-speech. Did some manual editing to incorporate images, set up image timings, upload to YouTube, could possibly be automated but still work in progress.
 
 ![flowchart](https://github.com/druce/AInewsbot/blob/main/graph.jpeg?raw=true)
 
