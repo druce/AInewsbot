@@ -8,6 +8,7 @@ import asyncio
 
 import tiktoken
 import openai
+from openai import OpenAI
 from bs4 import BeautifulSoup
 import trafilatura
 
@@ -642,19 +643,6 @@ Topic:
     return retlist
 
 
-def clean_topics(row):
-    # clean up free form topics
-    topics = [x.title() for x in row.topics if x.lower()
-              not in {"ai", "artificial intelligence"}]
-    # clean up canonical topics
-    assigned_topics = [x.title() for x in row.assigned_topics]
-    combined = sorted(list(set(topics + assigned_topics)))
-    combined = [s.replace("Ai", "AI") for s in combined]
-    combined = [s.replace("Genai", "Gen AI") for s in combined]
-
-    return ", ".join(combined)
-
-
 async def categorize_df(AIdf):
     catdict = {}
     async with aiohttp.ClientSession() as session:
@@ -670,6 +658,157 @@ async def categorize_df(AIdf):
             catdict[row.id] = [item for l in responses for item in l]
             log(catdict[row.id])
     return catdict
+
+
+async def do_cat(AIdf, categories):
+    """
+    Sends a prompt to ChatGPT to select topics for the title for each row in AIdf
+    which match the topics in categories.
+
+    Args:
+        AIdf (pandas.DataFrame): The DataFrame containing the headlines.
+        categories (list): The list of topics to match with the headlines.
+
+    Returns:
+        dict: A dictionary where the keys are the row IDs and the values are lists
+        of selected topics for each headline.
+
+    """
+
+    catdict = {}
+    async with aiohttp.ClientSession() as session:
+        for i, row in enumerate(AIdf.itertuples()):
+            tasks = []
+            log(f"Categorizing headline {row.id+1} of {len(AIdf)}")
+            h = row.title
+            log(h)
+            for c in categories:
+                task = asyncio.create_task(categorize_headline(h, c, session))
+                tasks.append(task)
+            responses = await asyncio.gather(*tasks)
+            catdict[row.id] = [
+                item for sublist in responses for item in sublist]
+            log(str(catdict[row.id]))
+
+    return catdict
+
+
+def clean_topics(row, lcategories):
+    """
+    Cleans the extracted_topics and assigned_topics by removing certain common topics and combining them into a single list.
+
+    Args:
+        row (pandas.Series): The row containing the extracted_topics and assigned_topics.
+        lcategories (set): The set of lowercase categories.
+
+    Returns:
+        list: The cleaned and combined list of topics.
+
+    TODO: could send more concurrent prompts to gpt-4o-mini and not hit rate limits
+
+    """
+    extracted_topics = [x.title() for x in row.extracted_topics if x.lower() not in {
+        "technology", "ai", "artificial intelligence"}]
+    assigned_topics = [x.title()
+                       for x in row.assigned_topics if x.lower() in lcategories]
+    combined = sorted(list(set(extracted_topics + assigned_topics)))
+    combined = [s.replace("Ai", "AI") for s in combined]
+    combined = [s.replace("Genai", "Gen AI") for s in combined]
+    combined = [s.replace("Openai", "OpenAI") for s in combined]
+
+    return combined
+
+
+async def write_topic_name(topic_list_str, max_retries=3, model=LOWCOST_MODEL):
+    """
+    Generates a name for a cluster based on a list of headline topics.
+
+    Parameters:
+    session (aiohttp.ClientSession): The client session for making async HTTP requests.
+    topic_list_str (str): A string containing the list of headline topics.
+    max_retries (int, optional): The maximum number of retries in case of an error. Defaults to 3.
+    model (str, optional): The model to use for generating the topic name. Defaults to LOWCOST_MODEL.
+
+    Returns:
+    dict: A dictionary containing the generated topic name.
+
+    Example Usage:
+    title_topic_str_list = "Headline 1 (Topic: Topic 1)\n\nHeadline 2 (Topic: Topic 2)"
+    result = await write_topic_name(session, title_topic_str_list)
+    print(result)
+
+    Output:
+    {"topic_title": "Generated Topic Name"}
+    ```
+    """
+    TOPIC_WRITER_PROMPT = f"""
+You are a topic writing assistant. I will provide a list of headlines with extracted topics in parentheses.
+Your task is to propose a name for a topic that very simply, clearly and accurately captures all the provided
+headlines in less than 7 words. You will output a JSON object with the key "topic_title".
+
+Example Input:
+In the latest issue of Caixins weekly magazine: CATL Bets on 'Skateboard Chassis' and Battery Swaps to Dispell Market Concerns (powered by AI) (Topics: Battery Swaps, Catl, China, Market Concerns, Skateboard Chassis)
+
+AI, cheap EVs, future Chevy  the week (Topics: Chevy, Evs)
+
+Electric Vehicles and AI: Driving the Consumer & World Forward (Topics: Consumer, Electric Vehicles, Technology)
+
+Example Output:
+{{"topic_title": "Electric Vehicles"}}
+
+Task
+Propose the name for the overall topic based on the following provided headlines and individual topics:
+
+{topic_list_str}
+"""
+
+    for i in range(max_retries):
+        try:
+            messages = [
+                {"role": "user", "content": TOPIC_WRITER_PROMPT
+                 }]
+
+            payload = {"model":  model,
+                       "response_format": {"type": "json_object"},
+                       "messages": messages,
+                       "temperature": 0
+                       }
+#             print(topic_list_str)
+
+            async with aiohttp.ClientSession() as session:
+                response = asyncio.run(fetch_openai(session, payload))
+            response_dict = json.loads(
+                response["choices"][0]["message"]["content"])
+            log(response_dict)
+
+            return response_dict
+        except Exception as exc:
+            log(f"Error: {exc}")
+
+    return {}
+
+
+def topic_rewrite(client,
+                  model,
+                  prompt_template,
+                  topics_str,
+                  json_schema
+                  ):
+    # TODO: refactor to use LangGraph with a schema
+    client = OpenAI()
+    response = client.chat.completions.create(
+        model=model,
+        response_format={
+            "type": "json_schema",
+            "json_schema": json_schema
+        },
+        messages=[{
+            "role": "user",
+            "content": prompt_template.format(topics_str=topics_str)
+        }])
+    response_str = response.choices[0].message.content
+#     print(response_str)
+    return response_str
 
 
 async def get_site_name(session, row):

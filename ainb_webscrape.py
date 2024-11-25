@@ -175,7 +175,7 @@ def get_driver(geckodriver_path=GECKODRIVER_PATH, firefox_profile_path=FIREFOX_P
     # initialize selenium driver
     # Set up Firefox options to use existing profile
     # important for some sites that need a login, also a generic profile fingerlog that looks like a bot might get blocked
-    log(f"{os.getpid()} Initializing webdriver", "get_driver")
+    log(f"Initializing webdriver, pid {os.getpid()}", "get_driver")
 
     # options = uc.ChromeOptions()
     # options.add_argument(f'--user-data-dir={CHROME_PROFILE_PATH}')

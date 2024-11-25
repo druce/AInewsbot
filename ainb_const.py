@@ -63,6 +63,25 @@ TOPSOURCES = {
     'www.scientificamerican.com',
 }
 
+topic_schema = {
+    "name": "topic_schema",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "properties": {
+            "topics": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                }
+            }
+        },
+        "additionalProperties": False,
+        "required": ["topics"],
+    }
+}
+
+
 FILTER_PROMPT = """
 You will act as a research assistant to categorize news articles based on their relevance
 to the topic of artificial intelligence (AI). You will closely read the title of each story
@@ -150,15 +169,15 @@ SUMMARIZE_SYSTEM_PROMPT = """You are a news summarization assistant.
 Your task is to summarize the main content of news articles from HTML files in 3 bullet points or fewer.
 
 Instructions:
-	•	Ignore all non-news elements, such as:
-        •	User instructions (e.g., logging in, enabling JavaScript or cookies, proving they’re not a robot, how to contact support).
-        •	Subscription offers, discounts, advertisements, or promotions.
-        •	Boilerplate disclaimers or descriptive information about the website.
-	•	Focus on the top 3 points of the text. Keep the bullet points concise.
+    •    Ignore all non-news elements, such as:
+        •    User instructions (e.g., logging in, enabling JavaScript or cookies, proving they’re not a robot, how to contact support).
+        •    Subscription offers, discounts, advertisements, or promotions.
+        •    Boilerplate disclaimers or descriptive information about the website.
+    •    Focus on the top 3 points of the text. Keep the bullet points concise.
  Output:
-	•	Use Markdown format for the bullet points.
-	•	If the text contains no substantive news content, provide a single bullet point stating this.
-	•	Output only the bullet points; do not include any introduction, comment, discussion, or conclusions.
+    •    Use Markdown format for the bullet points.
+    •    If the text contains no substantive news content, provide a single bullet point stating this.
+    •    Output only the bullet points; do not include any introduction, comment, discussion, or conclusions.
 
 """
 
