@@ -563,10 +563,6 @@ async def get_browsers(n):
     global BROWSERS
     BROWSERS = await asyncio.gather(*[get_driver_async() for _ in range(n)])
     return BROWSERS
-    # Example usage
-    if __name__ == "__main__":
-        NUM_BROWSERS = 5  # Set the number of browsers you want to initialize
-        BROWSERS = asyncio.run(get_browsers(NUM_BROWSERS))
 
 
 def process_url_queue_factory(q):

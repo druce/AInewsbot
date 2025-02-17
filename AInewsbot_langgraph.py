@@ -574,12 +574,12 @@ async def afn_topic_analysis(state: AgentState) -> AgentState:
     pages = paginate_df(AIdf[["id", "summary"]])
 
     # apply topic extraction prompt to AI headlines
-    log("start free-form topic extraction")
+    log(f"start free-form topic extraction using {MODEL}")
     topic_results = await process_dataframes(
         dataframes=pages,
         input_prompt=TOPIC_PROMPT,
         output_class=TopicSpecList,
-        model=ChatOpenAI(model=LOWCOST_MODEL))
+        model=ChatOpenAI(model=MODEL))
     topics_df = pd.DataFrame([[item.id, item.extracted_topics] for item in topic_results], columns=[
                              "id", "extracted_topics"])
     log(f"{len(topics_df)} free-form topics extracted")
@@ -596,7 +596,7 @@ async def afn_topic_analysis(state: AgentState) -> AgentState:
     lcategories = set([c.lower() for c in categories] +
                       [c.lower() for c in filtered_topics])
 
-    log("Starting assigned topic extraction")
+    log(f"Starting assigned topic extraction using {LOWCOST_MODEL}")
     assigned_topics = asyncio.run(
         get_all_canonical_topic_results(pages, lcategories))
 
@@ -718,25 +718,24 @@ def fn_topic_clusters(state: AgentState) -> AgentState:
                 log(exc)
 
     # send mail
-    # Convert Markdown to HTML
-    markdown_str = ""
-    for row in AIdf.itertuples():
-        markdown_str += f"{row.id+1}. {row.bullet}\n\n"
-    html_str = markdown.markdown(markdown_str, extensions=['extra'])
-
+    markdown_list = [f"{row.id+1}. {row.bullet}" for row in AIdf.itertuples()]
+    state["bullets"] = markdown_list
+    markdown_str = "\n\n".join(markdown_list)
     # save bullets
     with open('bullets.md', 'w') as f:
         f.write(markdown_str)
 
-    # same with a better delimiter and no ID
-    bullet_str = "\n~~~\n".join(state.get("bullets", []))
-    with open('bullet_str.txt', 'w') as f:
-        f.write(bullet_str)
-
+    # Convert Markdown to HTML
+    html_str = markdown.markdown(markdown_str)  # , extensions=['extra'])
     # send email html_str
     log("Sending bullet points email")
     subject = f'AI news bullets {datetime.now().strftime("%H:%M:%S")}'
     send_gmail(subject, html_str)
+
+    # same with a delimiter and no ID
+    bullet_str = "\n~~~\n".join(AIdf['bullet'])
+    with open('bullet_str.txt', 'w') as f:
+        f.write(bullet_str)
 
     state["AIdf"] = AIdf.to_dict(orient='records')
     log(state["cluster_topics"])
@@ -875,7 +874,8 @@ def fn_propose_cats(state: AgentState) -> AgentState:
     # save topics to local file
     try:
         filename = 'topics.txt'
-        file.write(state["topics_str"])
+        with open(filename, 'w') as file:
+            file.write(state["topics_str"])
         log(f"Topics successfully saved to {filename}.")
     except Exception as e:
         log(f"An error occurred: {e}")
@@ -887,8 +887,16 @@ def fn_compose_summary(state: AgentState) -> AgentState:
     log(f"Composing summary using {HIGHCOST_MODEL}")
     AIdf = pd.DataFrame(state["AIdf"])
     bullet_str = "\n~~~\n".join(AIdf['bullet'])
-
     cat_str = state['topics_str']
+
+    # check that actual prompt matches the template
+    print(FINAL_SUMMARY_PROMPT.format(cat_str=cat_str, bullet_str=bullet_str))
+
+    # prompt_template = ChatPromptTemplate.from_template(FINAL_SUMMARY_PROMPT)
+    # parser = StrOutputParser()
+    # openai_model = ChatOpenAI(model="o3-mini", reasoning_effort="high")
+    # ochain = prompt_template | openai_model | parser
+    # response = ochain.invoke(cat_str=cat_str, bullet_str=bullet_str)
 
     client = OpenAI()
     response = client.chat.completions.create(
@@ -901,17 +909,7 @@ def fn_compose_summary(state: AgentState) -> AgentState:
             }
         ]
     )
-#     print(response)
 
-#     model = ChatOpenAI(
-#         model=HIGHCOST_MODEL,
-#         temperature=0.3,
-#         model_kwargs={"response_format": {"type": "json_object"}}
-#     )
-
-#     chain = ChatPromptTemplate.from_template(FINAL_SUMMARY_PROMPT) | model | SimpleJsonOutputParser()
-#     response = chain.invoke({ "cat_str": cat_str, "bullet_str": bullet_str})
-#     print(response)
     state["summary"] = response.choices[0].message.content
     # save bullet_str to local file
     try:
@@ -927,15 +925,13 @@ def fn_compose_summary(state: AgentState) -> AgentState:
 
 def fn_rewrite_summary(state: AgentState) -> AgentState:
 
-    #     model = ChatOpenAI(
-    #         model=HIGHCOST_MODEL,
-    #         temperature=0.3,
-    #         model_kwargs={"response_format": {"type": "json_object"}}
-    #     )
-
-    #     chain = ChatPromptTemplate.from_template(REWRITE_PROMPT) | model | SimpleJsonOutputParser()
-    #     response = chain.invoke({ "summary": state["summary"]})
     log(f"Rewriting summary using {HIGHCOST_MODEL}")
+
+    # prompt_template = ChatPromptTemplate.from_template(REWRITE_PROMPT)
+    # parser = StrOutputParser()
+    # openai_model = ChatOpenAI(model="o3-mini", reasoning_effort="high")
+    # ochain = prompt_template | openai_model | parser
+    # response = ochain.invoke(summary=state["summary"])
 
     client = OpenAI()
     response = client.chat.completions.create(

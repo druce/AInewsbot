@@ -125,7 +125,7 @@ Please analyze the following dataset according to these criteria:
 TOPIC_PROMPT = """
 As a specialized research assistant, your task is to perform detailed topic analysis
 of news item summaries. You will process news items summaries provided in JSON format
-and extract topic information according to the following specifications:
+and extract topics of the news item summaries according to the following specifications:
 
 Input Specification:
 You will receive an array of JSON objects representing news summaries.
@@ -162,16 +162,11 @@ Output Example:
 
 Detailed Guidelines:
 Extract 3-6 relevant topics per news item.
-Use terms which are as specific as possible.
-Include both the broad topics and specific entities.
-Avoid duplicate or redundant topics.
-
-Adhere strictly to these requirements:
-Maintain exact schema compliance.
-Include all input IDs in output.
-Use only the specified fields.
-Return valid JSON format.
 Ensure topic arrays are non-empty.
+Use topics which are as specific as possible.
+Avoid duplicate or redundant topics.
+Return valid JSON format.
+Maintain exact schema compliance.
 
 Please analyze the following news items and provide topic classifications according to these specifications:
 """
@@ -482,14 +477,14 @@ ASA Output Format Template:
 
 # Engaging-topic-title-1
 
-- item-title-1a - [source-name-1a](item-url-1a)
-- item-title-1b - [source-name-1b](item-url-1b)
-- item-title-1c - [source-name-1c](item-url-1c)
+- news-item-bullet-1a - [source-name-1a](news-item-url-1a)
+- news-item-bullet-1b - [source-name-1b](news-item-url-1b)
+- news-item-bullet-1c - [source-name-1c](news-item-url-1c)
 
 # Engaging-topic-title-2
 
-- item-title-2a - [source-name-2a](item-url-2a)
-- item-title-2b - [source-name-2b](item-url-2b)
+- news-item-bullet-2a - [source-name-2a](news-item-url-2a)
+- news-item-bullet-2b - [source-name-2b](news-item-url-2b)
 
 
 Example ASA Output Format:
@@ -500,22 +495,24 @@ Example ASA Output Format:
 - Killer robots are real in Ukraine war. - [Yahoo News](https://uk.news.yahoo.com/ai-killer-robots-warning-ukraine-war-133415411.html)
 
 ASA Instructions:
-Read each input summary closely to extract its main points and themes.
-USE ONLY INFORMATION PROVIDED IN THE INPUT SUMMARIES.
+Read each input summary carefully to extract its main points and themes.
+Use only the information provided in the input summaries.
 Group news items into thematically related topics.
 The topic suggestions below can be used as a starting point, but they may not be exhaustive and may repeat or overlap.
-Develop a concise, snappy, engaging punchy, clever, alliterative, possibly punny title for each topic.
-Each topic chould contain the most significant facts from the news items without commentary or elaboration.
+Develop a concise, snappy, engaging punchy, clever, alliterative or punny title for each topic.
+Each topic should contain news item bullets with the most significant facts from the news items without commentary or elaboration.
+Each topic and its news item bullets should follow the ASA Output Format Template exactly.
 Each news item bullet should contain one sentence with one link. The link must be identical to the one in the corresponding news item input.
 The source name must be enclosed in brackets [ ] and hyperlinked to the original article ( ).
 Each news item bullet should not repeat points or information from previous bullet points.
-You will compose each news item in the professional but engaging, narrative style of a tech reporter for a national publication, providing
-balanced, professional, informative, accurate, clear, concise summaries in a neutral tone.
+You will compose each news item in the professional but lively, engaging, entertaining narrative style of a tech reporter for a national publication, providing
+balanced, professional, informative, accurate, clear, concise summaries.
 Do not include ```markdown , output raw markdown.
 Do not include additional commentary outside the structured format.
 
 Check carefully that you only use information provided in the input below, that you include
-a link in each output item, and that any bullet point does not repeat information or links previously provided.
+a link in each output item, that you follow the output format exactly, and that any
+news item bullet does not repeat information or links in previous news item bullet.
 
 Topic suggestions:
 {cat_str}
