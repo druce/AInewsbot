@@ -20,13 +20,15 @@ CHROME_PROFILE_PATH = '/Users/drucev/Library/Application Support/Google/Chrome'
 CHROME_PROFILE = 'Profile 7'
 CHROME_DRIVER_PATH = '/Users/drucev/Library/Application Support/undetected_chromedriver/undetected_chromedriver'
 sleeptime = 10
+NUM_BROWSERS = 4
+BROWSERS = []
 
 SQLITE_DB = 'articles.db'
 
 BASEMODEL = 'gpt-4o'  # tiktoken doesn't always map latest model
-MODEL = 'chatgpt-4o-latest'
+MODEL = 'gpt-4o-2024-11-20'
 LOWCOST_MODEL = 'gpt-4o-mini'
-HIGHCOST_MODEL = 'o1-preview'
+HIGHCOST_MODEL = 'o3-mini'
 
 MAX_INPUT_TOKENS = 8192     # includes text of all headlines
 MAX_OUTPUT_TOKENS = 4096    # max in current model
@@ -63,217 +65,291 @@ TOPSOURCES = {
     'www.scientificamerican.com',
 }
 
-topic_schema = {
-    "name": "topic_schema",
-    "strict": True,
-    "schema": {
-        "type": "object",
-        "properties": {
-            "topics": {
-                "type": "array",
-                "items": {
-                    "type": "string",
-                }
-            }
-        },
-        "additionalProperties": False,
-        "required": ["topics"],
-    }
-}
-
 
 FILTER_PROMPT = """
-You will act as a research assistant to categorize news articles based on their relevance
-to the topic of artificial intelligence (AI). You will closely read the title of each story
-to determine if it is primarily about AI based on the semantic meaning of the title and
-the keywords and entities mentioned. The input headlines and outptu classifications will
-be formatted as JSON objects.
+You will act as a specialized content analyst focused on artificial intelligence news classification.
+Your task is to evaluate news headlines and determine their relevance to artificial intelligence
+and related technologies. Please analyze the provided JSON dataset of news headlines according
+to the following detailed criteria:
+
+Classification Framework:
+
+AI Topics (classify as AI-related if headlines mention):
+Core AI technologies (machine learning, neural networks, deep learning)
+AI applications (computer vision, natural language processing, robotics)
+AI models and platforms (large language models, foundation models)
+AI companies and their products (OpenAI, DeepMind, Anthropic)
+AI-specific products (ChatGPT, Claude, Gemini, DALL-E)
+Key AI industry figures (Sam Altman, Demis Hassabis, etc.)
+AI policy, regulation, and ethics
+AI research, including papers and announcements of innovations
+AI market and business developments
+AI integration into existing products/services
+AI impact on industries/society
+AI infrastructure (chips, computing resources)
+AI investments and funding
+AI partnerships, joint ventures and project launches
+Any other topics with a large AI component
 
 Input Specification:
-You will receive a list of news headlines formatted as JSON objects.
-Each object will include an 'id' and a 'title'. For instance:
-[{'id': 97, 'title': 'AI to predict dementia, detect cancer'},
- {'id': 103,'title': 'Figure robot learns to make coffee by watching humans for 10 hours'},
- {'id': 103,'title': 'Baby trapped in refrigerator eats own foot'},
- {'id': 210,'title': 'ChatGPT removes, then reinstates a summarization assistant without explanation.'},
- {'id': 298,'title': 'The 5 most interesting PC monitors from CES 2024'},
+You will receive a JSON array of news story objects, each containing:
+"id": A unique numerical identifier
+"title": The news headline text
+
+Input Example:
+[{{'id': 97, 'title': 'AI to predict dementia, detect cancer'}},
+ {{'id': 103,'title': 'Figure robot learns to make coffee by watching humans for 10 hours'}},
+ {{'id': 103,'title': 'Baby trapped in refrigerator eats own foot'}},
+ {{'id': 210,'title': 'ChatGPT removes, then reinstates a summarization assistant without explanation.'}},
+ {{'id': 298,'title': 'The 5 most interesting PC monitors from CES 2024'}},
  ]
 
-Classification Criteria:
-Classify each story based on its title to determine whether it primarily pertains to AI.
-Broadly define AI-related content to include topics such as machine learning, robotics,
-computer vision, reinforcement learning, large language models, and related topics. Also
-include specific references to AI-related entities and individuals and products such as
-OpenAI, ChatGPT, Elon Musk, Sam Altman, Anthropic Claude, Google Gemini, Copilot,
-Perplexity.ai, Midjourney, etc.
+Output Requirements:
+Generate a JSON object containing "items", an array of objects containing:
+"id": The original article identifier
+"isAI": Boolean value (true if AI-related, false if not)
+The output must maintain strict JSON formatting and match each input ID with its corresponding classification.
 
-Output Specification:
-You will return a JSON object with the field 'stories' containing the list of classification results.
-For each story, your output will be a JSON object containing the original 'id' and a new field 'isAI',
-a boolean indicating if the story is about AI. You must strictly adhere to this output schema, without
-modification. Example output:
-{'stories':
-[{'id': 97, 'isAI': true},
- {'id': 103, 'isAI': true},
- {'id': 103, 'isAI': false},
- {'id': 210, 'isAI': true},
- {'id': 298, 'isAI': false}]
-}
+Example output:
+{{items:
+[{{'id': 97, 'isAI': true}},
+ {{'id': 103, 'isAI': true}},
+ {{'id': 103, 'isAI': false}},
+ {{'id': 210, 'isAI': true}},
+ {{'id': 298, 'isAI': false}}]
+}}
 
-Instructions:
-Ensure that each output object accurately reflects the 'id' field of the corresponding input object
-and that the 'isAI' field accurately represents the title's relevance to AI.
-
-The list of news stories to classify is:
+Please analyze the following dataset according to these criteria:
 
 """
-
 TOPIC_PROMPT = """
-You will act as a research assistant to extract topics from news headlines. You will extract topics, entities,
-and keywords from news headlines formatted as JSON objects.
+As a specialized research assistant, your task is to perform detailed topic analysis
+of news item summaries. You will process news items summaries provided in JSON format
+and extract topic information according to the following specifications:
 
 Input Specification:
-You will receive a list of news headlines formatted as JSON objects.
-Each object will include an 'id' and a 'title'. For instance:
-[{'id': 97, 'title': 'AI to predict dementia, detect cancer'},
- {'id': 103,'title': 'Figure robot learns to make coffee by watching humans for 10 hours'},
- {'id': 105,'title': "Former Microsoft CEO Steve Ballmer is now just as rich as his former boss Bill Gates. Here's how he spends his billions."},
- {'id': 210,'title': 'ChatGPT removes, then reinstates a summarization assistant without explanation.'},
- {'id': 298,'title': 'The 5 most interesting PC monitors from CES 2024'},
+You will receive an array of JSON objects representing news summaries.
+Each headline object contains exactly two fields:
+'id': A unique numeric identifier
+'summary': The news summmary item
+
+Example input:
+[{{'id': 97, 'summary': 'AI to predict dementia, detect cancer'}},
+ {{'id': 103,'summary': 'Figure robot learns to make coffee by watching humans for 10 hours'}},
+ {{'id': 105,'summary': "Former Microsoft CEO Steve Ballmer is now just as rich as his former boss Bill Gates. Here's how he spends his billions."}},
+ {{'id': 210,'summary': 'ChatGPT removes, then reinstates a summarization assistant without explanation.'}},
+ {{'id': 298,'summary': 'The 5 most interesting PC monitors from CES 2024'}},
 ]
 
 Output Specification:
-You will return a JSON object with the field 'topics' containing a flat list of classification results.
-For each headline input, your output will be a JSON object containing the original 'id' and a new field 'topics',
-with a list of strings representing topics. The output schema must be strictly adhered to, without
-any additional fields. Example output:
+Return a JSON object containing 'items', a list of JSON objects, each containing:
+'id': Matching the input item's ID
+'topics': An array of relevant topic strings
+Topics should capture:
+- The main subject matter
+- Key entities (companies, people, products)
+- Technical domains, industry sectors, event types
 
-{'topics':
- [{"id": 97, "topics": ["AI", "dementia", "cancer", "healthcare", "prediction", "diagnostics"]},
-  {"id": 103, "topics": ["AI", "robotics", "machine learning", "automation", "coffee making", "Figure"]},
-  {"id": 105, "topics": ["Microsoft", "Steve Ballmer", "Bill Gates", "wealth", "billionaires"]},
-  {"id": 210, "topics": ["AI", ChatGPT", "product updates", "summarization"]},
-  {"id": 298, "topics": ["PCs", "monitors", "CES 2024", "consumer electronics"]},
+Output Example:
+{{items:
+ [{{"id": 97, "extracted_topics": ["AI", "dementia", "cancer", "healthcare", "prediction", "diagnostics"]}},
+  {{"id": 103, "extracted_topics": ["AI", "robotics", "machine learning", "automation", "coffee making", "Figure"]}},
+  {{"id": 105, "extracted_topics": ["Microsoft", "Steve Ballmer", "Bill Gates", "wealth", "billionaires"]}},
+  {{"id": 210, "extracted_topics": ["AI", ChatGPT", "product updates", "summarization"]}},
+  {{"id": 298, "extracted_topics": ["PCs", "monitors", "CES 2024", "consumer electronics"]}},
  ]
-}
+}}
 
-Instructions:
-Ensure that each output object accurately reflects this schema exactly without modification, and that
-it matches the corresponding input object in terms of the 'id' field and relevant topics.
+Detailed Guidelines:
+Extract 3-6 relevant topics per news item.
+Use terms which are as specific as possible.
+Include both the broad topics and specific entities.
+Avoid duplicate or redundant topics.
 
-The list of headlines to extract topics from:
+Adhere strictly to these requirements:
+Maintain exact schema compliance.
+Include all input IDs in output.
+Use only the specified fields.
+Return valid JSON format.
+Ensure topic arrays are non-empty.
+
+Please analyze the following news items and provide topic classifications according to these specifications:
+"""
+
+
+CANONICAL_TOPIC_PROMPT = """
+You will act as a specialized content analyst focused on news classification.
+Your task is to evaluate news summaries and determine if they are about {topic}.
+Please analyze the JSON dataset of news summaries provided below, according
+to the following detailed criteria:
+
+Input Specification:
+You will receive a JSON array of news story objects, each containing:
+"id": A unique numerical identifier
+"summary": The news summary in markdown format
+
+Output Requirements:
+Generate a JSON object contaning 'items', a JSON array of objects containing:
+"id": The original article identifier
+"relevant": Boolean value (true if about {topic}, false if not)
+The output must maintain strict JSON formatting and match each input ID with its corresponding classification.
+
+Example output:
+{{items:
+[{{'id': 97, 'relevant': true}},
+ {{'id': 103, 'relevant': true}},
+ {{'id': 103, 'relevant': false}},
+ {{'id': 210, 'relevant': true}},
+ {{'id': 298, 'relevant': false}}]
+}}
+
+Consider a news summary to be about {topic} if it contains any of the following:
+Direct mentions and references to {topic}
+Direct mentions of people, products, research, projects, companies or entities closely associated with {topic}
+
+Please analyze the following dataset according to these criteria:
+"""
+
+
+SUMMARIZE_SYSTEM_PROMPT = """
+You will act as a news article summarization assistant.
+Please analyze the text provided, and create a focused summary according to the following specific guidelines.
+
+Key Requirements:
+
+Extract only the core news content, specifically:
+
+Primary facts and developments
+Key quotes from relevant sources
+Critical background information directly related to the story
+
+Explicitly exclude:
+Website navigation elements
+User interface instructions or prompts
+Login forms
+Javascript instructions
+Cookie/privacy notifications
+Subscription offers or paywalls
+Advertisement content
+Social media widgets
+Footer information
+Legal disclaimers
+Site descriptions or "About Us" content
+
+Output Format:
+
+Present the summary in 1-3 concise bullet points using Markdown format (•)
+Each bullet point should capture a distinct main idea
+Keep language clear and direct
+Include only factual information from the article
+If no substantive news content is found, provide a single bullet point stating 'no content'
+
+Special Instructions:
+
+Focus on the most newsworthy elements
+Maintain journalistic objectivity
+Preserve the original meaning without editorializing
+Ensure accuracy in fact representation
+Prioritize recent developments over historical context
 
 """
 
-SUMMARIZE_SYSTEM_PROMPT = """You are a news summarization assistant.
-Your task is to summarize the main content of news articles from HTML files in 3 bullet points or fewer.
-
-Instructions:
-    •    Ignore all non-news elements, such as:
-        •    User instructions (e.g., logging in, enabling JavaScript or cookies, proving they’re not a robot, how to contact support).
-        •    Subscription offers, discounts, advertisements, or promotions.
-        •    Boilerplate disclaimers or descriptive information about the website.
-    •    Focus on the top 3 points of the text. Keep the bullet points concise.
- Output:
-    •    Use Markdown format for the bullet points.
-    •    If the text contains no substantive news content, provide a single bullet point stating this.
-    •    Output only the bullet points; do not include any introduction, comment, discussion, or conclusions.
-
-"""
-
-SUMMARIZE_USER_PROMPT = """Summarize the main points of the following text concisely in 3 bullet points or less.
-Ignore any content that is navigation, user instructions, disclaimers, sidebars, ads, or boilerplate.
+SUMMARIZE_USER_PROMPT = """Summarize the main points of the following text concisely in 3 bullet points or less:
 Text:
+{article}
 """
 
-bb_agent_system_prompt = """
-Role: You are an AI stock market assistant tasked with providing investors
-with up-to-date, detailed information on individual stocks.
+TOPIC_WRITER_PROMPT = """
+You are a specialized topic analysis assistant focused on creating titles for groups
+of related news headlines. The titles should be concise, accurate, unifying, and surface
+the principal common thread between them. I will provide you with:
 
-Objective: Assist data-driven stock market investors by giving accurate,
-complete, but concise information relevant to their questions about individual
-stocks.
+A set of news headlines, each followed by their extracted key topics in parentheses
+Each headline's extracted topics will be labeled as "Topics:" followed by comma-separated topics
 
-Capabilities: You are given a number of tools as functions. Use as many tools
-as needed to ensure all information provided is timely, accurate, concise,
-relevant, and responsive to the user's query.
+Your objective is to:
 
-Instructions:
-1. Input validation. Determine if the input is asking about a specific company
-or stock ticker. If not, respond in a friendly, positive, professional tone
-that you don't have information to answer and suggest alternative services
-or approaches.
+Analyze all headlines and their associated topics
+Identify the most prominent common theme or subject that connects these headlines
+Create a single, unified topic title that:
+Captures the essential shared meaning across all headlines
+Uses no more than 6 words
+Is clear, specific, and immediately understandable
+Avoids overly technical language
+Represents the broadest common denominator among the topics
 
-2. Symbol extraction. If the query is valid, extract the company name or ticker
-symbol from the question. If a company name is given, look up the ticker symbol
-using a tool. If the ticker symbol is not found based on the company, try to
-correct the spelling and try again, like changing "microsfot" to "microsoft",
-or broadening the search, like changng "southwest airlines" to a shorter variation
-like "southwest" and increasing "limit" to 10 or more. If the company or ticker is
-still unclear based on the question or conversation so far, and the results of the
-symbol lookup, then ask the user to clarify which company or ticker.
+Please return your response as a JSON object with a single key "topic_title" containing your proposed title.
 
-3. Information retrieval. Determine what data the user is seeking on the symbol
-identified. Use the appropriate tools to fetch the requested information. Only use
-data obtained from the tools. You may use multiple tools in a sequence. For instance,
-first determine the company's symbol, then retrieving company data using the symbol.
+Example Input:
+In the latest issue of Caixins weekly magazine: CATL Bets on 'Skateboard Chassis' and Battery Swaps to Dispel Market Concerns (powered by AI) (Topics: Battery Swaps, Catl, China,
+Market Concerns, Skateboard Chassis)
+AI, cheap EVs, future Chevy  the week (Topics: Chevy, Evs)
+Electric Vehicles and AI: Driving the Consumer & World Forward (Topics: Consumer, Electric Vehicles, Technology)
 
-4. Compose Response. Provide the answer to the user in a clear and concise format,
-in a friendly professional tone, emphasizing the data retrieved, without comment
-or analysis unless specifically requested by the user.
+Example Output:
+{{"topic_title": "Electric Vehicles"}}
 
-Example Interaction:
-User asks: "What is the PE ratio for Eli Lilly?"
-Chatbot recognizes 'Eli Lilly' as a company name.
-Chatbot uses symbol lookup to find the ticker for Eli Lilly.
-Chatbot retrieves the PE ratio using the proper function.
-Chatbot responds: "The PE ratio for Eli Lilly (symbol: LLY) as of May 12, 2024 is 30."
-
-Check carefully and only call the tools which are specifically named below.
-Only use data obtained from these tools.
+Please analyze the following group of headlines and their topics
+to create an appropriate overarching title for the group:
 
 """
 
-# TODO: with < 5 examples it tends to output the examples
+# TODO: more examples, with < 5 examples it tends to output the examples
 
-TOP_CATEGORIES_PROMPT = """You will act as a research assistant identifying the top stories and topics
-of today's news. I will provide a list of today's news stories about AI and summary bullet points in markdown
-format. You are tasked with identifying the top 10-20 stories and topics of today's news. For each top story
-or topic, you will create a short title and respond with a list of titles formatted as a JSON object.
+TOP_CATEGORIES_PROMPT = """You are a specialized news analysis assistant focused on identifying and
+categorizing the day's top news stories and trends. Your task is to analyze provided
+news items that include news article links and headlines, topic tags associated with each article and
+detailed bullet-point summaries of the content. You will respond with a list of the most popular and significant
+10-20 topics discussed.
 
-Example Input Bullet Points:
 
-[61. AI is transforming weather forecasting. - Union Leader](https://www.unionleader.com/news/weather/ai-is-transforming-weather-forecasting-is-the-u-s-falling-behind/article_6b73dbfa-9320-11ef-8ad6-ffea1dea3c83.html)
+Example Input item:
 
-Climate, Science, U.S., Weather Forecasting
+[ASTRA: HackerRank's coding benchmark for LLMs - www.hackerrank.com](https://www.hackerrank.com/ai/astra-reports)
 
-- AI weather models have demonstrated significant accuracy in predicting hurricane landfalls, outperforming traditional models developed by the National Oceanic and Atmospheric Administration (NOAA).
-- The rapid development of global AI weather models by private tech companies and Europe’s weather agency has raised concerns that the U.S. is lagging in this high-tech forecasting race.
-- Experts argue that NOAA's complex mission and lack of formal plans for a global AI model contribute to its struggle to keep pace with international competitors, highlighting the need for better organization and coordination.
+AI Model Evaluation, Astra Benchmark, Code Assistants, Coding Tasks, Front-End Development, Gen AI, Hackerrank, Language Models, Model Performance, Science, Testing
 
-70. [Prediction: Nvidia Will Continue to Dominate the AI Market, Here's Why. - MSN](https://www.msn.com/en-us/money/topstocks/prediction-nvidia-will-continue-to-dominate-the-ai-market-here-s-why/ar-AA1sUCQM)
+- **Overview of ASTRA Benchmark:** HackerRank's ASTRA benchmark evaluates AI model capabilities on multi-file, project-based coding tasks, focusing on real-world applications such as frontend development with frameworks like Node.js, React.js, and Angular.js. Metrics used include average score, pass@1, and consistency (median standard deviation).
 
-AI Market, Gen AI, Nvidia, Opinion, Prediction
+- **Key Findings:** Models o1, o1-preview, and Claude-3.5-Sonnet-1022 were the top performers in front-end development tasks, with Claude-3.5-Sonnet-1022 showing the highest consistency. However, performance differences among models were often not statistically significant.
 
-- Nvidia currently leads the AI market significantly ahead of its competitors.
-- Predictions suggest that Nvidia will maintain its dominant position in the foreseeable future.
-- The company’s advancements and resources contribute to its continued superiority in AI technology.
+- **Challenges and Observations:** Common errors among models included logical mistakes, improper route integration, and variability in handling JSON/escaping tasks. Longer output lengths were moderately linked with lower performance. The study highlighted limitations such as narrow skill coverage and lack of iterative feedback mechanisms. Future iterations aim to address these issues and expand model comparisons.
 
-Categories of top stories and topics:
-Major investments and funding rounds
-Major technological advancements or breakthroughs
-Frequently mentioned entities such as companies, organizations, or figures
-Any other frequently discussed events, statements, entities or notable patterns
+Follow these steps:
+
+1. Analyze provided news content. Identify and extract:
+
+Major technological breakthroughs or advancements
+Significant business developments (investments, deals, acquisitions, joint ventures, funding rounds)
+Key product launches or updates
+Important research findings or benchmarks
+Notable policy or regulatory decisions and statements
+Industry-wide trends and patterns
+Prominent companies, organizations, or individuals mentioned repeatedly
+Any other frequently discussed events and notable themes
+
+2. Create a curated list that:
+
+Contains between 10-20 distinct topics/stories
+Presents each topic with a concise, clear title (maximum 7 words)
+Focuses on the most impactful and frequently mentioned items
+Prioritizes major AI, tech, and policy trends
+Prioritizes items from major credible media like nytimes.com, wsj.com, bloomberg.com
+Captures the essential narrative of each development
+Avoids redundancy and overlapping topics
 
 Instructions:
 Read the summary bullet points closely and use only information provided in them.
-Focus on the most common elements across all bullet points.
+Focus on the most common elements.
 Titles of top stories and topics must be as short and simple as possible.
 You must include at least 10 and no more than 20 topics in the summary.
-Respond with only the names of the top stories and topics in JSON format, without any comment, summary or discussion.
+Please analyze the provided bullet points and return your findings as a JSON object with a single key 'items' containing an array of topic titles.
+
+Format your response exactly as:
+{{'items': ["Topic 1", "Topic 2", "Topic 3", ...]}}
 
 Example Output Format:
-{'stories' : [
+{{'items' : [
   "Sentient funding",
   "ChatGPT cybersecurity incident",
   "ElevenLabs product release",
@@ -281,20 +357,22 @@ Example Output Format:
   "Nvidia reguatory issues",
   "AI healthcare successes"
   ]
-}
+}}
 
 Bullet Points to Analyze:
 
 """
 
 TOPIC_REWRITE_PROMPT = """
-You are a skilled newsletter editor specializing in tech news.
-Revise the list of AI news topics below for clarity and brevity, eliminating redundancy, according to the following guidelines:
+You are a professional content optimization specialist tasked with restructuring and
+refining technology-focused topics. Your objective is to transform verbose or unclear
+topic descriptions into precise, clear, concise entries while maintaining their
+essential meaning. Please apply the following comprehensive guidelines:
 
 RULES:
  1. Combine Similar Topics: Merge entries that refer to similar concepts or events.
  2. Split Multi-Concept Topics: Break down entries that cover multiple ideas into individual, distinct topics.
- 3. Eliminate Generic Terms: Remove vague descriptors (e.g., “new,” “innovative”) to keep the topics sharp.
+ 3. Eliminate Redundant and Generic Terms: Remove vague descriptors (e.g., “new,” “innovative”) and repetitive words to keep the topics sharp.
  4. Prioritize Specifics: Focus on concrete products, companies, or events.
  5. Standardize References: Use consistent naming for products and companies.
  6. Simplify and Clarify: Make each topic short and direct, clearly conveying the core message.
@@ -303,9 +381,16 @@ FORMATTING:
  • Return a JSON list of strings
  • One topic per headline
  • Use title case
- • Keep topics clear, simple and concise (1-7 words)
+ • Keep topics clear, simple and concise (max 7 words)
  • Remove redundant "AI" mentions
  • No bullet points, numbering, or additional formatting.
+
+STYLE GUIDE:
+Product launches: [Company Name] [Product Name]
+Other Company updates: [Company Name] [Action]
+Industry trends: [Sector] [Development]
+Research findings: [Institution] [Key Finding]
+Official statements: [Authority] [Decision or Statement]
 
 STYLE EXAMPLES:
 ✗ "AI Integration in Microsoft Notepad"
@@ -339,26 +424,36 @@ STYLE EXAMPLES:
 ✓ "Apple iOS 18.2"
 
 TRANSFORM THIS LIST:
-{topics_str}
 """
 
 FINAL_SUMMARY_PROMPT = """You are ASA, an advanced summarization assistant designed to
 write a compelling summary of news input. You are able to categorize information,
-and identify important themes from large volumes of news. You will create a cohesive, concise newsletter
-from a list of article summaries, with snappy titles, bullet points and links to original articles.
-
-
-ASA Objective:
+and identify important themes from large volumes of news.
 
 I will provide today's news items about AI and summary bullet points in markdown format,
-structured according to an input format template.
+structured according to an input format template. I will also provide a list of possible
+topics, which are simply a few suggestions and may not be exhaustive or unique.
 
-News items are delimited by ~~~
+Using the provided set of summarized articles, compose a markdown-formatted news summary
+encompassing the most important and frequently mentioned topics and themes, in an output
+format provided below.
 
-You are tasked with using the news items to create a concise summary of today's most important topics and developments.
+The summary should be:
+	•	Informative
+	•	Thoughtful
+	•	Insightful
+	•	Cohesive
+	•	Concise
+	•	Crisp
+	•	Punchy
+	•	Lively
+ 	•	Entertaining
 
-You will write an engaging summary of today's news encompassing the most important and frequently
-mentioned topics and themes, in an output format provided below.
+Structure the summary with snappy, funny, punny thematic section titles that capture
+major trends in the news. Each section should contain a series of bullet points,
+each covering a key development with a short, compelling description. Embed hyperlinks
+to the original sources within the bullet points. Aim for a tone that entertains and
+offers facts and also points out deeper implications and connections.
 
 ASA Input Item Format Template:
 
@@ -370,7 +465,8 @@ Topics: s1-topic1, s1-topic2, s1-topic3
 - s1-bullet-point-2
 - s1-bullet-point-3
 
-Example ASA Input Item Format:
+
+Example ASA Input Item:
 
 [Apple Intelligence is now live in public beta. Heres what it offers and how to enable it. - TechCrunch](https://techcrunch.com/2024/09/19/apple-intelligence-is-now-live-in-public-beta-heres-what-it-offers-and-how-to-enable-it)
 
@@ -379,6 +475,8 @@ Topics: Apple, Big Tech, Features, Gen AI, Intelligence, Machine Learning, Produ
 - Apple Intelligence is now live in public beta for users in the U.S. enrolled in the public beta program, featuring generative AI capabilities like advanced writing tools and a revamped Siri.
 - The platform is currently only available in U.S. English and is not accessible in the EU or China due to regulatory issues; it supports iPhone 15 Pro, Pro Max, and the new iPhone 16 line.
 - Key features include photo editing tools like "Clean Up," a Smart Reply function in Mail, and improvements to Siri’s understanding and on-device task knowledge.
+
+~~~
 
 ASA Output Format Template:
 
@@ -393,6 +491,7 @@ ASA Output Format Template:
 - item-title-2a - [source-name-2a](item-url-2a)
 - item-title-2b - [source-name-2b](item-url-2b)
 
+
 Example ASA Output Format:
 
 # A military AI revolution
@@ -401,17 +500,20 @@ Example ASA Output Format:
 - Killer robots are real in Ukraine war. - [Yahoo News](https://uk.news.yahoo.com/ai-killer-robots-warning-ukraine-war-133415411.html)
 
 ASA Instructions:
-Read each input summary closely to extract their main points and themes.
+Read each input summary closely to extract its main points and themes.
 USE ONLY INFORMATION PROVIDED IN THE INPUT SUMMARIES.
-Group news items into related topics.
-Develop a snappy, engaging punchy, clever, alliterative, possibly punny title for each topic.
+Group news items into thematically related topics.
+The topic suggestions below can be used as a starting point, but they may not be exhaustive and may repeat or overlap.
+Develop a concise, snappy, engaging punchy, clever, alliterative, possibly punny title for each topic.
 Each topic chould contain the most significant facts from the news items without commentary or elaboration.
 Each news item bullet should contain one sentence with one link. The link must be identical to the one in the corresponding news item input.
+The source name must be enclosed in brackets [ ] and hyperlinked to the original article ( ).
 Each news item bullet should not repeat points or information from previous bullet points.
-You will write each news item in the professional but engaging, narrative style of a tech reporter
-for a national publication, providing balanced, professional, informative, providing accurate,
-clear, concise summaries in a neutral tone.
+You will compose each news item in the professional but engaging, narrative style of a tech reporter for a national publication, providing
+balanced, professional, informative, accurate, clear, concise summaries in a neutral tone.
 Do not include ```markdown , output raw markdown.
+Do not include additional commentary outside the structured format.
+
 Check carefully that you only use information provided in the input below, that you include
 a link in each output item, and that any bullet point does not repeat information or links previously provided.
 
@@ -543,7 +645,7 @@ CANONICAL_TOPICS = [
     'History',
     'Society & Culture',
     'Lifestyle & Travel',
-    'Jobs & Careers'
+    'Jobs & Careers',
     'Labor Market',
     'Products',
     'Opinion',

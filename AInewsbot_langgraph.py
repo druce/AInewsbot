@@ -1,9 +1,6 @@
-import sys
 import os
-import shutil
 
 from datetime import datetime, timedelta
-import glob
 import yaml
 # import dotenv
 # import subprocess
@@ -13,67 +10,64 @@ import re
 import pickle
 import argparse
 
-from typing import TypedDict, Annotated
-from collections import Counter
+from typing import TypedDict
+from collections import Counter, defaultdict
 
 import sqlite3
 import requests
-import multiprocessing
 import asyncio
-import nest_asyncio
 
-from urllib.parse import urljoin, urlparse
-from IPython.display import Audio, display, Markdown
+import multiprocessing
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import numpy as np
+from urllib.parse import urlparse  # , urljoin
+from IPython.display import display  # , Audio, Markdown
+
 import pandas as pd
 
 from sklearn.cluster import DBSCAN
 
 from openai import OpenAI
 
-from podcastfy.client import process_content
-
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import BaseMessage, AnyMessage, SystemMessage, HumanMessage, ToolMessage
-from langchain_core.prompts import (ChatPromptTemplate, MessagesPlaceholder, PromptTemplate,
-                                    SystemMessagePromptTemplate, HumanMessagePromptTemplate)
-from langchain_core.output_parsers import SimpleJsonOutputParser, JsonOutputParser, StrOutputParser
-from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_core.prompts import ChatPromptTemplate
+# JsonOutputParser, StrOutputParser
+from langchain_core.output_parsers import SimpleJsonOutputParser
 
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.checkpoint.sqlite import SqliteSaver
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+# from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages
-from langgraph.prebuilt import ToolNode, tools_condition
+# from langgraph.graph.message import add_messages
 from langgraph.errors import NodeInterrupt
 
-from IPython.display import HTML, Image, Markdown, display
 import markdown
 
-from ainb_llm import (paginate_df, process_pages, fetch_pages, fetch_openai, fetch_all_summaries,
-                      fetch_openai_summary, count_tokens, trunc_tokens,
-                      categorize_headline, categorize_df,
-                      get_site_name, fetch_missing_site_names,
-                      write_topic_name, clean_topics, topic_rewrite
+from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
+                      fetch_missing_site_names, filter_page_async,
+                      get_all_canonical_topic_results, clean_topics, topic_rewrite,
+                      Stories, TopicSpecList, TopicHeadline, TopicCategoryList
                       )
-from ainb_webscrape import (get_driver, quit_drivers, launch_drivers, get_file, get_url, parse_file,
-                            get_og_tags, get_path_from_url, trimmed_href, process_source_queue_factory,
-                            process_url_queue_factory, get_google_news_redirects)
+
+from ainb_webscrape import (get_browsers, parse_file,
+                            process_source_queue_factory,
+                            process_url_queue_factory)
+
 from ainb_utilities import (log, delete_files, filter_unseen_urls_db, insert_article,
-                            nearest_neighbor_sort, agglomerative_cluster_sort, traveling_salesman_sort_scipy,
-                            unicode_to_ascii, send_gmail)
+                            nearest_neighbor_sort, send_gmail, unicode_to_ascii)
+
 from ainb_const import (DOWNLOAD_DIR, PAGES_DIR,
                         MODEL, LOWCOST_MODEL, HIGHCOST_MODEL, CANONICAL_TOPICS,
-                        SOURCECONFIG, FILTER_PROMPT, TOPIC_PROMPT, topic_schema,
-                        SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT, FINAL_SUMMARY_PROMPT,
+                        SOURCECONFIG, FILTER_PROMPT, TOPIC_PROMPT, TOPIC_WRITER_PROMPT,
+                        FINAL_SUMMARY_PROMPT,
                         TOP_CATEGORIES_PROMPT, TOPIC_REWRITE_PROMPT, REWRITE_PROMPT,
-                        MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS, MAX_RETRIES, TEMPERATURE, SQLITE_DB,
-                        HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST, TOPSOURCES,
-                        SCREENSHOT_DIR, sleeptime
+                        SQLITE_DB,
+                        HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST,
+                        SCREENSHOT_DIR, NUM_BROWSERS)
 
-                        )
+import pdb
+
+import nest_asyncio
+nest_asyncio.apply()  # needed for asyncio.run to work under langgraph
 
 # defaults if called via import and not __main__
 N_BROWSERS = 4
@@ -244,17 +238,29 @@ def fn_download_sources(state: AgentState) -> AgentState:
 
         # save each file specified from sources
         log(f"Saving HTML files using {N_BROWSERS} browsers")
-
         # Create a queue for multiprocessing and populate it
         queue = multiprocessing.Queue()
         for item in state.get("sources").values():
             queue.put(item)
 
-        # Function to take the queue and pop entries off and process until none are left
-        # lets you create an array of functions with different args
+        # create a closure to download urls in queue asynchronously
         callable = process_source_queue_factory(queue)
 
-        saved_pages = launch_drivers(N_BROWSERS, callable)
+        global BROWSERS
+        if 'BROWSERS' not in globals() or len(BROWSERS) < NUM_BROWSERS:
+            BROWSERS = asyncio.run(get_browsers(NUM_BROWSERS))
+
+        with ThreadPoolExecutor(max_workers=NUM_BROWSERS) as executor:
+            # Create a list of future objects
+            futures = [executor.submit(callable, BROWSERS[i])
+                       for i in range(NUM_BROWSERS)]
+
+            # Collect the results (web drivers) as they complete
+            retarray = [future.result() for future in as_completed(futures)]
+
+        # flatten results
+        saved_pages = [item for retarray in retarray for item in retarray]
+
         for sourcename, file in saved_pages:
             log(f"Downloaded {sourcename} to {file}")
             state['sources'][sourcename]['latest'] = file
@@ -331,7 +337,7 @@ def fn_extract_urls(state: AgentState) -> AgentState:
     return state
 
 
-def fn_check_downloads(state: AgentState) -> AgentState:
+def fn_verify_download(state: AgentState) -> AgentState:
     sources_downloaded = len(
         pd.DataFrame(state["AIdf"]).groupby("src").count()[['id']])
     SOURCES_EXPECTED = 16
@@ -340,7 +346,7 @@ def fn_check_downloads(state: AgentState) -> AgentState:
     if missing_sources:
         raise NodeInterrupt(
             f"{missing_sources} missing sources: Expected {SOURCES_EXPECTED}")
-    log(f"check_downloads passed, found {SOURCES_EXPECTED} sources in AIdf, {missing_sources} missing")
+    log(f"verify_download passed, found {SOURCES_EXPECTED} sources in AIdf, {missing_sources} missing")
     return state
 
 
@@ -416,10 +422,20 @@ def fn_filter_urls(state: AgentState) -> AgentState:
         log("No new URLs, returning")
         return state
 
-    # dedupe identical headlines
-    # filter similar titles differing by type of quote or something
+    # dedupe identical urls
+    AIdf = AIdf.sort_values("src") \
+        .groupby("url") \
+        .first() \
+        .reset_index(drop=False) \
+        .drop(columns=['id']) \
+        .reset_index() \
+        .rename(columns={'index': 'id'})
+    log(f"Found {len(AIdf)} unique new headlines")
+
+    # # dedupe identical headlines
+    # # filter similar titles differing by type of quote or something
     AIdf['title'] = AIdf['title'].apply(unicode_to_ascii)
-    AIdf['title_clean'] = AIdf['title'].map(lambda s: "".join(s.split()))
+    AIdf['title_clean'] = AIdf['title'].map(lambda s: " ".join(s.split()))
     AIdf = AIdf.sort_values("src") \
         .groupby("title_clean") \
         .first() \
@@ -428,42 +444,20 @@ def fn_filter_urls(state: AgentState) -> AgentState:
         .reset_index() \
         .rename(columns={'index': 'id'})
     log(f"Found {len(AIdf)} unique new headlines")
-
-    # structured response format
-    json_schema = {
-        "name": "json_schema",
-        "strict": True,
-        "schema": {
-            "type": "object",
-            "properties": {
-                "isai_array": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                                "properties": {
-                                    "id": {
-                                        "type": "number"
-                                    },
-                                    "isAI": {
-                                        "type": "boolean"
-                                    }
-                                },
-                        "required": ["id", "isAI"],
-                        "additionalProperties": False
-                    }
-                }
-            },
-            "required": ["isai_array"],
-            "additionalProperties": False
-        }
-    }
-
     # filter AI-related headlines using a prompt
-    pages = paginate_df(AIdf)
-    enriched_urls = asyncio.run(fetch_pages(
-        pages, prompt=FILTER_PROMPT, json_schema=json_schema))
-    filter_df = pd.DataFrame(enriched_urls)
+    pagelist = paginate_df(AIdf[["id", "title"]])
+    results = asyncio.run(process_dataframes(
+        dataframes=pagelist,
+        input_prompt=FILTER_PROMPT,
+        output_class=Stories,
+        model=ChatOpenAI(model=LOWCOST_MODEL)
+    ))
 
+    # should return a list of Story
+    filter_df = pd.DataFrame([
+        {"id": story.id, "isAI": story.isAI}
+        for story in results
+    ])
     try:  # for idempotency
         AIdf = AIdf.drop(columns=['isAI'])
     except Exception as exc:
@@ -547,7 +541,20 @@ def fn_filter_urls(state: AgentState) -> AgentState:
     return state
 
 
-def fn_topic_analysis(state: AgentState) -> AgentState:
+def make_bullet(row):
+
+    # rowid = str(row.id) + ". " if hasattr(row, "id") else ""
+    title = row.title if hasattr(row, "title") else ""
+    site_name = row.site_name if hasattr(row, "site_name") else ""
+    actual_url = row.actual_url if hasattr(row, "actual_url") else ""
+    # bullet = "\n\n" + row.bullet if hasattr(row, "bullet") else ""
+    summary = "\n\n" + str(row.summary) if hasattr(row, "summary") else ""
+    topic_str = "\n\n" + row.topic_str if hasattr(row, "topic_str") else ""
+
+    return f"[{title} - {site_name}]({actual_url}){topic_str}{summary}\n\n"
+
+
+async def afn_topic_analysis(state: AgentState) -> AgentState:
     """
     Extracts and selects topics for each headline in the state['AIdf'] dataframe, scrubs them, and stores them back in the dataframe.
 
@@ -563,85 +570,75 @@ def fn_topic_analysis(state: AgentState) -> AgentState:
     # could put summaries into vector store and retrieve stories by topic. but then you will have to deal
     # with duplicates across categories, ask the prompt to dedupe
 
-    nest_asyncio.apply()  # needed for asyncio.run to work under langgraph
-
     AIdf = pd.DataFrame(state['AIdf'])
-    pages = paginate_df(AIdf)
+    pages = paginate_df(AIdf[["id", "summary"]])
+
     # apply topic extraction prompt to AI headlines
     log("start free-form topic extraction")
-    json_schema = {
-        "name": "extracted_topics",
-        "strict": True,
-        "schema": {
-            "type": "object",
-            "properties": {
-                "extracted_topics": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "id": {
-                                "type": "number",
-                            },
-                            "topics": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string",
-                                },
-                            },
-                        },
-                        "required": ["id", "topics"],
-                        "additionalProperties": False,
-                    }
-                }
-            },
-            "required": ["extracted_topics"],
-            "additionalProperties": False,
-        }
-    }
-    response = asyncio.run(fetch_pages(
-        pages, prompt=TOPIC_PROMPT, json_schema=json_schema))
-    topic_df = pd.DataFrame(response)
+    topic_results = await process_dataframes(
+        dataframes=pages,
+        input_prompt=TOPIC_PROMPT,
+        output_class=TopicSpecList,
+        model=ChatOpenAI(model=LOWCOST_MODEL))
+    topics_df = pd.DataFrame([[item.id, item.extracted_topics] for item in topic_results], columns=[
+                             "id", "extracted_topics"])
+    log(f"{len(topics_df)} free-form topics extracted")
 
-    topic_df = topic_df.rename(columns={'topics': 'extracted_topics'})
-    log(f"{len(topic_df)} free-form topics extracted")
-    all_topics = [item.lower() for row in topic_df.itertuples()
+    all_topics = [item.lower() for row in topics_df.itertuples()
                   for item in row.extracted_topics]
+
     item_counts = Counter(all_topics)
+    # use categories that are canonical or show up twice in freeform
     filtered_topics = [item for item in item_counts if item_counts[item]
-                       >= 2 and item not in {'technology', 'ai', 'artificial intelligence'}]
+                       >= 2 and item not in {'technology', 'ai', 'artificial intelligence', 'gen ai', 'no content'}]
 
     categories = sorted(CANONICAL_TOPICS)
-    # use categories that are canonical or show up twice in freeform
     lcategories = set([c.lower() for c in categories] +
                       [c.lower() for c in filtered_topics])
-    # new topics
-    log([c for c in filtered_topics if c not in categories])
 
-    catdict = asyncio.run(categorize_headline(AIdf, categories=categories))
-    topic_df['assigned_topics'] = topic_df['id'].apply(
-        lambda id: catdict.get(id, ""))
+    log("Starting assigned topic extraction")
+    assigned_topics = asyncio.run(
+        get_all_canonical_topic_results(pages, lcategories))
 
-#     pdb.set_trace()
+    ctr_dict = defaultdict(list)
 
-    topic_df["topics"] = topic_df.apply(
+    for (topic, relevant_list) in assigned_topics:
+        for ctr in relevant_list:
+            if ctr.relevant:
+                ctr_dict[ctr.id].append(topic)
+
+    topics_df['assigned_topics'] = topics_df['id'].apply(
+        lambda id: ctr_dict.get(id, ""))
+
+    log("Cleaning and formatting topics")
+
+    topics_df["topics"] = topics_df.apply(
         lambda t: clean_topics(t, lcategories), axis=1)
-    topic_df["topic_str"] = topic_df.apply(
+    topics_df["topic_str"] = topics_df.apply(
         lambda row: ", ".join(row.topics), axis=1)
 
     try:  # for idempotency
         AIdf = AIdf.drop(columns=['topic_str', 'title_topic_str'])
     except Exception as exc:
         pass
-        # error expected, no need to print
-        # print("fn_topic_analysis")
-        # print(exc)
 
-    AIdf = pd.merge(AIdf, topic_df[["id", "topic_str"]], on="id", how="outer")
+    AIdf = pd.merge(AIdf, topics_df[["id", "topic_str"]], on="id", how="outer")
     AIdf['title_topic_str'] = AIdf.apply(
         lambda row: f'{row.title} (Topics: {row.topic_str})', axis=1)
+    log("End topic analysis")
 
+    #     state["AIdf"] = AIdf.to_dict(orient='records')
+    #     return state
+
+    # redo bullets with topics
+    AIdf["bullet"] = AIdf.apply(make_bullet, axis=1)
     state["AIdf"] = AIdf.to_dict(orient='records')
+    return state
+
+
+def fn_topic_analysis(state: AgentState) -> AgentState:
+
+    state = asyncio.run(afn_topic_analysis(state))
     return state
 
 
@@ -683,6 +680,7 @@ def fn_topic_clusters(state: AgentState) -> AgentState:
     # Adjust eps and min_samples as needed
     dbscan = DBSCAN(eps=0.4, min_samples=3)
     AIdf['cluster'] = dbscan.fit_predict(reduced_data)
+    log(f"Found {len(AIdf['cluster'].unique())-1} clusters")
     AIdf.loc[AIdf['cluster'] == -1, 'cluster'] = 999
 
     # sort first by clusters found by DBSCAN, then by semantic ordering
@@ -698,22 +696,48 @@ def fn_topic_clusters(state: AgentState) -> AgentState:
         for i in range(30):
             try:
                 tmpdf = AIdf.loc[AIdf['cluster'] ==
-                                 i][["id", "title_topic_str"]]
+                                 i][["title_topic_str"]]
                 if len(tmpdf) == 0:
                     break
                 display(tmpdf)
-                title_topic_str_list = ("\n\n".join(
-                    tmpdf['title_topic_str'].to_list()))
-                cluster_topic = asyncio.run(
-                    write_topic_name(title_topic_str_list))
-                cluster_topic = cluster_topic['topic_title']
+                response = asyncio.run(filter_page_async(
+                    tmpdf,
+                    TOPIC_WRITER_PROMPT,
+                    TopicHeadline,
+                    model=ChatOpenAI(model=LOWCOST_MODEL),
+                ))
+                cluster_topic = response.topic_title
                 state["cluster_topics"].append(cluster_topic)
                 log(f"I dub this cluster: {cluster_topic}")
+                # should use topic_index = len(state["cluster_topics"]-1
+                AIdf["cluster_name"] = AIdf['cluster'].apply(lambda i: state["cluster_topics"][i]
+                                                             if i < len(state["cluster_topics"])
+                                                             else "")
+
             except Exception as exc:
                 log(exc)
-    AIdf["cluster_name"] = AIdf['cluster'].apply(lambda i: state["cluster_topics"][i]
-                                                 if i < len(state["cluster_topics"])
-                                                 else "")
+
+    # send mail
+    # Convert Markdown to HTML
+    markdown_str = ""
+    for row in AIdf.itertuples():
+        markdown_str += f"{row.id+1}. {row.bullet}\n\n"
+    html_str = markdown.markdown(markdown_str, extensions=['extra'])
+
+    # save bullets
+    with open('bullets.md', 'w') as f:
+        f.write(markdown_str)
+
+    # same with a better delimiter and no ID
+    bullet_str = "\n~~~\n".join(state.get("bullets", []))
+    with open('bullet_str.txt', 'w') as f:
+        f.write(bullet_str)
+
+    # send email html_str
+    log("Sending bullet points email")
+    subject = f'AI news bullets {datetime.now().strftime("%H:%M:%S")}'
+    send_gmail(subject, html_str)
+
     state["AIdf"] = AIdf.to_dict(orient='records')
     log(state["cluster_topics"])
     return state
@@ -750,13 +774,24 @@ def fn_download_pages(state: AgentState) -> AgentState:
         #         if row.cluster < 999:
         queue.put((row.id, row.url, row.title))
         count += 1
-    # scrape urls in queue asynchronously
-    num_browsers = 4
 
+    # scrape urls in queue asynchronously
     callable = process_url_queue_factory(queue)
 
-    log(f"fetching {count} pages using {num_browsers} browsers")
-    saved_pages = launch_drivers(num_browsers, callable)
+    global BROWSERS
+    if 'BROWSERS' not in globals() or len(BROWSERS) < NUM_BROWSERS:
+        BROWSERS = asyncio.run(get_browsers(NUM_BROWSERS))
+
+    with ThreadPoolExecutor(max_workers=NUM_BROWSERS) as executor:
+        # Create a list of future objects
+        futures = [executor.submit(callable, BROWSERS[i])
+                   for i in range(NUM_BROWSERS)]
+
+        # Collect the results (web drivers) as they complete
+        retarray = [future.result() for future in as_completed(futures)]
+
+    # flatten results
+    saved_pages = [item for retarray in retarray for item in retarray]
 
     pages_df = pd.DataFrame(saved_pages)
     if len(pages_df):
@@ -771,6 +806,8 @@ def fn_download_pages(state: AgentState) -> AgentState:
             # print(exc)
         AIdf = pd.merge(AIdf, pages_df[["id", "path"]], on='id', how="inner")
     state["AIdf"] = AIdf.to_dict(orient='records')
+    # Pickle AIdf to AIdf.pkl
+    AIdf.to_pickle("AIdf.pkl")
     return state
 
 
@@ -790,87 +827,73 @@ def fn_summarize_pages(state: AgentState) -> AgentState:
     responses = asyncio.run(fetch_all_summaries(AIdf))
     log(f"Received {len(responses)} summaries")
     response_dict = {}
-    for i, response in responses:
-        try:
-            response_str = response["choices"][0]["message"]["content"]
-            response_dict[i] = response_str
-        except Exception as exc:
-            print('fn_summarize_pages')
-            print(exc)
+    for response, i in responses:
+        response_dict[i] = response
 
-    markdown_str = ''
-    bullets = []
-
-    for i, row in enumerate(AIdf.itertuples()):
-        try:
-            topics = []
-            if row.cluster_name:
-                topics.append(row.cluster_name)
-            if row.topic_str:
-                topics.append(row.topic_str)
-            topic_str = ", ".join(topics)
-
-            mdstr = f"[{i+1}. {row.title} - {row.site_name}]({row.actual_url})  \n\n {topic_str}  \n\n{response_dict[row.id]} \n\n"
-            bullets.append(
-                f"[{row.title} - {row.site_name}]({row.actual_url})\n\nTopics: {row.topic_str} \n\n{response_dict[row.id]}\n\n")
-            display(Markdown(mdstr.replace("$", "\\\\$")))
-            markdown_str += mdstr
-        except Exception as exc:
-            print("Error:", exc)
-
-    state['bullets'] = bullets
-    # Convert Markdown to HTML
-    html_str = markdown.markdown(markdown_str, extensions=['extra'])
-    # save bullets
-    with open('bullets.md', 'w') as f:
-        f.write(markdown_str)
-    # send email
-    log("Sending bullet points email")
-    subject = f'AI news bullets {datetime.now().strftime("%H:%M:%S")}'
-    send_gmail(subject, html_str)
+    AIdf["summary"] = AIdf["id"].apply(lambda rowid: response_dict[rowid])
+    state['AIdf'] = AIdf.to_dict(orient='records')
 
     return state
 
 
 def fn_propose_cats(state: AgentState) -> AgentState:
     # ask chatgpt for top categories
-    log(f"Proposing categories using {MODEL}")
+    log(f"Proposing categories using {HIGHCOST_MODEL}")
 
-    model = ChatOpenAI(
-        model=MODEL,
-        temperature=0.3,
-        model_kwargs={"response_format": {"type": "json_object"}}
+    AIdf = pd.DataFrame(state["AIdf"])
+    # state["cluster_topics"] should already have cluster names
+    state["topics_str"] = '\n'.join(state['cluster_topics'])
+    log(f"Initial cluster topics: \n{state['topics_str']}")
+
+    # first extract free-form topics and add to cluster topics
+    pages = paginate_df(AIdf[["bullet"]])
+    response = asyncio.run(process_dataframes(
+        pages,
+        TOP_CATEGORIES_PROMPT,
+        TopicCategoryList,
+        model=ChatOpenAI(model=HIGHCOST_MODEL),
+    ))
+    state["cluster_topics"].extend(response)
+    state["topics_str"] = '\n'.join(state['cluster_topics'])
+    log(
+        f"Added cluster topics using {HIGHCOST_MODEL}: \n{state['topics_str']}"
     )
 
-    chain = ChatPromptTemplate.from_template(
-        "{p}") | model | SimpleJsonOutputParser()
-    response = chain.invoke(
-        {"p": TOP_CATEGORIES_PROMPT + "\n\n".join(state.get("bullets", []))})
-    suggested_categories = []
-    for k, v in response.items():
-        suggested_categories.extend(v)
-    state["cluster_topics"] = list(
-        set(state["cluster_topics"] + suggested_categories))
-    state["cluster_topics"].sort()
-    topics_str = "\n".join(state["cluster_topics"])
-    log(f"Original topics:\n{topics_str}")
-    # rewrite
-    response_str = topic_rewrite(
-        OpenAI(), 'gpt-4o', TOPIC_REWRITE_PROMPT, topics_str, topic_schema)
-#     print(response_str)
-    state["topics_str"] = "\n".join(sorted(json.loads(response_str)['topics']))
-    log(f"Updated topics:\n{state['topics_str']}")
+    # deduplicate and edit topics
+    response = asyncio.run(process_dataframes(
+        [pd.DataFrame(state["cluster_topics"], columns=['topics'])],
+        TOPIC_REWRITE_PROMPT,
+        TopicCategoryList,
+        model=ChatOpenAI(model=HIGHCOST_MODEL)))
+
+    state["cluster_topics"] = response
+    state["topics_str"] = '\n'.join(state['cluster_topics'])
+    log(
+        f"Final edited cluster topics using {HIGHCOST_MODEL}:\n{state['topics_str']}"
+    )
+
+    # save topics to local file
+    try:
+        filename = 'topics.txt'
+        file.write(state["topics_str"])
+        log(f"Topics successfully saved to {filename}.")
+    except Exception as e:
+        log(f"An error occurred: {e}")
+
     return state
 
 
 def fn_compose_summary(state: AgentState) -> AgentState:
     log(f"Composing summary using {HIGHCOST_MODEL}")
+    AIdf = pd.DataFrame(state["AIdf"])
+    bullet_str = "\n~~~\n".join(AIdf['bullet'])
 
     cat_str = state['topics_str']
-    bullet_str = "\n~~~\n".join(state.get("bullets", []))
+
     client = OpenAI()
     response = client.chat.completions.create(
         model=HIGHCOST_MODEL,
+        reasoning_effort="high",
         messages=[
             {
                 "role": "user",
@@ -890,6 +913,14 @@ def fn_compose_summary(state: AgentState) -> AgentState:
 #     response = chain.invoke({ "cat_str": cat_str, "bullet_str": bullet_str})
 #     print(response)
     state["summary"] = response.choices[0].message.content
+    # save bullet_str to local file
+    try:
+        filename = 'summary.md'
+        with open(filename, 'w') as file:
+            file.write(state.get("summary"))
+            log(f"Markdown content successfully saved to {filename}.")
+    except Exception as e:
+        log(f"An error occurred: {e}")
 
     return state
 
@@ -909,6 +940,7 @@ def fn_rewrite_summary(state: AgentState) -> AgentState:
     client = OpenAI()
     response = client.chat.completions.create(
         model=HIGHCOST_MODEL,
+        reasoning_effort="high",
         messages=[
             {
                 "role": "user",
@@ -969,7 +1001,7 @@ class Agent:
         graph_builder.add_node("initialize", self.initialize)
         graph_builder.add_node("download_sources", self.download_sources)
         graph_builder.add_node("extract_web_urls", self.extract_web_urls)
-        graph_builder.add_node("check_download", self.check_download)
+        graph_builder.add_node("verify_download", self.verify_download)
         graph_builder.add_node("extract_newscatcher_urls",
                                self.extract_newscatcher_urls)
         graph_builder.add_node("filter_urls", self.filter_urls)
@@ -977,34 +1009,35 @@ class Agent:
         graph_builder.add_node("topic_clusters", self.topic_clusters)
         graph_builder.add_node("download_pages", self.download_pages)
         graph_builder.add_node("summarize_pages", self.summarize_pages)
-        graph_builder.add_node("propose_topics", self.propose_topics)
-        graph_builder.add_node("compose_summary", self.compose_summary)
-        graph_builder.add_node("rewrite_summary", self.rewrite_summary)
-        graph_builder.add_node("send_mail", self.send_mail)
+        # graph_builder.add_node("propose_topics", self.propose_topics)
+        # graph_builder.add_node("compose_summary", self.compose_summary)
+        # graph_builder.add_node("rewrite_summary", self.rewrite_summary)
+        # graph_builder.add_node("send_mail", self.send_mail)
 
         graph_builder.add_edge(START, "initialize")
         graph_builder.add_edge("initialize", "download_sources")
         graph_builder.add_edge("download_sources", "extract_web_urls")
-        graph_builder.add_edge("extract_web_urls", "check_download")
-        graph_builder.add_edge("check_download", "extract_newscatcher_urls")
+        graph_builder.add_edge("extract_web_urls", "verify_download")
+        graph_builder.add_edge("verify_download", "extract_newscatcher_urls")
         graph_builder.add_edge("extract_newscatcher_urls", "filter_urls")
         graph_builder.add_edge("filter_urls", "topic_analysis")
         graph_builder.add_edge("topic_analysis", "topic_clusters")
         graph_builder.add_edge("topic_clusters", "download_pages")
         graph_builder.add_edge("download_pages", "summarize_pages")
-        graph_builder.add_edge("summarize_pages", "propose_topics")
-        graph_builder.add_edge("propose_topics", "compose_summary")
-        graph_builder.add_edge("compose_summary", "rewrite_summary")
-        graph_builder.add_conditional_edges("rewrite_summary",
-                                            self.is_revision_complete,
-                                            {"incomplete": "rewrite_summary",
-                                             "complete": "send_mail",
-                                             })
-        graph_builder.add_edge("send_mail", END)
+        # graph_builder.add_edge("summarize_pages", "propose_topics")
+        # graph_builder.add_edge("propose_topics", "compose_summary")
+        # graph_builder.add_edge("compose_summary", "rewrite_summary")
+        # graph_builder.add_conditional_edges("rewrite_summary",
+        #                                     self.is_revision_complete,
+        #                                     {"incomplete": "rewrite_summary",
+        #                                      "complete": "send_mail",
+        #                                      })
+        # graph_builder.add_edge("send_mail", END)
+        graph_builder.add_edge("summarize_pages", END)
 
         # human in the loop should check web pages downloaded ok, and edit proposed categories
-#         self.conn = sqlite3.connect('lg_checkpointer.db')
-#         self.checkpointer = SqliteSaver(conn=self.conn)
+        # self.conn = sqlite3.connect('lg_checkpointer.db')
+        # self.checkpointer = SqliteSaver(conn=self.conn)
         self.checkpointer = MemorySaver()
         graph = graph_builder.compile(checkpointer=self.checkpointer,)
 #                                      interrupt_before=["filter_urls", "compose_summary",])
@@ -1022,12 +1055,15 @@ class Agent:
         self.state = fn_extract_urls(state)
         return self.state
 
-    def check_download(self, state: AgentState) -> AgentState:
-        self.state = fn_check_downloads(state)
+    def verify_download(self, state: AgentState) -> AgentState:
+        self.state = fn_verify_download(state)
         return self.state
 
     def extract_newscatcher_urls(self, state: AgentState) -> AgentState:
-        self.state = fn_extract_newscatcher(state)
+        try:
+            self.state = fn_extract_newscatcher(state)
+        except KeyError:
+            log("Newscatcher download failed")
         return self.state
 
     def filter_urls(self, state: AgentState) -> AgentState:
@@ -1071,25 +1107,26 @@ class Agent:
 
     def run(self, state, config):
         # The config is the **second positional argument** to stream() or invoke()!
-        events = self.graph.stream(state, config, stream_mode="values"
-                                   )
-
+        events = self.graph.stream(state, config, stream_mode="values")
         for event in events:
             try:
                 if event.get('summary'):
-                    display(Markdown(event.get('summary').replace("$", "\\\\$")))
+                    print('summary created')
+                    display(event.get('summary').replace("$", "\\\\$"))
                 elif event.get('bullets'):
-                    display(Markdown("\n\n".join(
-                        event.get('bullets')).replace("$", "\\\\$")))
+                    print('bullets created')
+                    display("\n\n".join(
+                        event.get('bullets')).replace("$", "\\\\$"))
                 elif event.get('cluster_topics'):
-                    display(Markdown("\n\n".join(event.get('cluster_topics'))))
+                    print('cluster topics created')
+                    display("\n\n".join(event.get('cluster_topics')))
                 elif event.get('AIdf'):
                     display(pd.DataFrame(event.get('AIdf')).groupby(
                         "src").count()[['id']])
                 elif event.get('sources'):
                     print([k for k in event.get('sources').keys()])
             except Exception as exc:
-                print('run')
+                print('run exception')
                 print(exc)
 
         return self.state
@@ -1125,8 +1162,8 @@ if __name__ == "__main__":
                         help='Process articles before this date (YYYY-MM-DD HH:MM:SS format)')
     parser.add_argument('-b', '--browsers', type=int, default=4,
                         help='Number of browser instances to run in parallel (default: 4)')
-    parser.add_argument('-e', '--max-edits', type=int, default=2,
-                        help='Maximum number of summary rewrites (default: 2)')
+    parser.add_argument('-e', '--max-edits', type=int, default=1,
+                        help='Maximum number of summary rewrites')
     args = parser.parse_args()
 
     do_download = not args.nofetch
@@ -1136,5 +1173,8 @@ if __name__ == "__main__":
     log(f"Starting AInewsbot with do_download={do_download}, before_date='{before_date}', N_BROWSERS={N_BROWSERS}, MAX_EDITS={N_BROWSERS}")
 
     state, lg_agent, thread_id = initialize_agent(do_download, before_date)
+    log(f"thread_id: {thread_id}")
+    with open('thread_id.txt', 'w') as file:
+        file.write(thread_id)
     config = {"configurable": {"thread_id": thread_id}}
     state = lg_agent.run(state, config)

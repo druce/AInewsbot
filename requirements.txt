@@ -11,6 +11,7 @@ scikit-learn
 # ortools
 ipykernel
 selenium
+fake_useragent
 openai
 tiktoken
 python-dotenv
@@ -20,6 +21,7 @@ pygraphviz
 markdown
 umap-learn
 matplotlib
+ratelimit
 yapf
 # alpha-vantage
 newsapi-python
@@ -31,6 +33,7 @@ langchain-core
 # langchain-huggingface
 # langchain-nomic
 langchain-openai
+langchain-anthropic
 langchain-text-splitters
 langchainhub
 langgraph-checkpoint-sqlite

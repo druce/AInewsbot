@@ -5,10 +5,14 @@ import os
 # import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-
-from selenium import webdriver
+# from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver import Firefox, FirefoxOptions
+# from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.service import Service
+
+from fake_useragent import UserAgent
 
 # import undetected_chromedriver as uc
 # from selenium.webdriver.chrome.options import Options
@@ -16,18 +20,18 @@ from selenium.webdriver.support.ui import WebDriverWait
 # use firefox v. chrome b/c it updates less often, can disable updates
 # chrome is faster, can use undetected_chromedriver, but harder to manage versions and profiles, firefox is more stable
 # recommend importing a main profile from Chrome or other browser for cookies, passwords
-# looks less like a bot with more user cruft in the profile
-from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.service import Service
+# probably looks less like a bot with more user cruft in the profile
 
 # import bs4
 from bs4 import BeautifulSoup
 import requests
 from urllib.parse import urljoin, urlparse
 
-from ainb_const import DOWNLOAD_DIR, PAGES_DIR, SCREENSHOT_DIR, GECKODRIVER_PATH, FIREFOX_PROFILE_PATH, MINTITLELEN, sleeptime
+from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, SCREENSHOT_DIR, GECKODRIVER_PATH,
+                        FIREFOX_PROFILE_PATH, MINTITLELEN, sleeptime, BROWSERS)
 # CHROME_PROFILE_PATH, CHROME_PROFILE, CHROME_DRIVER_PATH,
 from ainb_utilities import log
+import asyncio
 
 # get a page title from html or tags if you have not-descriptive link titles like 'link'
 
@@ -109,56 +113,6 @@ def trimmed_href(link):
         return s
 
 
-def get_encoding(driver):
-    """
-    Retrieve the encoding of the current web page using the Selenium driver.
-
-    Args:
-        driver: The Selenium driver object.
-
-    Returns:
-        The encoding of the web page. If the encoding is not found, it defaults to utf-8.
-    """
-    # not used, just assumes utf-8
-
-    # Get the current web page source
-    # Retrieve the content-type meta tag from the driver of HTML meta charset tag or http-equiv tag
-    encoding = None
-    try:
-        # retrieve the encoding from the driver by executing javascript
-        encoding = driver.execute_script("return document.characterSet;")
-        if encoding:
-            return encoding
-    except Exception:
-        pass
-
-    # not sure why above would fail, but can also check page tags
-    try:
-        # retrieve the encoding from the meta charset tag
-        meta_tag = driver.find_element(By.XPATH, "//meta[@charset]")
-        encoding = meta_tag.get_attribute("charset")
-        if encoding:
-            return encoding
-    except Exception:
-        pass
-
-    try:
-        # retrieve the encoding from the meta http-equiv tag
-        meta_tag = driver.find_element(
-            By.XPATH, "//meta[@http-equiv='Content-Type']")
-        content_type = meta_tag.get_attribute("content")
-        # Typical format is "text/html; charset=UTF-8"
-        charset_start = content_type.find("charset=")
-        if charset_start != -1:
-            encoding = content_type[charset_start + 8:]
-        if encoding:
-            return encoding
-    except Exception:
-        pass
-
-    return "utf-8"
-
-
 def get_driver(geckodriver_path=GECKODRIVER_PATH, firefox_profile_path=FIREFOX_PROFILE_PATH):
     """
     Initializes a Selenium webdriver with the specified geckodriver and Firefox profile.
@@ -180,7 +134,14 @@ def get_driver(geckodriver_path=GECKODRIVER_PATH, firefox_profile_path=FIREFOX_P
     # options = uc.ChromeOptions()
     # options.add_argument(f'--user-data-dir={CHROME_PROFILE_PATH}')
     # options.add_argument(f'--profile-directory={CHROME_PROFILE}')
-    options = Options()
+
+    options = FirefoxOptions()
+    # options.add_argument("--headless")
+    options.set_preference("dom.webdriver.enabled", False)
+    options.set_preference("webgl.disabled", True)  # Or use realistic spoofing
+    ua = UserAgent()
+    options.set_preference("general.useragent.override", ua.random)
+
     options.profile = firefox_profile_path
     log("Initialized webdriver profile", "get_driver")
 
@@ -189,7 +150,7 @@ def get_driver(geckodriver_path=GECKODRIVER_PATH, firefox_profile_path=FIREFOX_P
     log("Initialized webdriver service", "get_driver")
 
     # Set up the Firefox driver
-    driver = webdriver.Firefox(service=service, options=options)
+    driver = Firefox(service=service, options=options)
     log("Initialized webdriver", "get_driver")
 
     # attempt to set window size for screenshot
@@ -292,7 +253,9 @@ def get_url(url, title, driver=None):
         #     title = uuid.uuid4()
 
         # check encoding, default utf-8
-        encoding = "utf-8"  # Default to UTF-8 if not specified
+        encoding = detect_charset(driver)
+        if not encoding:
+            encoding = "utf-8"  # Default to UTF-8 if not specified
         # Retrieve the content-type meta tag from the HTML
         # try:
         #     meta_tag = driver.find_element(
@@ -315,6 +278,49 @@ def get_url(url, title, driver=None):
     except Exception as exc:
         log(f"Error fetching {url}: {exc}")
         return None
+
+
+def detect_charset(driver):
+    """
+    Detect the charset/encoding of a webpage using multiple methods.
+
+    Args:
+        driver: Selenium WebDriver instance
+
+    Returns:
+        str: Detected charset (defaults to 'utf-8' if nothing is found)
+    """
+    # Method 1: Check Content-Type meta tag
+    try:
+        meta_content_type = driver.find_element(
+            By.XPATH, "//meta[@http-equiv='Content-Type']/@content")
+        if meta_content_type:
+            content_type = meta_content_type.get_attribute('content')
+            charset_match = re.search(r'charset=([\w-]+)', content_type)
+            if charset_match:
+                return charset_match.group(1)
+    except:
+        pass
+
+    # Method 2: Check charset meta tag
+    try:
+        meta_charset = driver.find_element(
+            By.XPATH, "//meta[@charset]")
+        if meta_charset:
+            return meta_charset.get_attribute('charset')
+    except:
+        pass
+
+    # Method 3: Check HTML5 charset in meta tag
+    try:
+        meta_charset = driver.find_element(
+            By.CSS_SELECTOR, 'meta[charset]')
+        if meta_charset:
+            return meta_charset.get_attribute('charset')
+    except:
+        pass
+
+    return None
 
 
 def get_file(sourcedict, driver=None):
@@ -342,7 +348,7 @@ def get_file(sourcedict, driver=None):
     click = sourcedict.get("click")
     initial_sleep = sourcedict.get("initial_sleep")
 
-    log(f"starting get_files {url}", f'get_files({title})')
+    log(f"starting get_file {url}", f'get_file({title})')
 
     # Open the page
     driver.get(url)
@@ -353,41 +359,32 @@ def get_file(sourcedict, driver=None):
     time.sleep(initial_sleep)  # Adjust the sleep time as necessary
 
     if click:
-        log(f"Attempting to click on {click}", f'get_files({title})')
+        log(f"Attempting to click on {click}", f'get_file({title})')
         button = driver.find_element(By.XPATH, click)
         if button:
             button.click()
-            log("Clicked", 'get_files')
+            log("Clicked", 'get_file')
 
     for _ in range(scroll):
         # scroll to bottom of infinite scrolling window
         driver.execute_script(
             "window.scrollTo(0, document.body.scrollHeight);")
         log("Loading additional infinite scroll items",
-            f'get_files({title})')
+            f'get_file({title})')
         time.sleep(sleeptime)  # wait for it to load additional items
+
+    # check encoding, default utf-8
+    encoding = detect_charset(driver)
+    if not encoding:
+        encoding = "utf-8"  # Default to UTF-8 if not specified
 
     # Get the HTML source of the page
     html_source = driver.page_source
 
-    # check encoding, default utf-8
-    encoding = "utf-8"  # Default to UTF-8 if not specified
-    # Retrieve the content-type meta tag from the HTML
-    try:
-        meta_tag = driver.find_element(
-            By.XPATH, "//meta[@http-equiv='Content-Type']")
-        content_type = meta_tag.get_attribute("content")
-        # Typical format is "text/html; charset=UTF-8"
-        charset_start = content_type.find("charset=")
-        if charset_start != -1:
-            encoding = content_type[charset_start + 8:]
-    except Exception as err:
-        log(str(err))
-
     # Save the HTML to a local file
     datestr = datetime.now().strftime("%m_%d_%Y %I_%M_%S %p")
     outfile = f'{title} ({datestr}).html'
-    log(f"Saving {outfile} as {encoding}", f'get_files({title})')
+    log(f"Saving {outfile} as {encoding}", f'get_file({title})')
     destpath = DOWNLOAD_DIR + "/" + outfile
     with open(destpath, 'w', encoding=encoding) as file:
         file.write(html_source)
@@ -532,7 +529,7 @@ def process_source_queue_factory(q):
     Args:
         q (Queue): Multiprocessing queue containing the source dictionaries to process.
     """
-    def process_queue():
+    def process_queue(driver=None):
         """
         Opens a browser using Selenium driver, processes the queue until it is empty,
         saves the file names, and then closes the browser.
@@ -541,7 +538,8 @@ def process_source_queue_factory(q):
             A list of tuples containing the sourcename and sourcefile for each processed item.
         """
         # launch browser via selenium driver
-        driver = get_driver()
+        if not driver:
+            driver = get_driver()
         saved_pages = []
         while not q.empty():
             sourcedict = q.get()
@@ -549,11 +547,26 @@ def process_source_queue_factory(q):
             log(f'Processing {sourcename}')
             sourcefile = get_file(sourcedict, driver)
             saved_pages.append((sourcename, sourcefile))
-        # Close the browser
-        log("Quit webdriver")
-        driver.quit()
+        # Close the browser - don't quit, keep it open for more work
+        # log("Quit webdriver")
+        # driver.quit()
         return saved_pages
     return process_queue
+
+
+async def get_driver_async():
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, get_driver)
+
+
+async def get_browsers(n):
+    global BROWSERS
+    BROWSERS = await asyncio.gather(*[get_driver_async() for _ in range(n)])
+    return BROWSERS
+    # Example usage
+    if __name__ == "__main__":
+        NUM_BROWSERS = 5  # Set the number of browsers you want to initialize
+        BROWSERS = asyncio.run(get_browsers(NUM_BROWSERS))
 
 
 def process_url_queue_factory(q):
@@ -562,7 +575,7 @@ def process_url_queue_factory(q):
     Args:
         q (Queue): Multiprocessing queue containing the source dictionaries to process.
     """
-    def process_queue():
+    def process_queue(driver=None):
         """
         Opens a browser using Selenium driver, processes the queue until it is empty,
         saves the file names, and then closes the browser.
@@ -571,7 +584,8 @@ def process_url_queue_factory(q):
             A list of tuples containing the sourcename and sourcefile for each processed item.
         """
         # launch browser via selenium driver
-        driver = get_driver()
+        if not driver:
+            driver = get_driver()
         saved_pages = []
         while not q.empty():
             i, url, title = q.get()

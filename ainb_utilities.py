@@ -19,20 +19,6 @@ from ainb_const import SQLITE_DB
 
 # from ortools.constraint_solver import routing_enums_pb2
 # from ortools.constraint_solver import pywrapcp
-import logging
-import os
-import unicodedata
-from datetime import datetime
-import numpy as np
-import pandas as pd
-import sqlite3
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from scipy.spatial.distance import cdist, pdist
-from scipy.cluster.hierarchy import linkage, leaves_list
-from scipy.optimize import linear_sum_assignment
-from ainb_const import SQLITE_DB
 
 ############################################################################################################
 # utility functions
