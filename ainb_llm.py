@@ -62,8 +62,6 @@ class Stories(BaseModel):
     """Stories class for structured output filtering of a list of Story"""
     items: List[Story] = Field(description="List of Story")
 
-# TODO: shouldn't really have to define a second class as just a list of the first
-# but kind of have to do this to get a list schema to send to LangChain
 # could possibly do this within the functions that take the type as argument
 # class ItemList(BaseModel):
 #     __root__: List[Story] = Field(description="List of Story")

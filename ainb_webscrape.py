@@ -30,7 +30,7 @@ from bs4 import BeautifulSoup
 import requests
 
 from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, SCREENSHOT_DIR, GECKODRIVER_PATH,
-                        FIREFOX_PROFILE_PATH, MINTITLELEN, sleeptime)
+                        FIREFOX_PROFILE_PATH, MINTITLELEN, SLEEPTIME)
 # CHROME_PROFILE_PATH, CHROME_PROFILE, CHROME_DRIVER_PATH,
 from ainb_utilities import log
 import asyncio
@@ -226,7 +226,7 @@ def get_url(url, title, driver=None):
         driver.get(url)
 
         # Wait for the page to load
-        WebDriverWait(driver, sleeptime).until(
+        WebDriverWait(driver, SLEEPTIME).until(
             lambda d: d.execute_script('return document.readyState') == 'complete')
 
         # Set viewport size using JavaScript
@@ -358,7 +358,7 @@ def get_file(sourcedict, driver=None):
 
     # Wait for the page to load
     if not initial_sleep:
-        initial_sleep = sleeptime
+        initial_sleep = SLEEPTIME
     time.sleep(initial_sleep)  # Adjust the sleep time as necessary
 
     if click:
@@ -374,7 +374,7 @@ def get_file(sourcedict, driver=None):
             "window.scrollTo(0, document.body.scrollHeight);")
         log("Loading additional infinite scroll items",
             f'get_file({title})')
-        time.sleep(sleeptime)  # wait for it to load additional items
+        time.sleep(SLEEPTIME)  # wait for it to load additional items
 
     # check encoding, default utf-8
     encoding = detect_charset(driver)

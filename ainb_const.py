@@ -24,7 +24,7 @@ FIREFOX_PROFILE_PATH = '/Users/drucev/Library/Application Support/Firefox/Profil
 CHROME_PROFILE_PATH = '/Users/drucev/Library/Application Support/Google/Chrome'
 CHROME_PROFILE = 'Profile 7'
 CHROME_DRIVER_PATH = '/Users/drucev/Library/Application Support/undetected_chromedriver/undetected_chromedriver'
-sleeptime = 10
+SLEEPTIME = 10
 NUM_BROWSERS = 4
 BROWSERS = []
 
