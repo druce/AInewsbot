@@ -146,6 +146,7 @@ newscatcher_sources = ['247wallst.com',
                        'yahoo.com',
                        'zdnet.com']
 
+BROWSERS = []
 # print(f"Python            {sys.version}")
 # print(f"LangChain         {langchain.__version__}")
 # print(f"OpenAI            {openai.__version__}")
@@ -328,7 +329,7 @@ def fn_extract_urls(state: AgentState) -> AgentState:
     log(f"Saved {len(all_urls)} links")
 
     # make a pandas dataframe of all the links found
-    AI_df = (
+    aidf = (
         pd.DataFrame(all_urls)
         .groupby("url")
         .first()
@@ -338,7 +339,7 @@ def fn_extract_urls(state: AgentState) -> AgentState:
         .reset_index(drop=False)
         .rename(columns={"index": "id"})
     )
-    state['AIdf'] = AI_df.to_dict(orient='records')
+    state['AIdf'] = aidf.to_dict(orient='records')
 
     return state
 
@@ -399,14 +400,14 @@ def fn_extract_newscatcher(state: AgentState) -> AgentState:
     newscatcher_df['src'] = 'Newscatcher'
     newscatcher_df = newscatcher_df.rename(columns={'link': 'url'})
 #     display(newscatcher_df.head())
-    AI_df = pd.DataFrame(state['AIdf'])
+    aidf = pd.DataFrame(state['AIdf'])
 #     display(AIdf.head())
 
-    max_id = AI_df['id'].max()
+    max_id = aidf['id'].max()
     # add id column to newscatcher_df
     newscatcher_df['id'] = range(max_id + 1, max_id + 1 + len(newscatcher_df))
-    AI_df = pd.concat([AI_df, newscatcher_df], ignore_index=True)
-    state['AIdf'] = AI_df.to_dict(orient='records')
+    aidf = pd.concat([aidf, newscatcher_df], ignore_index=True)
+    state['AIdf'] = aidf.to_dict(orient='records')
     return state
 
 
@@ -417,7 +418,7 @@ def fn_extract_newsapi(state: AgentState) -> AgentState:
     from newsapi import NewsApiClient
     """
     NEWSAPI_API_KEY = os.environ['NEWSAPI_API_KEY']
-    AI_df = pd.DataFrame(state['AIdf'])
+    aidf = pd.DataFrame(state['AIdf'])
 
     pageSize = 100
     q = 'artificial intelligence'
@@ -459,11 +460,11 @@ def fn_extract_newsapi(state: AgentState) -> AgentState:
 
     newsapi_df = newsapi_df[['title', 'url']]
     newsapi_df['src'] = 'NewsAPI'
-    max_id = AI_df['id'].max()
+    max_id = aidf['id'].max()
     # add id column to newscatcher_df
     newsapi_df['id'] = range(max_id + 1, max_id + 1 + len(newsapi_df))
-    AI_df = pd.concat([AI_df, newsapi_df], ignore_index=True)
-    state['AIdf'] = AI_df.to_dict(orient='records')
+    aidf = pd.concat([aidf, newsapi_df], ignore_index=True)
+    state['AIdf'] = aidf.to_dict(orient='records')
     return state
 
 
@@ -481,38 +482,38 @@ def fn_filter_urls(state: AgentState) -> AgentState:
 
     """
     # filter to URL not previously seen
-    AI_df = pd.DataFrame(state['AIdf'])
+    aidf = pd.DataFrame(state['AIdf'])
 
-    AI_df = filter_unseen_urls_db(AI_df, before_date=state.get("before_date"))
+    aidf = filter_unseen_urls_db(aidf, before_date=state.get("before_date"))
 
-    if len(AI_df) == 0:
+    if len(aidf) == 0:
         log("No new URLs, returning")
         return state
 
     # dedupe identical urls
-    AI_df = AI_df.sort_values("src") \
+    aidf = aidf.sort_values("src") \
         .groupby("url") \
         .first() \
         .reset_index(drop=False) \
         .drop(columns=['id']) \
         .reset_index() \
         .rename(columns={'index': 'id'})
-    log(f"Found {len(AI_df)} unique new headlines")
+    log(f"Found {len(aidf)} unique new headlines")
 
     # # dedupe identical headlines
     # # filter similar titles differing by type of quote or something
-    AI_df['title'] = AI_df['title'].apply(unicode_to_ascii)
-    AI_df['title_clean'] = AI_df['title'].map(lambda s: " ".join(s.split()))
-    AI_df = AI_df.sort_values("src") \
+    aidf['title'] = aidf['title'].apply(unicode_to_ascii)
+    aidf['title_clean'] = aidf['title'].map(lambda s: " ".join(s.split()))
+    aidf = aidf.sort_values("src") \
         .groupby("title_clean") \
         .first() \
         .reset_index(drop=True) \
         .drop(columns=['id']) \
         .reset_index() \
         .rename(columns={'index': 'id'})
-    log(f"Found {len(AI_df)} unique new headlines")
+    log(f"Found {len(aidf)} unique new headlines")
     # filter AI-related headlines using a prompt
-    pagelist = paginate_df(AI_df[["id", "title"]])
+    pagelist = paginate_df(aidf[["id", "title"]])
     results = asyncio.run(process_dataframes(
         dataframes=pagelist,
         input_prompt=FILTER_PROMPT,
@@ -526,7 +527,7 @@ def fn_filter_urls(state: AgentState) -> AgentState:
         for story in results
     ])
     try:  # for idempotency
-        AI_df = AI_df.drop(columns=['isAI'])
+        aidf = aidf.drop(columns=['isAI'])
     except Exception as exc:
         pass
         # error expected, no need to print
@@ -534,30 +535,30 @@ def fn_filter_urls(state: AgentState) -> AgentState:
         # print(exc)
 
     # merge returned df with isAI column into original df on id column
-    AI_df = pd.merge(AI_df, filter_df, on="id", how="outer")
-    log(AI_df.columns)
+    aidf = pd.merge(aidf, filter_df, on="id", how="outer")
+    log(aidf.columns)
     # set hostname based on actualurl
     # ideally resolve redirects but Google News blocks
-    AI_df['actual_url'] = AI_df['url']
-    AI_df['hostname'] = AI_df['actual_url'].apply(
+    aidf['actual_url'] = aidf['url']
+    aidf['hostname'] = aidf['actual_url'].apply(
         lambda url: urlparse(url).netloc)
 
     # update SQLite database with all seen URLs (we are doing this using url and ignoring redirects)
-    log(f"Inserting {len(AI_df)} URLs into {SQLITE_DB}")
+    log(f"Inserting {len(aidf)} URLs into {SQLITE_DB}")
     conn = sqlite3.connect(SQLITE_DB)
     cursor = conn.cursor()
-    for row in AI_df.itertuples():
+    for row in aidf.itertuples():
         insert_article(conn, cursor, row.src, row.hostname, row.title,
                        row.url, row.actual_url, row.isAI, datetime.now().date())
 
     # keep headlines that are related to AI
-    AI_df = AI_df.loc[AI_df["isAI"] == 1] \
+    aidf = aidf.loc[aidf["isAI"] == 1] \
         .reset_index(drop=True)  \
         .reset_index()  \
         .drop(columns=["id"])  \
         .rename(columns={'index': 'id'})
 
-    log(f"Found {len(AI_df)} AI headlines")
+    log(f"Found {len(aidf)} AI headlines")
 
     # update actual URLs for Google News redirects
     # I think Google changed something so this no longer works, instead of a 301 redirct
@@ -571,14 +572,14 @@ def fn_filter_urls(state: AgentState) -> AgentState:
     conn.close()
 
     # get clean site_name
-    AI_df['site_name'] = AI_df['hostname'].apply(
+    aidf['site_name'] = aidf['hostname'].apply(
         lambda hostname: sites_dict.get(hostname, hostname))
 
     # if any missing clean site names, populate them using OpenAI
-    missing_site_names = len(AI_df.loc[AI_df['site_name'] == ""])
+    missing_site_names = len(aidf.loc[aidf['site_name'] == ""])
     if missing_site_names:
         log(f"Asking OpenAI for {missing_site_names} missing site names")
-        responses = asyncio.run(fetch_missing_site_names(AI_df))
+        responses = asyncio.run(fetch_missing_site_names(aidf))
         # update site_dict from responses
         new_urls = []
         for r in responses:
@@ -594,17 +595,17 @@ def fn_filter_urls(state: AgentState) -> AgentState:
             conn.execute(sqlstr, (url, sites_dict[url]))
             conn.commit()
         # reapply to AIdf with updated sites
-        AI_df['site_name'] = AI_df['hostname'].apply(
+        aidf['site_name'] = aidf['hostname'].apply(
             lambda hostname: sites_dict.get(hostname, hostname))
     else:
         log("No missing site names")
 
     # drop banned slop sites
 
-    AI_df = AI_df.loc[~AI_df["hostname"].str.lower().isin(HOSTNAME_SKIPLIST)]
-    AI_df = AI_df.loc[~AI_df["site_name"].str.lower().isin(SITE_NAME_SKIPLIST)]
+    aidf = aidf.loc[~aidf["hostname"].str.lower().isin(HOSTNAME_SKIPLIST)]
+    aidf = aidf.loc[~aidf["site_name"].str.lower().isin(SITE_NAME_SKIPLIST)]
 
-    state["AIdf"] = AI_df.to_dict(orient='records')
+    state["AIdf"] = aidf.to_dict(orient='records')
     return state
 
 
@@ -638,8 +639,8 @@ async def fn_topic_analysis(state: AgentState) -> AgentState:
     # could put summaries into vector store and retrieve stories by topic. but then you will have to deal
     # with duplicates across categories, ask the prompt to dedupe
 
-    AI_df = pd.DataFrame(state['AIdf'])
-    pages = paginate_df(AI_df[["id", "summary"]])
+    aidf = pd.DataFrame(state['AIdf'])
+    pages = paginate_df(aidf[["id", "summary"]])
 
     # apply topic extraction prompt to AI headlines
     log(f"start free-form topic extraction using {MODEL}")
@@ -685,13 +686,13 @@ async def fn_topic_analysis(state: AgentState) -> AgentState:
         lambda row: ", ".join(row.topics), axis=1)
 
     try:  # for idempotency
-        AI_df = AI_df.drop(columns=['topic_str', 'title_topic_str'])
+        aidf = aidf.drop(columns=['topic_str', 'title_topic_str'])
     except Exception as exc:
         pass
 
-    AI_df = pd.merge(
-        AI_df, topics_df[["id", "topic_str"]], on="id", how="outer")
-    AI_df['title_topic_str'] = AI_df.apply(
+    aidf = pd.merge(
+        aidf, topics_df[["id", "topic_str"]], on="id", how="outer")
+    aidf['title_topic_str'] = aidf.apply(
         lambda row: f'{row.title} (Topics: {row.topic_str})', axis=1)
     log("End topic analysis")
 
@@ -699,8 +700,8 @@ async def fn_topic_analysis(state: AgentState) -> AgentState:
     #     return state
 
     # redo bullets with topics
-    AI_df["bullet"] = AI_df.apply(make_bullet, axis=1)
-    state["AIdf"] = AI_df.to_dict(orient='records')
+    aidf["bullet"] = aidf.apply(make_bullet, axis=1)
+    state["AIdf"] = aidf.to_dict(orient='records')
     return state
 
 
@@ -722,12 +723,12 @@ def fn_topic_clusters(state: AgentState) -> AgentState:
     AgentState: The updated state of the agent.
 
     """
-    AI_df = pd.DataFrame(state['AIdf'])
+    aidf = pd.DataFrame(state['AIdf'])
 
-    log(f"Fetching embeddings for {len(AI_df)} headlines")
+    log(f"Fetching embeddings for {len(aidf)} headlines")
     embedding_model = 'text-embedding-3-large'
     client = OpenAI()
-    response = client.embeddings.create(input=AI_df['title_topic_str'].tolist(),
+    response = client.embeddings.create(input=aidf['title_topic_str'].tolist(),
                                         model=embedding_model)
     embedding_df = pd.DataFrame(
         [e.model_dump()['embedding'] for e in response.data])
@@ -735,7 +736,7 @@ def fn_topic_clusters(state: AgentState) -> AgentState:
     # greedy traveling salesman sort
     log("Sort with nearest_neighbor_sort sort")
     sorted_indices = nearest_neighbor_sort(embedding_df)
-    AI_df['sort_order'] = sorted_indices
+    aidf['sort_order'] = sorted_indices
 
     # do dimensionality reduction on embedding_df and cluster analysis
     log("Load umap dimensionality reduction model")
@@ -747,12 +748,12 @@ def fn_topic_clusters(state: AgentState) -> AgentState:
     log("Cluster with DBSCAN")
     # Adjust eps and min_samples as needed
     dbscan = DBSCAN(eps=0.4, min_samples=3)
-    AI_df['cluster'] = dbscan.fit_predict(reduced_data)
-    log(f"Found {len(AI_df['cluster'].unique())-1} clusters")
-    AI_df.loc[AI_df['cluster'] == -1, 'cluster'] = 999
+    aidf['cluster'] = dbscan.fit_predict(reduced_data)
+    log(f"Found {len(aidf['cluster'].unique())-1} clusters")
+    aidf.loc[aidf['cluster'] == -1, 'cluster'] = 999
 
     # sort first by clusters found by DBSCAN, then by semantic ordering
-    AI_df = AI_df.sort_values(['cluster', 'sort_order']) \
+    aidf = aidf.sort_values(['cluster', 'sort_order']) \
         .reset_index(drop=True) \
         .reset_index() \
         .drop(columns=["id"]) \
@@ -763,8 +764,8 @@ def fn_topic_clusters(state: AgentState) -> AgentState:
     with pd.option_context('display.max_rows', None, 'display.max_colwidth', None):
         for i in range(30):
             try:
-                tmpdf = AI_df.loc[AI_df['cluster'] ==
-                                  i][["title_topic_str"]]
+                tmpdf = aidf.loc[aidf['cluster'] ==
+                                 i][["title_topic_str"]]
                 if len(tmpdf) == 0:
                     break
                 display(tmpdf)
@@ -778,15 +779,15 @@ def fn_topic_clusters(state: AgentState) -> AgentState:
                 state["cluster_topics"].append(cluster_topic)
                 log(f"I dub this cluster: {cluster_topic}")
                 # should use topic_index = len(state["cluster_topics"]-1
-                AI_df["cluster_name"] = AI_df['cluster'].apply(lambda i: state["cluster_topics"][i]
-                                                               if i < len(state["cluster_topics"])
-                                                               else "")
+                aidf["cluster_name"] = aidf['cluster'].apply(lambda i: state["cluster_topics"][i]
+                                                             if i < len(state["cluster_topics"])
+                                                             else "")
 
             except Exception as exc:
                 log(exc)
 
     # send mail
-    markdown_list = [f"{row.id+1}. {row.bullet}" for row in AI_df.itertuples()]
+    markdown_list = [f"{row.id+1}. {row.bullet}" for row in aidf.itertuples()]
     state["bullets"] = markdown_list
     markdown_str = "\n\n".join(markdown_list)
     # save bullets
@@ -801,11 +802,11 @@ def fn_topic_clusters(state: AgentState) -> AgentState:
     send_gmail(subject, html_str)
 
     # same with a delimiter and no ID
-    bullet_str = "\n~~~\n".join(AI_df['bullet'])
+    bullet_str = "\n~~~\n".join(aidf['bullet'])
     with open('bullet_str.txt', 'w') as f:
         f.write(bullet_str)
 
-    state["AIdf"] = AI_df.to_dict(orient='records')
+    state["AIdf"] = aidf.to_dict(orient='records')
     log(state["cluster_topics"])
     return state
 
@@ -833,11 +834,11 @@ def fn_download_pages(state: AgentState) -> AgentState:
         AgentState: The updated state of the agent with the downloaded pages' pathnames stored in the `state["AIdf"]` DataFrame.
     """
     log("Queuing URLs for scraping")
-    AI_df = pd.DataFrame(state['AIdf'])
+    aidf = pd.DataFrame(state['AIdf'])
     queue = multiprocessing.Queue()
 
     count = 0
-    for row in AI_df.itertuples():
+    for row in aidf.itertuples():
         #         if row.cluster < 999:
         queue.put((row.id, row.url, row.title))
         count += 1
@@ -865,16 +866,16 @@ def fn_download_pages(state: AgentState) -> AgentState:
         pages_df.columns = ['id', 'url', 'title', 'path']
 
         try:  # for idempotency
-            AI_df = AI_df.drop(columns=['path'])
+            aidf = aidf.drop(columns=['path'])
         except Exception as exc:
             pass
             # error expected, no need to print
             # print("fn_download_pages")
             # print(exc)
-        AI_df = pd.merge(AI_df, pages_df[["id", "path"]], on='id', how="inner")
-    state["AIdf"] = AI_df.to_dict(orient='records')
+        aidf = pd.merge(aidf, pages_df[["id", "path"]], on='id', how="inner")
+    state["AIdf"] = aidf.to_dict(orient='records')
     # Pickle AIdf to AIdf.pkl
-    AI_df.to_pickle("AIdf.pkl")
+    aidf.to_pickle("AIdf.pkl")
     return state
 
 
@@ -890,15 +891,15 @@ def fn_summarize_pages(state: AgentState) -> AgentState:
 
     """
     log("Starting summarize")
-    AI_df = pd.DataFrame(state['AIdf'])
-    responses = asyncio.run(fetch_all_summaries(AI_df))
+    aidf = pd.DataFrame(state['AIdf'])
+    responses = asyncio.run(fetch_all_summaries(aidf))
     log(f"Received {len(responses)} summaries")
     response_dict = {}
     for response, i in responses:
         response_dict[i] = response
 
-    AI_df["summary"] = AI_df["id"].apply(lambda rowid: response_dict[rowid])
-    state['AIdf'] = AI_df.to_dict(orient='records')
+    aidf["summary"] = aidf["id"].apply(lambda rowid: response_dict[rowid])
+    state['AIdf'] = aidf.to_dict(orient='records')
 
     return state
 
@@ -909,13 +910,13 @@ def fn_propose_cats(state: AgentState) -> AgentState:
     """
     log(f"Proposing categories using {HIGHCOST_MODEL}")
 
-    AI_df = pd.DataFrame(state["AIdf"])
+    aidf = pd.DataFrame(state["AIdf"])
     # state["cluster_topics"] should already have cluster names
     state["topics_str"] = '\n'.join(state['cluster_topics'])
     log(f"Initial cluster topics: \n{state['topics_str']}")
 
     # first extract free-form topics and add to cluster topics
-    pages = paginate_df(AI_df[["bullet"]])
+    pages = paginate_df(aidf[["bullet"]])
     response = asyncio.run(process_dataframes(
         pages,
         TOP_CATEGORIES_PROMPT,
@@ -957,8 +958,8 @@ def fn_compose_summary(state: AgentState) -> AgentState:
     """Compose summary using FINAL_SUMMARY_PROMPT"""
 
     log(f"Composing summary using {HIGHCOST_MODEL}")
-    AI_df = pd.DataFrame(state["AIdf"])
-    bullet_str = "\n~~~\n".join(AI_df['bullet'])
+    aidf = pd.DataFrame(state["AIdf"])
+    bullet_str = "\n~~~\n".join(aidf['bullet'])
     cat_str = state['topics_str']
 
     # check that actual prompt matches the template
