@@ -1,7 +1,7 @@
+# main AInewsbot agent and top level imports
 import os
 
 from datetime import datetime, timedelta
-import yaml
 # import dotenv
 # import subprocess
 import json
@@ -13,6 +13,8 @@ import argparse
 from typing import TypedDict
 from collections import Counter, defaultdict
 
+import yaml
+
 import sqlite3
 import requests
 import asyncio
@@ -21,7 +23,7 @@ import multiprocessing
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from urllib.parse import urlparse  # , urljoin
-from IPython.display import display  # , Audio, Markdown
+from IPython.display import display, Markdown  # , Audio
 
 import pandas as pd
 
@@ -44,7 +46,7 @@ import markdown
 
 from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
                       fetch_missing_site_names, filter_page_async,
-                      get_all_canonical_topic_results, clean_topics, topic_rewrite,
+                      get_all_canonical_topic_results, clean_topics,
                       Stories, TopicSpecList, TopicHeadline, TopicCategoryList
                       )
 
@@ -400,6 +402,62 @@ def fn_extract_newscatcher(state: AgentState) -> AgentState:
     return state
 
 
+def fn_extract_newsapi(state: AgentState) -> AgentState:
+
+    # get AI news via newsapi
+    # https://newsapi.org/docs/get-started
+    # from newsapi import NewsApiClient
+    NEWSAPI_API_KEY = os.environ['NEWSAPI_API_KEY']
+    AIdf = pd.DataFrame(state['AIdf'])
+
+    pageSize = 100
+    q = 'artificial intelligence'
+    date_24h_ago = datetime.now() - timedelta(hours=24)
+    formatted_date = date_24h_ago.strftime("%Y-%m-%dT%H:%M:%S")
+    log(f"Fetching top {pageSize} stories matching {q} since {formatted_date} from NewsAPI")
+
+    baseurl = 'https://newsapi.org/v2/everything'
+
+    # Define search parameters
+    params = {
+        'q': q,
+        'from': formatted_date,
+        'sortBy': 'relevancy',
+        'apiKey': NEWSAPI_API_KEY,
+        'pageSize': 100
+    }
+
+    # Make API call with headers and params
+    response = requests.get(baseurl, params=params)
+    if response.status_code != 200:
+        print('ERROR: API call failed.')
+        print(results)
+
+    data = response.json()
+    newsapi_df = pd.DataFrame(data['articles'])
+
+    # only 1st page is supported on free account
+    # n_articles = data['totalResults']
+    # n_additional_pages = n_articles // 100
+    # for i in range(n_additional_pages):
+    #     page = i+2  # start at page 2
+    #     url = f'https://newsapi.org/v2/everything?q=artificial%20intelligence&from=2025-02-16&sortBy=popularity&apiKey={NEWSAPI_API_KEY}&pageSize=100&page={page}'
+    #     print(url)
+    #     r = requests.get(url)
+    #     data = r.json()
+    #     tmpdf = pd.DataFrame(data['articles'])
+    #     df = pd.concat([df, tmpdf], axis=1).reset_index(drop=True)
+
+    newsapi_df = newsapi_df[['title', 'url']]
+    newsapi_df['src'] = 'NewsAPI'
+    max_id = AIdf['id'].max()
+    # add id column to newscatcher_df
+    newsapi_df['id'] = range(max_id + 1, max_id + 1 + len(newsapi_df))
+    AIdf = pd.concat([AIdf, newsapi_df], ignore_index=True)
+    state['AIdf'] = AIdf.to_dict(orient='records')
+    return state
+
+
 def fn_filter_urls(state: AgentState) -> AgentState:
     """
     Filters the URLs in state["AIdf"] to include only those that have not been previously seen,
@@ -549,7 +607,8 @@ def make_bullet(row):
     actual_url = row.actual_url if hasattr(row, "actual_url") else ""
     # bullet = "\n\n" + row.bullet if hasattr(row, "bullet") else ""
     summary = "\n\n" + str(row.summary) if hasattr(row, "summary") else ""
-    topic_str = "\n\n" + row.topic_str if hasattr(row, "topic_str") else ""
+    topic_str = "\n\nTopics: " + \
+        str(row.topic_str) if hasattr(row, "topic_str") else ""
 
     return f"[{title} - {site_name}]({actual_url}){topic_str}{summary}\n\n"
 
@@ -599,7 +658,6 @@ async def afn_topic_analysis(state: AgentState) -> AgentState:
     log(f"Starting assigned topic extraction using {LOWCOST_MODEL}")
     assigned_topics = asyncio.run(
         get_all_canonical_topic_results(pages, lcategories))
-
     ctr_dict = defaultdict(list)
 
     for (topic, relevant_list) in assigned_topics:
@@ -890,7 +948,7 @@ def fn_compose_summary(state: AgentState) -> AgentState:
     cat_str = state['topics_str']
 
     # check that actual prompt matches the template
-    print(FINAL_SUMMARY_PROMPT.format(cat_str=cat_str, bullet_str=bullet_str))
+    # print(FINAL_SUMMARY_PROMPT.format(cat_str=cat_str, bullet_str=bullet_str))
 
     # prompt_template = ChatPromptTemplate.from_template(FINAL_SUMMARY_PROMPT)
     # parser = StrOutputParser()
@@ -998,38 +1056,40 @@ class Agent:
         graph_builder.add_node("download_sources", self.download_sources)
         graph_builder.add_node("extract_web_urls", self.extract_web_urls)
         graph_builder.add_node("verify_download", self.verify_download)
-        graph_builder.add_node("extract_newscatcher_urls",
-                               self.extract_newscatcher_urls)
+        graph_builder.add_node("extract_newsapi_urls",
+                               self.extract_newsapi_urls)
+        # graph_builder.add_node("extract_newscatcher_urls",
+        #                        self.extract_newscatcher_urls)
         graph_builder.add_node("filter_urls", self.filter_urls)
         graph_builder.add_node("topic_analysis", self.topic_analysis)
         graph_builder.add_node("topic_clusters", self.topic_clusters)
         graph_builder.add_node("download_pages", self.download_pages)
         graph_builder.add_node("summarize_pages", self.summarize_pages)
-        # graph_builder.add_node("propose_topics", self.propose_topics)
-        # graph_builder.add_node("compose_summary", self.compose_summary)
-        # graph_builder.add_node("rewrite_summary", self.rewrite_summary)
-        # graph_builder.add_node("send_mail", self.send_mail)
+        graph_builder.add_node("propose_topics", self.propose_topics)
+        graph_builder.add_node("compose_summary", self.compose_summary)
+        graph_builder.add_node("rewrite_summary", self.rewrite_summary)
+        graph_builder.add_node("send_mail", self.send_mail)
 
         graph_builder.add_edge(START, "initialize")
         graph_builder.add_edge("initialize", "download_sources")
         graph_builder.add_edge("download_sources", "extract_web_urls")
         graph_builder.add_edge("extract_web_urls", "verify_download")
-        graph_builder.add_edge("verify_download", "extract_newscatcher_urls")
-        graph_builder.add_edge("extract_newscatcher_urls", "filter_urls")
-        graph_builder.add_edge("filter_urls", "topic_analysis")
-        graph_builder.add_edge("topic_analysis", "topic_clusters")
-        graph_builder.add_edge("topic_clusters", "download_pages")
+        graph_builder.add_edge("verify_download", "extract_newsapi_urls")
+        graph_builder.add_edge("extract_newsapi_urls", "filter_urls")
+        # graph_builder.add_edge("extract_newscatcher_urls", "filter_urls")
+        graph_builder.add_edge("filter_urls", "download_pages")
         graph_builder.add_edge("download_pages", "summarize_pages")
-        # graph_builder.add_edge("summarize_pages", "propose_topics")
-        # graph_builder.add_edge("propose_topics", "compose_summary")
-        # graph_builder.add_edge("compose_summary", "rewrite_summary")
-        # graph_builder.add_conditional_edges("rewrite_summary",
-        #                                     self.is_revision_complete,
-        #                                     {"incomplete": "rewrite_summary",
-        #                                      "complete": "send_mail",
-        #                                      })
-        # graph_builder.add_edge("send_mail", END)
-        graph_builder.add_edge("summarize_pages", END)
+        graph_builder.add_edge("summarize_pages", "topic_analysis")
+        graph_builder.add_edge("topic_analysis", "topic_clusters")
+        graph_builder.add_edge("topic_clusters", "propose_topics")
+        graph_builder.add_edge("propose_topics", "compose_summary")
+        graph_builder.add_edge("compose_summary", "rewrite_summary")
+        graph_builder.add_conditional_edges("rewrite_summary",
+                                            self.is_revision_complete,
+                                            {"incomplete": "rewrite_summary",
+                                             "complete": "send_mail",
+                                             })
+        graph_builder.add_edge("send_mail", END)
 
         # human in the loop should check web pages downloaded ok, and edit proposed categories
         # self.conn = sqlite3.connect('lg_checkpointer.db')
@@ -1060,6 +1120,13 @@ class Agent:
             self.state = fn_extract_newscatcher(state)
         except KeyError:
             log("Newscatcher download failed")
+        return self.state
+
+    def extract_newsapi_urls(self, state: AgentState) -> AgentState:
+        try:
+            self.state = fn_extract_newsapi(state)
+        except KeyError:
+            log("NewsAPI download failed")
         return self.state
 
     def filter_urls(self, state: AgentState) -> AgentState:
@@ -1108,11 +1175,11 @@ class Agent:
             try:
                 if event.get('summary'):
                     print('summary created')
-                    display(event.get('summary').replace("$", "\\\\$"))
+                    display(Markdown(event.get('summary').replace("$", "\\\\$")))
                 elif event.get('bullets'):
                     print('bullets created')
-                    display("\n\n".join(
-                        event.get('bullets')).replace("$", "\\\\$"))
+                    display(Markdown("\n\n".join(
+                        event.get('bullets')).replace("$", "\\\\$")))
                 elif event.get('cluster_topics'):
                     print('cluster topics created')
                     display("\n\n".join(event.get('cluster_topics')))

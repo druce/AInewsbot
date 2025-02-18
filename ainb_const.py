@@ -1,5 +1,6 @@
-import dotenv
+# Description: Constants, including configs and prompts for AInewsbot project
 import os
+import dotenv
 dotenv.load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
@@ -9,6 +10,10 @@ SCREENSHOT_DIR = 'screenshots'
 
 if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
+if not os.path.exists(PAGES_DIR):
+    os.makedirs(PAGES_DIR)
+if not os.path.exists(SCREENSHOT_DIR):
+    os.makedirs(SCREENSHOT_DIR)
 
 # Path to geckodriver
 GECKODRIVER_PATH = '/Users/drucev/webdrivers/geckodriver'
@@ -442,13 +447,13 @@ The summary should be:
 	•	Crisp
 	•	Punchy
 	•	Lively
- 	•	Entertaining
 
 Structure the summary with snappy, funny, punny thematic section titles that capture
 major trends in the news. Each section should contain a series of bullet points,
-each covering a key development with a short, compelling description. Embed hyperlinks
-to the original sources within the bullet points. Aim for a tone that entertains and
-offers facts and also points out deeper implications and connections.
+each covering a key development with a short, compelling description. Bullet points
+should be engaging and informative, providing a clear and concise overview of the facts
+in a neutral tone (in contrast to entertaining titles), and pointing out deeper implications
+and connections. Embed hyperlinks to the original sources within the bullet points.
 
 ASA Input Item Format Template:
 
@@ -461,8 +466,19 @@ Topics: s1-topic1, s1-topic2, s1-topic3
 - s1-bullet-point-3
 
 
-Example ASA Input Item:
+Example ASA Input Items:
 
+[Lonely men are creating AI girlfriends  and taking their violent anger out on them - New York Post](https://nypost.com/2025/02/16/lifestyle/lonely-men-are-creating-ai-girlfriends-and-taking-their-violent-anger-out-on-them/)
+
+Topics: AI Chatbot Technology, AI Ethics, Chatbots, Cognitive Science, Digital Relationships, Ethics, Gen AI, Opinion, Psychological Impact, Society & Culture, Virtual & Augmented Reality, Virtual Assistants
+
+• Some users of AI chatbot services like Replika are engaging in abusive behavior towards their virtual companions, including degrading, berating, and simulating physical harm, raising concerns about potential impacts on real-life relationships.
+
+• Experts warn that such behavior could indicate deeper psychological issues, hinder emotional regulation, and reinforce unhealthy interaction habits, which may transfer to personal relationships.
+
+• Psychologists argue that abusing AI bots can desensitize individuals to harm and express societal concerns about how it might normalize aggression as an acceptable form of interaction.
+
+~~~
 [Apple Intelligence is now live in public beta. Heres what it offers and how to enable it. - TechCrunch](https://techcrunch.com/2024/09/19/apple-intelligence-is-now-live-in-public-beta-heres-what-it-offers-and-how-to-enable-it)
 
 Topics: Apple, Big Tech, Features, Gen AI, Intelligence, Machine Learning, Products, Public Beta, Virtual Assistants
@@ -550,6 +566,43 @@ Newsletter to edit:
 {summary}
 
 """
+
+SITE_NAME_PROMPT = """
+You are a specialized content analyst tasked with identifying the site name of a given website URL.
+For example, if the URL is 'https://www.washingtonpost.com', the site name would be 'Washington Post'.
+
+Consider these factors:
+
+If it's a well-known platform, return its official name or most commonly used or marketed name.
+For less known sites, use context clues from the domain name
+Remove common prefixes like 'www.' or suffixes like '.com'
+Convert appropriate dashes or underscores to spaces
+Use proper capitalization for brand names
+If the site has rebranded, use the most current brand name
+
+Input:
+I will provide you with a list of JSON objects containing a url field with the website URL.
+
+Input example:
+[{{'url': 'https://www.washingtonpost.com'}}]
+
+Output:
+You will provide the response as a JSON object with two fields:
+'url': the original hostname
+'site_name': the identified name of the website
+
+Output Example:
+{{
+    'items': [
+        {{'url': 'https://www.washingtonpost.com', 'site_name': 'Washington Post'}}
+    ]
+}}
+
+Please analyze the following urls according to these criteria:
+
+"""
+
+# use as asyncio.run(process_dataframes([pd.DataFrame(['https://ft.com', 'https://siliconangle.com/'], columns=['url'])], SITE_NAME_PROMPT, Sites))
 
 CANONICAL_TOPICS = [
     "Policy and regulation",

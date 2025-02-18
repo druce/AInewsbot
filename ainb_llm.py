@@ -1,24 +1,17 @@
+# Description: LLM functions for AInewsbot project
 # import os
 # import time
-import pdb
-from ainb_utilities import log
-from ainb_const import (LOWCOST_MODEL, BASEMODEL, MODEL, MAX_INPUT_TOKENS,
-                        CANONICAL_TOPIC_PROMPT,
-                        SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT, TOPIC_WRITER_PROMPT)
+# import pdb
 
-from langchain_core.output_parsers import StrOutputParser
-# , PydanticOutputParser, SimpleJsonOutputParser, JsonOutputParser,
 import json
 # from collections import defaultdict
 import math
-
-import pandas as pd
-
-import aiohttp
+# import aiohttp
 import asyncio
+from typing import List, Type, TypeVar, Dict, Any  # , TypedDict, Annotated,
 
 from pydantic import BaseModel, Field
-from typing import List, Type, TypeVar, Dict, Any  # , TypedDict, Annotated,
+import pandas as pd
 
 from pathlib import Path
 
@@ -31,13 +24,15 @@ from tenacity import (
 
 import tiktoken
 # import openai
-from openai import OpenAI
+# from openai import OpenAI
 from bs4 import BeautifulSoup
 import trafilatura
 
 
 # import langchain
 from langchain_openai import ChatOpenAI
+from langchain_core.output_parsers import StrOutputParser
+
 # from langchain_google_genai import ChatGoogleGenerativeAI
 # from langchain_anthropic import ChatAnthropic
 # from langchain_core.messages import BaseMessage, AnyMessage, SystemMessage, HumanMessage, ToolMessage
@@ -45,6 +40,10 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import (ChatPromptTemplate,)
 # SystemMessagePromptTemplate, HumanMessagePromptTemplate)
 
+from ainb_utilities import log
+from ainb_const import (LOWCOST_MODEL, BASEMODEL, MODEL, MAX_INPUT_TOKENS,
+                        CANONICAL_TOPIC_PROMPT,
+                        SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT)
 
 ##############################################################################
 # pydantic classes used to get structured outputs from LLM
@@ -55,11 +54,13 @@ T = TypeVar('T', bound=BaseModel)
 
 
 class Story(BaseModel):
+    """Story class for structured output filtering"""
     id: int = Field(description="The id of the story")
     isAI: bool = Field(description="true if the story is about AI, else false")
 
 
 class Stories(BaseModel):
+    """Stories class for structured output filtering of a list of Story"""
     items: List[Story] = Field(description="List of Story")
 
 # TODO: shouldn't really have to define a second class as just a list of the first
@@ -71,38 +72,49 @@ class Stories(BaseModel):
 
 
 class TopicSpec(BaseModel):
+    """TopicSpec class for structured output of story topics"""
     id: int = Field(description="The id of the story")
     extracted_topics: List[str] = Field(
         description="List of topics covered in the story")
 
 
 class TopicSpecList(BaseModel):
+    """List of TopicSpec class for structured output"""
     items: List[TopicSpec] = Field(description="List of TopicSpec")
 
 
 class CanonicalTopicSpec(BaseModel):
+    """CanonicalTopicSpec class for structured output of canonical topics"""
     id: int = Field(description="The id of the story")
     relevant: bool = Field(
         description="True if the story is about the topic else false")
 
 
 class CanonicalTopicSpecList(BaseModel):
+    """List of CanonicalTopicSpec for structured output"""
     items: List[CanonicalTopicSpec] = Field(
         description="List of CanonicalTopicSpec")
 
 
 class TopicHeadline(BaseModel):
+    """Topic headline of a group of stories for structured output"""
     topic_title: str = Field(description="The title for the headline group")
 
 
-class SiteName(BaseModel):
+class TopicCategoryList(BaseModel):
+    """List of topics for structured output filtering"""
+    items: List[str] = Field(description="List of topics")
+
+
+class Site(BaseModel):
+    """Site class for structured output filtering"""
     url: str = Field(description="The URL of the site")
     site_name: str = Field(description="The name of the site")
 
 
-class TopicCategoryList(BaseModel):
-    items: List[str] = Field(description="List of topics")
-
+class Sites(BaseModel):
+    """List of Site class for structured output filtering"""
+    items: List[Site] = Field(description="List of Site")
 
 ##############################################################################
 # utility functions
@@ -128,7 +140,7 @@ def count_tokens(s):
 
 def trunc_tokens(long_prompt, model=BASEMODEL, maxtokens=MAX_INPUT_TOKENS):
     # Initialize the encoding for the model you are using, e.g., 'gpt-4'
-    encoding = tiktoken.encoding_for_model(BASEMODEL)
+    encoding = tiktoken.encoding_for_model(model)
 
     # Encode the prompt into tokens, truncate, and return decoded prompt
     tokens = encoding.encode(long_prompt)
@@ -498,142 +510,3 @@ def clean_topics(row, lcategories):
     combined = [s.replace("Openai", "OpenAI") for s in combined]
 
     return combined
-
-
-async def write_topic_name(topic_list_str, max_retries=3, model=LOWCOST_MODEL):
-    """
-    Generates a name for a cluster based on a list of headline topics.
-
-    Parameters:
-    session (aiohttp.ClientSession): The client session for making async HTTP requests.
-    topic_list_str (str): A string containing the list of headline topics.
-    max_retries (int, optional): The maximum number of retries in case of an error. Defaults to 3.
-    model (str, optional): The model to use for generating the topic name. Defaults to LOWCOST_MODEL.
-
-    Returns:
-    dict: A dictionary containing the generated topic name.
-
-    Example Usage:
-    title_topic_str_list = "Headline 1 (Topic: Topic 1)\n\nHeadline 2 (Topic: Topic 2)"
-    result = await write_topic_name(session, title_topic_str_list)
-    print(result)
-
-    Output:
-    {"topic_title": "Generated Topic Name"}
-    ```
-    """
-
-    for i in range(max_retries):
-        try:
-            messages = [
-                {"role": "user", "content": TOPIC_WRITER_PROMPT
-                 }]
-
-            payload = {"model":  model,
-                       "response_format": {"type": "json_object"},
-                       "messages": messages,
-                       "temperature": 0
-                       }
-#             print(topic_list_str)
-
-            async with aiohttp.ClientSession() as session:
-                # TODO: make a chain
-                response = asyncio.run(fetch_openai(session, payload))
-            response_dict = json.loads(
-                response["choices"][0]["message"]["content"])
-            log(response_dict)
-
-            return response_dict
-        except Exception as exc:
-            log(f"Error: {exc}")
-
-    return {}
-
-
-def topic_rewrite(client,
-                  model,
-                  prompt_template,
-                  topics_str,
-                  json_schema
-                  ):
-    # TODO: refactor to use LangGraph with a schema
-    client = OpenAI()
-    response = client.chat.completions.create(
-        model=model,
-        response_format={
-            "type": "json_schema",
-            "json_schema": json_schema
-        },
-        messages=[{
-            "role": "user",
-            "content": prompt_template.format(topics_str=topics_str)
-        }])
-    response_str = response.choices[0].message.content
-#     print(response_str)
-    return response_str
-
-
-async def get_site_name(session, row):
-    """
-    Asynchronously gets a name for a website based on its URL from OpenAI.
-
-    Args:
-        session(aiohttp.ClientSession): The aiohttp session used to make the request.
-        row(object): An object containing the hostname attribute, which is the URL of the site.
-
-    Returns:
-        dict: A dictionary containing the URL and the site name in the format:
-            {"url": "www.example.com", "site_name": "Example Site"}.
-
-    Raises:
-        Exception: If there is an error during the request or response processing.
-    """
-
-    cat_prompt = f"""
-Given this website URL 'https://{row.hostname}', please identify site name of the website/platform.
-For example, if the URL is 'www.washingtonpost.com', the site name would be 'Washington Post'.
-
-Consider these factors:
-
-If it's a well-known platform, return its official name or most commonly used or marketed name
-For less known sites, use context clues from the domain name
-Remove common prefixes like 'www.' or suffixes like '.com'
-Convert appropriate dashes or underscores to spaces
-Use proper capitalization for brand names
-If the site has rebranded, use the current brand name
-
-Please provide the response as a JSON object with two fields:
-
-'url': the original hostname
-'site_name': the identified name of the website
-
-Example: {'url': 'washingtonpost.com', 'site_name': 'Washington Post'}"
-    """
-    try:
-        messages = [
-            {"role": "user", "content": cat_prompt
-             }]
-
-        payload = {"model":  LOWCOST_MODEL,
-                   "response_format": {"type": "json_object"},
-                   "messages": messages,
-                   "temperature": 0
-                   }
-        # TODO: make a chain with an object format
-        response = await fetch_openai(session, payload)
-        response_dict = json.loads(
-            response["choices"][0]["message"]["content"])
-        return response_dict
-    except Exception as exc:
-        log(exc)
-
-
-async def fetch_missing_site_names(AIdf):
-    """fetch all missing site names"""
-    tasks = []
-    async with aiohttp.ClientSession() as session:
-        for row in AIdf.loc[AIdf['site_name'] == ""].itertuples():
-            task = asyncio.create_task(get_site_name(session, row))
-            tasks.append(task)
-        responses = await asyncio.gather(*tasks)
-    return responses

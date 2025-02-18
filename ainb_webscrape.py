@@ -1,7 +1,10 @@
+# Description: Web scraping utilities for the AInewsbot project.
 from datetime import datetime
 import time
 import re
 import os
+from urllib.parse import urljoin, urlparse
+
 # import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -25,10 +28,9 @@ from fake_useragent import UserAgent
 # import bs4
 from bs4 import BeautifulSoup
 import requests
-from urllib.parse import urljoin, urlparse
 
 from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, SCREENSHOT_DIR, GECKODRIVER_PATH,
-                        FIREFOX_PROFILE_PATH, MINTITLELEN, sleeptime, BROWSERS)
+                        FIREFOX_PROFILE_PATH, MINTITLELEN, sleeptime)
 # CHROME_PROFILE_PATH, CHROME_PROFILE, CHROME_DRIVER_PATH,
 from ainb_utilities import log
 import asyncio
@@ -96,7 +98,7 @@ def trimmed_href(link):
     :return: The trimmed string.
     """
     # Find the position of the question mark
-    if type(link) is str:
+    if isinstance(link, str):
         s = link
     else:
         s = link.get("href")
@@ -169,6 +171,7 @@ def get_driver(geckodriver_path=GECKODRIVER_PATH, firefox_profile_path=FIREFOX_P
 
 
 def quit_drivers(drivers):
+    """close a list of selenium webdrivers"""
     log(f"quitting {len(drivers)} webdrivers", "quit_drivers")
     for driver in drivers:
         driver.quit()
