@@ -3,14 +3,15 @@ import logging
 import os
 import unicodedata
 from datetime import datetime
+import sqlite3
+import smtplib
+
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
 
 import numpy as np
 import pandas as pd
-import sqlite3
-
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 from scipy.spatial.distance import cdist, pdist
 from scipy.cluster.hierarchy import linkage, leaves_list
@@ -32,9 +33,9 @@ VERBOSE = 1
 if 'VERBOSE' in globals() and VERBOSE == 1:
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    logger = logging.getLogger("AInewsbot")
+    LOGGER = logging.getLogger("AInewsbot")
 else:
-    logger = None
+    LOGGER = None
 
 
 def log(action_str, source_str="", level=logging.INFO):
@@ -48,13 +49,13 @@ def log(action_str, source_str="", level=logging.INFO):
     Returns:
         int: severity
     """
-    if logger:
+    if LOGGER:
         if source_str:
             message = f"{str(source_str)} - {str(action_str)}"
         else:
             message = str(action_str)
 
-        logger.log(level, message)
+        LOGGER.log(level, message)
 
     return None
 
@@ -100,7 +101,7 @@ def delete_files(download_dir):
             print(f'Failed to delete {file_path}. Reason: {e}')
 
 
-def insert_article(conn, cursor, src, actual_src, title, url, actual_url, isAI, article_date):
+def insert_article(conn, cursor, src, actual_src, title, url, actual_url, is_ai, article_date):
     """
     Inserts a new article record into the SQLite database.
 
@@ -123,7 +124,7 @@ def insert_article(conn, cursor, src, actual_src, title, url, actual_url, isAI, 
     """
     try:
         cursor.execute("INSERT OR IGNORE INTO news_articles (src, actual_src, title, url, actual_url, isAI, article_date, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                       (src, actual_src, title, url, actual_url, isAI, article_date, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+                       (src, actual_src, title, url, actual_url, is_ai, article_date, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         conn.commit()
     except sqlite3.IntegrityError:
         log(f"Duplicate entry for URL: {url}")
@@ -259,8 +260,8 @@ def agglomerative_cluster_sort(embedding_df):
 
     """
     distance_matrix = pdist(embedding_df.values, metric='cosine')
-    Z = linkage(distance_matrix, method='ward')
-    leaf_order = leaves_list(Z)
+    lkg = linkage(distance_matrix, method='ward')
+    leaf_order = leaves_list(lkg)
     return leaf_order
 
 
@@ -334,6 +335,7 @@ def traveling_salesman_sort_scipy(df):
 
 
 def send_gmail(subject, html_str):
+    """send mail using gmail smtp server"""
     # body
     body = f"""
     <html>

@@ -9,11 +9,10 @@ import math
 # import aiohttp
 import asyncio
 from typing import List, Type, TypeVar, Dict, Any  # , TypedDict, Annotated,
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 import pandas as pd
-
-from pathlib import Path
 
 from tenacity import (
     retry,
@@ -139,6 +138,7 @@ def count_tokens(s):
 
 
 def trunc_tokens(long_prompt, model=BASEMODEL, maxtokens=MAX_INPUT_TOKENS):
+    """return prompt string, truncated to maxtokens"""
     # Initialize the encoding for the model you are using, e.g., 'gpt-4'
     encoding = tiktoken.encoding_for_model(model)
 
@@ -220,6 +220,7 @@ def should_retry_exception(exception):
 )
 async def async_langchain(chain, input_dict, name=""):
     #     async with sem:
+    """call langchain asynchronously with ainvoke"""
     response = await chain.ainvoke(input_dict)
     return response, name
 
@@ -232,7 +233,7 @@ def filter_page(input_df: pd.DataFrame,
                 input_prompt: str,
                 output_class: Type[T],
                 model: ChatOpenAI = ChatOpenAI(model=LOWCOST_MODEL),
-                input_vars: Dict[str, Any] = {}
+                input_vars: Dict[str, Any] = None
                 ) -> T:
     """
     Process a single dataframe synchronously.
@@ -251,7 +252,8 @@ def filter_page(input_df: pd.DataFrame,
     # Run the chain
     input_text = json.dumps(input_df.to_dict(orient='records'), indent=2)
     input_dict = {"input_text": input_text}
-    input_dict.update(input_vars)
+    if input_vars is not None:
+        input_dict.update(input_vars)
     # unpack input_dict to kwargs
     response = chain.invoke(input_dict)
 
@@ -271,7 +273,7 @@ async def filter_page_async(
     input_prompt: str,
     output_class: Type[T],
     model: ChatOpenAI = ChatOpenAI(model=LOWCOST_MODEL),
-    input_vars: Dict[str, Any] = {}
+    input_vars: Dict[str, Any] = None
 ) -> T:
     """
     Process a single dataframe asynchronously.
@@ -290,7 +292,8 @@ async def filter_page_async(
     # Convert DataFrame to JSON
     input_text = json.dumps(input_df.to_dict(orient='records'), indent=2)
     input_dict = {"input_text": input_text}
-    input_dict.update(input_vars)
+    if input_vars is not None:
+        input_dict.update(input_vars)
 
     # Call the chain asynchronously
     response = await chain.ainvoke(input_dict)
@@ -303,7 +306,7 @@ async def process_dataframes(dataframes: List[pd.DataFrame],
                              output_class: Type[T],
                              model: ChatOpenAI = ChatOpenAI(
                                  model=LOWCOST_MODEL),
-                             input_vars: Dict[str, Any] = {}
+                             input_vars: Dict[str, Any] = None
                              ) -> T:
     """
     Process multiple dataframes asynchronously.
@@ -419,7 +422,7 @@ def clean_html(path: Path | str) -> str:
         return visible_text
 
 
-async def fetch_all_summaries(AIdf):
+async def fetch_all_summaries(aidf):
     """
     Fetch summaries for all articles in the AIdf DataFrame.
 
@@ -455,7 +458,7 @@ async def fetch_all_summaries(AIdf):
     parser = StrOutputParser()
     chain = prompt_template | openai_model | parser
 
-    for row in AIdf.itertuples():
+    for row in aidf.itertuples():
         path, rowid = row.path, row.id
         article_str = clean_html(path)
         task = asyncio.create_task(async_langchain(
@@ -467,7 +470,7 @@ async def fetch_all_summaries(AIdf):
 
 
 async def get_canonical_topic_results(pages, topic):
-
+    """call CANONICAL_TOPIC_PROMPT on pages for a single topic"""
     retval = await process_dataframes(dataframes=pages,
                                       input_prompt=CANONICAL_TOPIC_PROMPT,
                                       output_class=CanonicalTopicSpecList,
@@ -477,6 +480,7 @@ async def get_canonical_topic_results(pages, topic):
 
 
 async def get_all_canonical_topic_results(pages, topics):
+    """call all topics on pages"""
     tasks = []
     for topic in topics:
         log(f"Canonical topic {topic}")

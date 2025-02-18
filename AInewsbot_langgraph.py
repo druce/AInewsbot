@@ -268,9 +268,9 @@ def fn_download_sources(state: AgentState) -> AgentState:
         # flatten results
         saved_pages = [item for retarray in retarray for item in retarray]
 
-        for sourcename, file in saved_pages:
-            log(f"Downloaded {sourcename} to {file}")
-            state['sources'][sourcename]['latest'] = file
+        for sourcename, sourcefile in saved_pages:
+            log(f"Downloaded {sourcename} to {sourcefile}")
+            state['sources'][sourcename]['latest'] = sourcefile
         log(f"Saved {len(saved_pages)} HTML files")
 
     else:   # use existing files
@@ -283,12 +283,12 @@ def fn_download_sources(state: AgentState) -> AgentState:
         files = [
             file for file in files if datestr in file and file.endswith(".html")]
         log(f"Found {len(files)} previously downloaded files")
-        for file in files:
-            log(file)
+        for sourcefile in files:
+            log(sourcefile)
 
         saved_pages = []
-        for file in files:
-            filename = os.path.basename(file)
+        for sourcefile in files:
+            filename = os.path.basename(sourcefile)
             # locate date like '01_14_2024' in filename
             position = filename.find(" (" + datestr)
             basename = filename[:position]
@@ -297,7 +297,7 @@ def fn_download_sources(state: AgentState) -> AgentState:
             if sourcename is None:
                 log(f"Skipping {basename}, no sourcename metadata")
                 continue
-            state["sources"][sourcename]['latest'] = file
+            state["sources"][sourcename]['latest'] = sourcefile
 
     return state
 
@@ -387,7 +387,8 @@ def fn_extract_newscatcher(state: AgentState) -> AgentState:
     }
 
     # Make API call with headers and params
-    response = requests.get(base_url, headers=headers, params=params)
+    response = requests.get(base_url, headers=headers,
+                            params=params, timeout=60)
 
     # Encode received results
     results = json.loads(response.text.encode())
@@ -807,7 +808,7 @@ def fn_topic_clusters(state: AgentState) -> AgentState:
 
     # same with a delimiter and no ID
     bullet_str = "\n~~~\n".join(aidf['bullet'])
-    with open('bullet_str.txt', 'w') as f:
+    with open('bullet_str.txt', 'w', encoding='utf-8') as f:
         f.write(bullet_str)
 
     state["AIdf"] = aidf.to_dict(orient='records')
@@ -848,7 +849,7 @@ def fn_download_pages(state: AgentState) -> AgentState:
         count += 1
 
     # scrape urls in queue asynchronously
-    callable = process_url_queue_factory(queue)
+    closure = process_url_queue_factory(queue)
 
     global BROWSERS
     if 'BROWSERS' not in globals() or len(BROWSERS) < NUM_BROWSERS:
@@ -856,7 +857,7 @@ def fn_download_pages(state: AgentState) -> AgentState:
 
     with ThreadPoolExecutor(max_workers=NUM_BROWSERS) as executor:
         # Create a list of future objects
-        futures = [executor.submit(callable, BROWSERS[i])
+        futures = [executor.submit(closure, BROWSERS[i])
                    for i in range(NUM_BROWSERS)]
 
         # Collect the results (web drivers) as they complete
@@ -949,8 +950,8 @@ def fn_propose_cats(state: AgentState) -> AgentState:
     # save topics to local file
     try:
         filename = 'topics.txt'
-        with open(filename, 'w', encoding="utf-8") as file:
-            file.write(state["topics_str"])
+        with open(filename, 'w', encoding="utf-8") as topicfile:
+            topicfile.write(state["topics_str"])
         log(f"Topics successfully saved to {filename}.")
     except Exception as e:
         log(f"An error occurred: {e}")
@@ -991,8 +992,8 @@ def fn_compose_summary(state: AgentState) -> AgentState:
     # save bullet_str to local file
     try:
         filename = 'summary.md'
-        with open(filename, 'w', encoding="utf-8") as file:
-            file.write(state.get("summary"))
+        with open(filename, 'w', encoding="utf-8") as summaryfile:
+            summaryfile.write(state.get("summary"))
             log(f"Markdown content successfully saved to {filename}.")
     except Exception as e:
         log(f"An error occurred: {e}")

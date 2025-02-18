@@ -439,14 +439,14 @@ encompassing the most important and frequently mentioned topics and themes, in a
 format provided below.
 
 The summary should be:
-	•	Informative
-	•	Thoughtful
-	•	Insightful
-	•	Cohesive
-	•	Concise
-	•	Crisp
-	•	Punchy
-	•	Lively
+ • Informative
+ • Thoughtful
+ • Insightful
+ • Cohesive
+ • Concise
+ • Crisp
+ • Punchy
+ • Lively
 
 Structure the summary with snappy, funny, punny thematic section titles that capture
 major trends in the news. Each section should contain a series of bullet points,
