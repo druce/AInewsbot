@@ -1116,22 +1116,27 @@ class Agent:
         self.graph = graph
 
     def initialize(self, state: AgentState) -> AgentState:
+        """initialize agent, loading sources and setting up initial state"""
         self.state = fn_initialize(state)
         return self.state
 
     def download_sources(self, state: AgentState) -> AgentState:
+        """download sources or load exisitng sources"""
         self.state = fn_download_sources(state)
         return self.state
 
     def extract_web_urls(self, state: AgentState) -> AgentState:
+        """parse all urls from downloaded pages"""
         self.state = fn_extract_urls(state)
         return self.state
 
     def verify_download(self, state: AgentState) -> AgentState:
+        """verify we found news stories from all sources"""
         self.state = fn_verify_download(state)
         return self.state
 
     def extract_newscatcher_urls(self, state: AgentState) -> AgentState:
+        """extract newscatcher urls"""
         try:
             self.state = fn_extract_newscatcher(state)
         except KeyError:
@@ -1139,6 +1144,7 @@ class Agent:
         return self.state
 
     def extract_newsapi_urls(self, state: AgentState) -> AgentState:
+        """extract newsapi urls"""
         try:
             self.state = fn_extract_newsapi(state)
         except KeyError:
@@ -1146,45 +1152,56 @@ class Agent:
         return self.state
 
     def filter_urls(self, state: AgentState) -> AgentState:
+        """filter to previously unseen urls and AI-related headlines only"""
         self.state = fn_filter_urls(state)
         return self.state
 
-    def topic_analysis(self, state: AgentState) -> AgentState:
-        self.state = fn_topic_analysis(state)
-        return self.state
-
-    def topic_clusters(self, state: AgentState) -> AgentState:
-        self.state = fn_topic_clusters(state)
-        return self.state
-
     def download_pages(self, state: AgentState) -> AgentState:
+        """download individual news pages and save text"""
         self.state = fn_download_pages(state)
         return self.state
 
     def summarize_pages(self, state: AgentState) -> AgentState:
+        """summarize each page into bullet points"""
         self.state = fn_summarize_pages(state)
         return self.state
 
+    def topic_analysis(self, state: AgentState) -> AgentState:
+        """extract and assign topics for each headline"""
+        self.state = fn_topic_analysis(state)
+        return self.state
+
+    def topic_clusters(self, state: AgentState) -> AgentState:
+        """identify clusters of similar stores"""
+        self.state = fn_topic_clusters(state)
+        return self.state
+
     def propose_topics(self, state: AgentState) -> AgentState:
+        """use LLM to identify most popular and important topics"""
         self.state = fn_propose_cats(state)
         return self.state
 
     def compose_summary(self, state: AgentState) -> AgentState:
+        """compose the first draft of the summary using bullets and topics"""
         self.state = fn_compose_summary(state)
         return self.state
 
     def rewrite_summary(self, state: AgentState) -> AgentState:
+        """edit the summary, combine and sharpen items, add and improve titles"""
         self.state = fn_rewrite_summary(state)
         return self.state
 
     def is_revision_complete(self, state: AgentState) -> str:
+        """check if summary should be revised"""
         return fn_is_revision_complete(state)
 
     def send_mail(self, state: AgentState) -> AgentState:
+        """send final email with summary"""
         self.state = fn_send_mail(state)
         return self.state
 
     def run(self, state, config):
+        """run the agent end to end"""
         # The config is the **second positional argument** to stream() or invoke()!
         events = self.graph.stream(state, config, stream_mode="values")
         for event in events:
@@ -1212,6 +1229,7 @@ class Agent:
 
 
 def initialize_agent(do_download, before_date):
+    """set initial state"""
     # initial state
     state = AgentState({
         'AIdf': [{}],
