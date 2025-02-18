@@ -48,7 +48,7 @@ import nest_asyncio
 from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
                       filter_page_async,
                       get_all_canonical_topic_results, clean_topics,
-                      Stories, TopicSpecList, TopicHeadline, TopicCategoryList
+                      Stories, TopicSpecList, TopicHeadline, TopicCategoryList, Sites
                       )
 
 from ainb_webscrape import (get_browsers, parse_file,
@@ -63,7 +63,7 @@ from ainb_const import (DOWNLOAD_DIR, PAGES_DIR,
                         SOURCECONFIG, FILTER_PROMPT, TOPIC_PROMPT, TOPIC_WRITER_PROMPT,
                         FINAL_SUMMARY_PROMPT,
                         TOP_CATEGORIES_PROMPT, TOPIC_REWRITE_PROMPT, REWRITE_PROMPT,
-                        SQLITE_DB,
+                        SITE_NAME_PROMPT, SQLITE_DB,
                         HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST,
                         SCREENSHOT_DIR, NUM_BROWSERS)
 
@@ -579,14 +579,18 @@ def fn_filter_urls(state: AgentState) -> AgentState:
     missing_site_names = len(aidf.loc[aidf['site_name'] == ""])
     if missing_site_names:
         log(f"Asking OpenAI for {missing_site_names} missing site names")
-        responses = asyncio.run(fetch_missing_site_names(aidf))
+        responses = asyncio.run(process_dataframes(paginate_df(aidf[["url"]]),
+                                                   SITE_NAME_PROMPT,
+                                                   Sites))
         # update site_dict from responses
         new_urls = []
         for r in responses:
-            if r['url'].startswith('https://'):
-                r['url'] = r['url'][8:]
+            if r.url.startswith('https://'):
+                r.url = r['url'][8:]
+            elif r.url.startswith('http://'):
+                r.url = r['url'][7:]
             new_urls.append(r['url'])
-            sites_dict[r['url']] = r['site_name']
+            sites_dict[r['url']] = r.site_name
             log(f"Looked up {r['url']} -> {r['site_name']}")
         # update sites table with new names
         for url in new_urls:
@@ -740,9 +744,9 @@ def fn_topic_clusters(state: AgentState) -> AgentState:
 
     # do dimensionality reduction on embedding_df and cluster analysis
     log("Load umap dimensionality reduction model")
-    with open("reducer.pkl", 'rb') as file:
+    with open("reducer.pkl", 'rb') as pklfile:
         # Load the model from the file
-        reducer = pickle.load(file)
+        reducer = pickle.load(pklfile)
     log("Perform dimensionality reduction")
     reduced_data = reducer.transform(embedding_df)
     log("Cluster with DBSCAN")
@@ -791,7 +795,7 @@ def fn_topic_clusters(state: AgentState) -> AgentState:
     state["bullets"] = markdown_list
     markdown_str = "\n\n".join(markdown_list)
     # save bullets
-    with open('bullets.md', 'w') as f:
+    with open('bullets.md', 'w', encoding="utf-8") as f:
         f.write(markdown_str)
 
     # Convert Markdown to HTML
@@ -945,7 +949,7 @@ def fn_propose_cats(state: AgentState) -> AgentState:
     # save topics to local file
     try:
         filename = 'topics.txt'
-        with open(filename, 'w') as file:
+        with open(filename, 'w', encoding="utf-8") as file:
             file.write(state["topics_str"])
         log(f"Topics successfully saved to {filename}.")
     except Exception as e:
@@ -987,7 +991,7 @@ def fn_compose_summary(state: AgentState) -> AgentState:
     # save bullet_str to local file
     try:
         filename = 'summary.md'
-        with open(filename, 'w') as file:
+        with open(filename, 'w', encoding="utf-8") as file:
             file.write(state.get("summary"))
             log(f"Markdown content successfully saved to {filename}.")
     except Exception as e:
@@ -1272,7 +1276,7 @@ if __name__ == "__main__":
 
     lg_state, lg_agent, thread_id = initialize_agent(do_download, before_date)
     log(f"thread_id: {thread_id}")
-    with open('thread_id.txt', 'w') as file:
+    with open('thread_id.txt', 'w', encoding="utf-8") as file:
         file.write(thread_id)
     config = {"configurable": {"thread_id": thread_id}}
     lg_state = lg_agent.run(lg_state, config)
