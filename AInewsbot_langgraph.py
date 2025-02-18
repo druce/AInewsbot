@@ -9,32 +9,31 @@ import uuid
 import re
 import pickle
 import argparse
+from collections import Counter, defaultdict
+import asyncio
 
 from typing import TypedDict
-from collections import Counter, defaultdict
-
-import yaml
-
-import sqlite3
-import requests
-import asyncio
 
 import multiprocessing
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+import sqlite3
 from urllib.parse import urlparse  # , urljoin
+
+import yaml
+
+import requests
+
 from IPython.display import display, Markdown  # , Audio
-
 import pandas as pd
-
 from sklearn.cluster import DBSCAN
 
 from openai import OpenAI
 
 from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
+# from langchain_core.prompts import ChatPromptTemplate
 # JsonOutputParser, StrOutputParser
-from langchain_core.output_parsers import SimpleJsonOutputParser
+# from langchain_core.output_parsers import SimpleJsonOutputParser
 
 from langgraph.checkpoint.memory import MemorySaver
 # from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
@@ -44,8 +43,10 @@ from langgraph.errors import NodeInterrupt
 
 import markdown
 
+import nest_asyncio
+
 from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
-                      fetch_missing_site_names, filter_page_async,
+                      filter_page_async,
                       get_all_canonical_topic_results, clean_topics,
                       Stories, TopicSpecList, TopicHeadline, TopicCategoryList
                       )
@@ -66,9 +67,8 @@ from ainb_const import (DOWNLOAD_DIR, PAGES_DIR,
                         HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST,
                         SCREENSHOT_DIR, NUM_BROWSERS)
 
-import pdb
+# import pdb
 
-import nest_asyncio
 nest_asyncio.apply()  # needed for asyncio.run to work under langgraph
 
 # defaults if called via import and not __main__
@@ -160,6 +160,10 @@ newscatcher_sources = ['247wallst.com',
 
 
 class AgentState(TypedDict):
+    """
+    State of the LangGraph agent.
+    Each node in the graph is a function that takes the current state and returns the updated state.
+    """
     # the current working set of headlines (pandas dataframe not supported)
     AIdf: list[dict]
     # ignore stories before this date for deduplication (force reprocess since)
@@ -340,6 +344,10 @@ def fn_extract_urls(state: AgentState) -> AgentState:
 
 
 def fn_verify_download(state: AgentState) -> AgentState:
+    """
+    Verify all sources downloaded by checking src present in AIdf
+    If there is a bot block the html file might be present but have no valid links
+    """
     sources_downloaded = len(
         pd.DataFrame(state["AIdf"]).groupby("src").count()[['id']])
     SOURCES_EXPECTED = 16
@@ -353,9 +361,9 @@ def fn_verify_download(state: AgentState) -> AgentState:
 
 
 def fn_extract_newscatcher(state: AgentState) -> AgentState:
-
-    # get AI news via newscatcher
-    # https://docs.newscatcherapi.com/api-docs/endpoints/search-news
+    """get AI news via newscatcher API
+    https://docs.newscatcherapi.com/api-docs/endpoints/search-news
+    """
 
     q = 'Artificial Intelligence'
     page_size = 100
@@ -403,10 +411,11 @@ def fn_extract_newscatcher(state: AgentState) -> AgentState:
 
 
 def fn_extract_newsapi(state: AgentState) -> AgentState:
-
-    # get AI news via newsapi
-    # https://newsapi.org/docs/get-started
-    # from newsapi import NewsApiClient
+    """
+    get AI news via newsapi
+    https://newsapi.org/docs/get-started
+    from newsapi import NewsApiClient
+    """
     NEWSAPI_API_KEY = os.environ['NEWSAPI_API_KEY']
     AIdf = pd.DataFrame(state['AIdf'])
 
@@ -600,7 +609,7 @@ def fn_filter_urls(state: AgentState) -> AgentState:
 
 
 def make_bullet(row):
-
+    """Given a row in AIdf, return a markdown block with links, topics, bullet points """
     # rowid = str(row.id) + ". " if hasattr(row, "id") else ""
     title = row.title if hasattr(row, "title") else ""
     site_name = row.site_name if hasattr(row, "site_name") else ""
@@ -613,7 +622,7 @@ def make_bullet(row):
     return f"[{title} - {site_name}]({actual_url}){topic_str}{summary}\n\n"
 
 
-async def afn_topic_analysis(state: AgentState) -> AgentState:
+async def fn_topic_analysis(state: AgentState) -> AgentState:
     """
     Extracts and selects topics for each headline in the state['AIdf'] dataframe, scrubs them, and stores them back in the dataframe.
 
@@ -634,11 +643,11 @@ async def afn_topic_analysis(state: AgentState) -> AgentState:
 
     # apply topic extraction prompt to AI headlines
     log(f"start free-form topic extraction using {MODEL}")
-    topic_results = await process_dataframes(
+    topic_results = asyncio.run(process_dataframes(
         dataframes=pages,
         input_prompt=TOPIC_PROMPT,
         output_class=TopicSpecList,
-        model=ChatOpenAI(model=MODEL))
+        model=ChatOpenAI(model=MODEL)))
     topics_df = pd.DataFrame([[item.id, item.extracted_topics] for item in topic_results], columns=[
                              "id", "extracted_topics"])
     log(f"{len(topics_df)} free-form topics extracted")
@@ -694,10 +703,10 @@ async def afn_topic_analysis(state: AgentState) -> AgentState:
     return state
 
 
-def fn_topic_analysis(state: AgentState) -> AgentState:
-
-    state = asyncio.run(afn_topic_analysis(state))
-    return state
+# def fn_topic_analysis(state: AgentState) -> AgentState:
+#     """call async afn_topic_analysis on state"""
+#     state = asyncio.run(afn_topic_analysis(state))
+#     return state
 
 
 def fn_topic_clusters(state: AgentState) -> AgentState:
@@ -894,7 +903,9 @@ def fn_summarize_pages(state: AgentState) -> AgentState:
 
 
 def fn_propose_cats(state: AgentState) -> AgentState:
-    # ask chatgpt for top categories
+    """
+    ask LLM to analyze for top categories
+    """
     log(f"Proposing categories using {HIGHCOST_MODEL}")
 
     AIdf = pd.DataFrame(state["AIdf"])
@@ -942,6 +953,8 @@ def fn_propose_cats(state: AgentState) -> AgentState:
 
 
 def fn_compose_summary(state: AgentState) -> AgentState:
+    """Compose summary using FINAL_SUMMARY_PROMPT"""
+
     log(f"Composing summary using {HIGHCOST_MODEL}")
     AIdf = pd.DataFrame(state["AIdf"])
     bullet_str = "\n~~~\n".join(AIdf['bullet'])
@@ -982,6 +995,7 @@ def fn_compose_summary(state: AgentState) -> AgentState:
 
 
 def fn_rewrite_summary(state: AgentState) -> AgentState:
+    """Edit summary using REWRITE_PROMPT"""
 
     log(f"Rewriting summary using {HIGHCOST_MODEL}")
 
@@ -1025,7 +1039,7 @@ def fn_is_revision_complete(state: AgentState) -> str:
 
 
 def fn_send_mail(state: AgentState) -> AgentState:
-
+    """Send email with state['summary']"""
     log("Sending summary email")
     # Convert Markdown to HTML
     html_str = markdown.markdown(state['summary'], extensions=['extra'])
