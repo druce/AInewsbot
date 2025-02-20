@@ -1093,9 +1093,10 @@ def fn_send_mail(state: AgentState) -> AgentState:
 
 
 class Agent:
+    """Langraph Agent class"""
 
     def __init__(self, state):
-
+        """set up state graph and memory"""
         self.state = state
 
         graph_builder = StateGraph(AgentState)
