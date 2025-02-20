@@ -1302,6 +1302,7 @@ if __name__ == "__main__":
 
     lg_state, lg_agent, thread_id = initialize_agent(do_download, before_date)
     log(f"thread_id: {thread_id}")
+    # save in case we want to get the last state from Sqlite and inpsect or resume in Jupyter
     with open('thread_id.txt', 'w', encoding="utf-8") as file:
         file.write(thread_id)
     config = {"configurable": {"thread_id": thread_id}}
