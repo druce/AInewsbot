@@ -1,6 +1,6 @@
 # main AInewsbot agent and top level imports
+import pdb
 import os
-
 from datetime import datetime, timedelta
 # import dotenv
 # import subprocess
@@ -24,7 +24,7 @@ import yaml
 
 import requests
 
-from IPython.display import display, Markdown  # , Audio
+from IPython.display import display  # , Markdown  # , Audio
 import pandas as pd
 from sklearn.cluster import DBSCAN
 
@@ -67,8 +67,6 @@ from ainb_const import (DOWNLOAD_DIR, PAGES_DIR,
                         SITE_NAME_PROMPT, SQLITE_DB,
                         HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST,
                         SCREENSHOT_DIR, NUM_BROWSERS, REQUEST_TIMEOUT)
-
-import pdb
 
 nest_asyncio.apply()  # needed for asyncio.run to work under langgraph
 
@@ -166,6 +164,7 @@ class AgentState(TypedDict):
     State of the LangGraph agent.
     Each node in the graph is a function that takes the current state and returns the updated state.
     """
+
     # the current working set of headlines (pandas dataframe not supported)
     AIdf: list[dict]
     # ignore stories before this date for deduplication (force reprocess since)
@@ -179,8 +178,6 @@ class AgentState(TypedDict):
     topics_str: str  # edited topics
     n_edits: int  # count edit iterations so we don't keep editing forever
     edit_complete: bool  # edit will update if no more edits to make
-    # message thread with OpenAI
-    # messages: Annotated[list[AnyMessage], operator.add]
 
 
 def fn_initialize(state: AgentState) -> AgentState:
@@ -1096,7 +1093,6 @@ def fn_send_mail(state: AgentState) -> AgentState:
 
 
 class Agent:
-    """LangGraph Agent class"""
 
     def __init__(self, state):
 
@@ -1191,16 +1187,6 @@ class Agent:
         self.state = fn_filter_urls(state)
         return self.state
 
-    def download_pages(self, state: AgentState) -> AgentState:
-        """download individual news pages and save text"""
-        self.state = fn_download_pages(state)
-        return self.state
-
-    def summarize_pages(self, state: AgentState) -> AgentState:
-        """summarize each page into bullet points"""
-        self.state = fn_summarize_pages(state)
-        return self.state
-
     def topic_analysis(self, state: AgentState) -> AgentState:
         """extract and assign topics for each headline"""
         self.state = fn_topic_analysis(state)
@@ -1209,6 +1195,16 @@ class Agent:
     def topic_clusters(self, state: AgentState) -> AgentState:
         """identify clusters of similar stores"""
         self.state = fn_topic_clusters(state)
+        return self.state
+
+    def download_pages(self, state: AgentState) -> AgentState:
+        """download individual news pages and save text"""
+        self.state = fn_download_pages(state)
+        return self.state
+
+    def summarize_pages(self, state: AgentState) -> AgentState:
+        """summarize each page into bullet points"""
+        self.state = fn_summarize_pages(state)
         return self.state
 
     def propose_topics(self, state: AgentState) -> AgentState:
@@ -1235,19 +1231,19 @@ class Agent:
         self.state = fn_send_mail(state)
         return self.state
 
-    def run(self, state, config):
-        """run the agent end to end"""
+    def run(self, state, runconfig):
+        """run the agent"""
         # The config is the **second positional argument** to stream() or invoke()!
-        events = self.graph.stream(state, config, stream_mode="values")
+        events = self.graph.stream(state, runconfig, stream_mode="values")
         for event in events:
             try:
                 if event.get('summary'):
                     print('summary created')
-                    display(Markdown(event.get('summary').replace("$", "\\\\$")))
+                    display(event.get('summary').replace("$", "\\\\$"))
                 elif event.get('bullets'):
                     print('bullets created')
-                    display(Markdown("\n\n".join(
-                        event.get('bullets')).replace("$", "\\\\$")))
+                    display("\n\n".join(
+                        event.get('bullets')).replace("$", "\\\\$"))
                 elif event.get('cluster_topics'):
                     print('cluster topics created')
                     display("\n\n".join(event.get('cluster_topics')))
@@ -1265,7 +1261,6 @@ class Agent:
 
 def initialize_agent(do_download, before_date):
     """set initial state"""
-    # initial state
     state = AgentState({
         'AIdf': [{}],
         'before_date': before_date,
