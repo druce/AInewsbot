@@ -1,7 +1,7 @@
 # Description: LLM functions for AInewsbot project
 # import os
 # import time
-# import pdb
+import pdb
 
 import json
 # from collections import defaultdict
@@ -40,7 +40,7 @@ from langchain_core.prompts import (ChatPromptTemplate,)
 # SystemMessagePromptTemplate, HumanMessagePromptTemplate)
 
 from ainb_utilities import log
-from ainb_const import (LOWCOST_MODEL, BASEMODEL, MODEL, MAX_INPUT_TOKENS,
+from ainb_const import (LOWCOST_MODEL, BASEMODEL, MODEL, MAX_INPUT_TOKENS, REQUEST_TIMEOUT,
                         CANONICAL_TOPIC_PROMPT,
                         SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT)
 
@@ -230,7 +230,8 @@ async def async_langchain(chain, input_dict, name=""):
 def filter_page(input_df: pd.DataFrame,
                 input_prompt: str,
                 output_class: Type[T],
-                model: ChatOpenAI = ChatOpenAI(model=LOWCOST_MODEL),
+                model: ChatOpenAI = ChatOpenAI(
+                    model=LOWCOST_MODEL, request_timeout=REQUEST_TIMEOUT),
                 input_vars: Dict[str, Any] = None
                 ) -> T:
     """
@@ -238,7 +239,6 @@ def filter_page(input_df: pd.DataFrame,
     apply input_prompt to input_df converted to JSON per output_class type schema,
     supplying additional input_vars, and returning output_class
     """
-
     prompt_template = ChatPromptTemplate.from_messages([
         ("system", input_prompt),
         ("user", "{input_text}")
@@ -270,8 +270,9 @@ async def filter_page_async(
     input_df: pd.DataFrame,
     input_prompt: str,
     output_class: Type[T],
-    model: ChatOpenAI = ChatOpenAI(model=LOWCOST_MODEL),
-    input_vars: Dict[str, Any] = None
+    model: ChatOpenAI = ChatOpenAI(
+        model=LOWCOST_MODEL, request_timeout=REQUEST_TIMEOUT),
+    input_vars: Dict[str, Any] = None,
 ) -> T:
     """
     Process a single dataframe asynchronously.
@@ -292,6 +293,8 @@ async def filter_page_async(
     input_dict = {"input_text": input_text}
     if input_vars is not None:
         input_dict.update(input_vars)
+    # print(input_prompt)
+    # print(input_text)
 
     # Call the chain asynchronously
     response = await chain.ainvoke(input_dict)
@@ -299,15 +302,82 @@ async def filter_page_async(
     return response  # Should be an instance of output_class
 
 
+@retry(
+    stop=stop_after_attempt(8),  # Maximum 8 attempts
+    # Wait 2^x * multiplier seconds between retries
+    wait=wait_exponential(multiplier=1, min=2, max=128),
+    retry=retry_if_exception_type(should_retry_exception),
+    before_sleep=lambda retry_state: log(
+        f"Retrying after {retry_state.outcome.exception()}, attempt {retry_state.attempt_number}")
+)
+async def filter_page_async_id(
+    input_df: pd.DataFrame,
+    input_prompt: str,
+    output_class: Type[T],
+    model: ChatOpenAI = ChatOpenAI(
+        model=LOWCOST_MODEL, request_timeout=REQUEST_TIMEOUT),
+    input_vars: Dict[str, Any] = None,
+    item_list_field: str = "items",
+    item_id_field: str = "id",
+) -> T:
+    """
+    similar to filter_page_async but checks ids in the response
+    Process a single dataframe asynchronously.
+    apply input_prompt to input_df converted to JSON per output_class type schema,
+    supplying additional input_vars, and returning a variable of type output_class
+    """
+    prompt_template = ChatPromptTemplate.from_messages([
+        ("system", input_prompt),
+        ("user", "{input_text}")
+    ])
+
+    # Create the chain
+    chain = prompt_template | model.with_structured_output(output_class)
+
+    # Convert DataFrame to JSON
+    input_text = json.dumps(input_df.to_dict(orient='records'), indent=2)
+    input_dict = {"input_text": input_text}
+    if input_vars is not None:
+        input_dict.update(input_vars)
+    # print(input_prompt)
+    # print(input_text)
+
+    # Call the chain asynchronously
+    response = await chain.ainvoke(input_dict)
+    # response = chain.invoke(input_dict)
+
+    # check ids in response
+    if item_list_field:
+        if hasattr(response, item_list_field):
+            response_list = getattr(response, item_list_field)
+            if item_id_field:
+                sent_ids = [
+                    item_id for item_id in input_df[item_id_field].to_list()]
+
+                received_ids = [getattr(r, item_id_field)
+                                for r in response_list]
+                difference = set(sent_ids) - set(received_ids)
+                if difference:
+                    log(f"missing items, {str(difference)}")
+                    raise ValueError(
+                        f"No {item_id_field} found in the results")
+
+    return response  # instance of output_class
+
+
 async def process_dataframes(dataframes: List[pd.DataFrame],
                              input_prompt: str,
                              output_class: Type[T],
                              model: ChatOpenAI = ChatOpenAI(
-                                 model=LOWCOST_MODEL),
-                             input_vars: Dict[str, Any] = None
-                             ) -> T:
+    model=LOWCOST_MODEL, request_timeout=REQUEST_TIMEOUT),
+    input_vars: Dict[str, Any] = None,
+    item_list_field: str = "items",
+    item_id_field: str = "",
+) -> T:
     """
     Process multiple dataframes asynchronously.
+    if item_list_field is provided, flatten the results
+    if item_id_field is proided, check returned ids match sent ids
 
     Args:
         dataframes: List of dataframes to process
@@ -319,26 +389,41 @@ async def process_dataframes(dataframes: List[pd.DataFrame],
     Returns:
         List of processed results
     """
-
-    tasks = [
-        filter_page_async(df, input_prompt, output_class,
-                          model, input_vars)
-        for df in dataframes
-    ]
+    if item_id_field:
+        tasks = [
+            filter_page_async_id(df, input_prompt, output_class,
+                                 model, input_vars, item_list_field, item_id_field)
+            for df in dataframes
+        ]
+    else:
+        tasks = [
+            filter_page_async(df, input_prompt, output_class,
+                              model, input_vars)
+            for df in dataframes
+        ]
 
     results = await asyncio.gather(*tasks)
 
     # if each result is an object with items as a list of objects then flatten
     flat_list = []
-    for result in results:
-        if hasattr(result, 'items'):
-            flat_list.extend(result.items)
-        else:
-            break
-    if len(flat_list) == 0:
-        return results
-    else:
+    if item_list_field:
+        for result in results:
+            if hasattr(result, item_list_field):
+                flat_list.extend(getattr(result, item_list_field))
+            else:
+                raise ValueError(f"No {item_list_field} found in the results")
+        if item_id_field:   # check ids if provided
+            sent_ids = [
+                item_id for df in dataframes for item_id in df[item_id_field].to_list()]
+            received_ids = [getattr(r, item_id_field) for r in flat_list]
+            difference = set(sent_ids) - set(received_ids)
+            if difference:
+                log(f"missing {item_id_field}, {str(difference)}")
+                raise ValueError(
+                    f"missing {item_id_field} items not found in the results")
         return flat_list
+    else:
+        log(f"no {item_list_field} in result, returning raw results")
 
 
 def clean_html(path: Path | str) -> str:
@@ -452,7 +537,7 @@ async def fetch_all_summaries(aidf):
          ("user", SUMMARIZE_USER_PROMPT)]
     )
 
-    openai_model = ChatOpenAI(model=MODEL)
+    openai_model = ChatOpenAI(model=MODEL, request_timeout=REQUEST_TIMEOUT)
     parser = StrOutputParser()
     chain = prompt_template | openai_model | parser
 
@@ -472,7 +557,8 @@ async def get_canonical_topic_results(pages, topic):
     retval = await process_dataframes(dataframes=pages,
                                       input_prompt=CANONICAL_TOPIC_PROMPT,
                                       output_class=CanonicalTopicSpecList,
-                                      model=ChatOpenAI(model=LOWCOST_MODEL),
+                                      model=ChatOpenAI(
+                                          model=LOWCOST_MODEL, request_timeout=REQUEST_TIMEOUT),
                                       input_vars={'topic': topic})
     return topic, retval
 
@@ -507,8 +593,161 @@ def clean_topics(row, lcategories):
     assigned_topics = [x.title()
                        for x in row.assigned_topics if x.lower() in lcategories]
     combined = sorted(list(set(extracted_topics + assigned_topics)))
-    combined = [s.replace("Ai", "AI") for s in combined]
     combined = [s.replace("Genai", "Gen AI") for s in combined]
     combined = [s.replace("Openai", "OpenAI") for s in combined]
+    combined = [s.replace("Ai", "AI") for s in combined]
 
     return combined
+
+
+# def sprocess_dataframes(dataframes: List[pd.DataFrame],
+#                         input_prompt: str,
+#                         output_class: Type[T],
+#                         model: ChatOpenAI = ChatOpenAI(
+#     model=LOWCOST_MODEL),
+#     input_vars: Dict[str, Any] = None,
+#     item_list_field: str = "items",
+#     item_id_field: str = "",
+# ) -> T:
+#     """
+#     Process multiple dataframes asynchronously.
+#     if item_list_field is provided, flatten the results
+#     if item_id_field is proided, check returned ids match sent ids
+
+#     Args:
+#         dataframes: List of dataframes to process
+#         input_prompt: The prompt template to use
+#         output_class: The output class for structured output
+#         model: The language model to use
+#         batch_size: Number of concurrent tasks to run
+
+#     Returns:
+#         List of processed results
+#     """
+#     pdb.set_trace()
+#     if item_id_field:
+#         tasks = [
+#             sfilter_page_async_id(df, input_prompt, output_class,
+#                                   model, input_vars, item_list_field, item_id_field)
+#             for df in dataframes
+#         ]
+#     else:
+#         tasks = [
+#             sfilter_page_async(df, input_prompt, output_class,
+#                                model, input_vars)
+#             for df in dataframes
+#         ]
+
+#     results = tasks
+
+#     # if each result is an object with items as a list of objects then flatten
+#     flat_list = []
+#     if item_list_field:
+#         for result in results:
+#             if hasattr(result, item_list_field):
+#                 flat_list.extend(getattr(result, item_list_field))
+#             else:
+#                 raise ValueError(f"No {item_list_field} found in the results")
+#         if item_id_field:   # check ids if provided
+#             sent_ids = [
+#                 item_id for df in dataframes for item_id in df[item_id_field].to_list()]
+#             received_ids = [getattr(r, item_id_field) for r in flat_list]
+#             difference = set(sent_ids) - set(received_ids)
+#             if difference:
+#                 log(f"missing {item_id_field}, {str(difference)}")
+#                 raise ValueError(
+#                     f"missing {item_id_field} items not found in the results")
+#         return flat_list
+#     else:
+#         log(f"no {item_list_field} in result, returning raw results")
+
+
+# def sfilter_page_async(
+#     input_df: pd.DataFrame,
+#     input_prompt: str,
+#     output_class: Type[T],
+#     model: ChatOpenAI = ChatOpenAI(model=LOWCOST_MODEL),
+#     input_vars: Dict[str, Any] = None,
+# ) -> T:
+#     """
+#     Process a single dataframe asynchronously.
+#     apply input_prompt to input_df converted to JSON per output_class type schema,
+#     supplying additional input_vars, and returning a variable of type output_class
+#     """
+#     pdb.set_trace()
+
+#     prompt_template = ChatPromptTemplate.from_messages([
+#         ("system", input_prompt),
+#         ("user", "{input_text}")
+#     ])
+
+#     # Create the chain
+#     chain = prompt_template | model.with_structured_output(output_class)
+
+#     # Convert DataFrame to JSON
+#     input_text = json.dumps(input_df.to_dict(orient='records'), indent=2)
+#     input_dict = {"input_text": input_text}
+#     if input_vars is not None:
+#         input_dict.update(input_vars)
+#     # print(input_prompt)
+#     # print(input_text)
+#     pdb.set_trace()
+#     # Call the chain asynchronously
+#     response = chain.invoke(input_dict)
+
+#     return response  # Should be an instance of output_class
+
+
+# def sfilter_page_async_id(
+#     input_df: pd.DataFrame,
+#     input_prompt: str,
+#     output_class: Type[T],
+#     model: ChatOpenAI = ChatOpenAI(model=LOWCOST_MODEL),
+#     input_vars: Dict[str, Any] = None,
+#     item_list_field: str = "items",
+#     item_id_field: str = "id",
+# ) -> T:
+#     """
+#     similar to filter_page_async but checks ids in the response
+#     Process a single dataframe asynchronously.
+#     apply input_prompt to input_df converted to JSON per output_class type schema,
+#     supplying additional input_vars, and returning a variable of type output_class
+#     """
+#     pdb.set_trace()
+
+#     prompt_template = ChatPromptTemplate.from_messages([
+#         ("system", input_prompt),
+#         ("user", "{input_text}")
+#     ])
+
+#     # Create the chain
+#     chain = prompt_template | model.with_structured_output(output_class)
+
+#     # Convert DataFrame to JSON
+#     input_text = json.dumps(input_df.to_dict(orient='records'), indent=2)
+#     input_dict = {"input_text": input_text}
+#     if input_vars is not None:
+#         input_dict.update(input_vars)
+#     # print(input_prompt)
+#     # print(input_text)
+
+#     # Call the chain asynchronously
+#     response = chain.invoke(input_dict)
+
+#     # check ids in response
+#     if item_list_field:
+#         if hasattr(response, item_list_field):
+#             response_list = getattr(response, item_list_field)
+#             if item_id_field:
+#                 sent_ids = [
+#                     item_id for item_id in input_df[item_id_field].to_list()]
+
+#                 received_ids = [getattr(r, item_id_field)
+#                                 for r in response_list]
+#                 difference = set(sent_ids) - set(received_ids)
+#                 if difference:
+#                     log(f"missing items, {str(difference)}")
+#                     raise ValueError(
+#                         f"No {item_id_field} found in the results")
+
+#     return response  # instance of output_class

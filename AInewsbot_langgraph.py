@@ -49,6 +49,7 @@ from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
                       filter_page_async,
                       get_all_canonical_topic_results, clean_topics,
                       Stories, TopicSpecList, TopicHeadline, TopicCategoryList, Sites
+                      # sprocess_dataframes
                       )
 
 from ainb_webscrape import (get_browsers, parse_file,
@@ -65,9 +66,9 @@ from ainb_const import (DOWNLOAD_DIR, PAGES_DIR,
                         TOP_CATEGORIES_PROMPT, TOPIC_REWRITE_PROMPT, REWRITE_PROMPT,
                         SITE_NAME_PROMPT, SQLITE_DB,
                         HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST,
-                        SCREENSHOT_DIR, NUM_BROWSERS)
+                        SCREENSHOT_DIR, NUM_BROWSERS, REQUEST_TIMEOUT)
 
-# import pdb
+import pdb
 
 nest_asyncio.apply()  # needed for asyncio.run to work under langgraph
 
@@ -433,6 +434,7 @@ def fn_extract_newsapi(state: AgentState) -> AgentState:
     params = {
         'q': q,
         'from': formatted_date,
+        'language': 'en',
         'sortBy': 'relevancy',
         'apiKey': NEWSAPI_API_KEY,
         'pageSize': 100
@@ -519,7 +521,9 @@ def fn_filter_urls(state: AgentState) -> AgentState:
         dataframes=pagelist,
         input_prompt=FILTER_PROMPT,
         output_class=Stories,
-        model=ChatOpenAI(model=LOWCOST_MODEL)
+        model=ChatOpenAI(model=LOWCOST_MODEL, request_timeout=REQUEST_TIMEOUT),
+        item_list_field="items",
+        item_id_field="id"
     ))
 
     # should return a list of Story
@@ -554,9 +558,9 @@ def fn_filter_urls(state: AgentState) -> AgentState:
 
     # keep headlines that are related to AI
     aidf = aidf.loc[aidf["isAI"] == 1] \
-        .reset_index(drop=True)  \
-        .reset_index()  \
-        .drop(columns=["id"])  \
+        .reset_index(drop=True) \
+        .reset_index() \
+        .drop(columns=["id"]) \
         .rename(columns={'index': 'id'})
 
     log(f"Found {len(aidf)} AI headlines")
@@ -614,7 +618,7 @@ def fn_filter_urls(state: AgentState) -> AgentState:
     return state
 
 
-def make_bullet(row):
+def make_bullet(row, include_topics=True):
     """Given a row in AIdf, return a markdown block with links, topics, bullet points """
     # rowid = str(row.id) + ". " if hasattr(row, "id") else ""
     title = row.title if hasattr(row, "title") else ""
@@ -622,13 +626,14 @@ def make_bullet(row):
     actual_url = row.actual_url if hasattr(row, "actual_url") else ""
     # bullet = "\n\n" + row.bullet if hasattr(row, "bullet") else ""
     summary = "\n\n" + str(row.summary) if hasattr(row, "summary") else ""
-    topic_str = "\n\nTopics: " + \
-        str(row.topic_str) if hasattr(row, "topic_str") else ""
-
+    topic_str = ""
+    if include_topics:
+        topic_str = "\n\nTopics: " + \
+            str(row.topic_str) if hasattr(row, "topic_str") else ""
     return f"[{title} - {site_name}]({actual_url}){topic_str}{summary}\n\n"
 
 
-async def fn_topic_analysis(state: AgentState) -> AgentState:
+def fn_topic_analysis(state: AgentState) -> AgentState:
     """
     Extracts and selects topics for each headline in the state['AIdf'] dataframe, scrubs them, and stores them back in the dataframe.
 
@@ -645,7 +650,8 @@ async def fn_topic_analysis(state: AgentState) -> AgentState:
     # with duplicates across categories, ask the prompt to dedupe
 
     aidf = pd.DataFrame(state['AIdf'])
-    pages = paginate_df(aidf[["id", "summary"]])
+    # might have trouble with 50 headlines
+    pages = paginate_df(aidf[["id", "summary"]], maxpagelen=20)
 
     # apply topic extraction prompt to AI headlines
     log(f"start free-form topic extraction using {MODEL}")
@@ -653,9 +659,12 @@ async def fn_topic_analysis(state: AgentState) -> AgentState:
         dataframes=pages,
         input_prompt=TOPIC_PROMPT,
         output_class=TopicSpecList,
-        model=ChatOpenAI(model=MODEL)))
+        model=ChatOpenAI(model=MODEL, request_timeout=REQUEST_TIMEOUT),
+        item_list_field="items",
+        item_id_field="id"
+    ))
     topics_df = pd.DataFrame([[item.id, item.extracted_topics] for item in topic_results], columns=[
-                             "id", "extracted_topics"])
+        "id", "extracted_topics"])
     log(f"{len(topics_df)} free-form topics extracted")
 
     all_topics = [item.lower() for row in topics_df.itertuples()
@@ -684,7 +693,7 @@ async def fn_topic_analysis(state: AgentState) -> AgentState:
         lambda id: ctr_dict.get(id, ""))
 
     log("Cleaning and formatting topics")
-
+    # pdb.set_trace()
     topics_df["topics"] = topics_df.apply(
         lambda t: clean_topics(t, lcategories), axis=1)
     topics_df["topic_str"] = topics_df.apply(
@@ -778,7 +787,8 @@ def fn_topic_clusters(state: AgentState) -> AgentState:
                     tmpdf,
                     TOPIC_WRITER_PROMPT,
                     TopicHeadline,
-                    model=ChatOpenAI(model=LOWCOST_MODEL),
+                    model=ChatOpenAI(model=LOWCOST_MODEL,
+                                     request_timeout=REQUEST_TIMEOUT),
                 ))
                 cluster_topic = response.topic_title
                 state["cluster_topics"].append(cluster_topic)
@@ -792,15 +802,34 @@ def fn_topic_clusters(state: AgentState) -> AgentState:
                 log(exc)
 
     # send mail
-    markdown_list = [f"{row.id+1}. {row.bullet}" for row in aidf.itertuples()]
-    state["bullets"] = markdown_list
+    state["bullets"] = [make_bullet(row) for row in aidf.itertuples()]
+    markdown_list = [f"{1 + row.id}. " +
+                     make_bullet(row, include_topics=False)
+                     for row in aidf.itertuples()]
     markdown_str = "\n\n".join(markdown_list)
+    # summaries come back with bullet chars but let's make them markdown bullets
+    markdown_str = markdown_str.replace('•', '\n  - ')
+
     # save bullets
     with open('bullets.md', 'w', encoding="utf-8") as f:
         f.write(markdown_str)
 
     # Convert Markdown to HTML
-    html_str = markdown.markdown(markdown_str)  # , extensions=['extra'])
+    markdown_extensions = [
+        # 'tables',
+        # 'fenced_code',
+        # 'codehilite',
+        'attr_list',
+        'def_list',
+        # 'footnotes',
+        'markdown.extensions.nl2br',
+        'markdown.extensions.sane_lists'
+    ]
+
+    html_str = markdown.markdown(markdown_str, extensions=markdown_extensions)
+    with open('bullets.html', 'w', encoding="utf-8") as f:
+        f.write(html_str)
+
     # send email html_str
     log("Sending bullet points email")
     subject = f'AI news bullets {datetime.now().strftime("%H:%M:%S")}'
