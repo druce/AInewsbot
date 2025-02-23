@@ -28,9 +28,16 @@ from IPython.display import display  # , Markdown  # , Audio
 import pandas as pd
 from sklearn.cluster import DBSCAN
 
+# for token count
+# todo, count tokens depending on model
 from openai import OpenAI
 
 from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_anthropic import ChatAnthropic
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+
 # from langchain_core.prompts import ChatPromptTemplate
 # JsonOutputParser, StrOutputParser
 # from langchain_core.output_parsers import SimpleJsonOutputParser
@@ -48,8 +55,8 @@ import nest_asyncio
 from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
                       filter_page_async,
                       get_all_canonical_topic_results, clean_topics,
-                      Stories, TopicSpecList, TopicHeadline, TopicCategoryList, Sites
-                      # sprocess_dataframes
+                      Stories, TopicSpecList, TopicHeadline, TopicCategoryList, Sites,
+                      sprocess_dataframes
                       )
 
 from ainb_webscrape import (get_browsers, parse_file,
@@ -146,6 +153,15 @@ newscatcher_sources = ['247wallst.com',
                        'zdnet.com']
 
 BROWSERS = []
+model_low = ChatOpenAI(model=LOWCOST_MODEL, request_timeout=REQUEST_TIMEOUT)
+model_medium = ChatOpenAI(model=MODEL, request_timeout=REQUEST_TIMEOUT)
+model_high = ChatOpenAI(model=HIGHCOST_MODEL, request_timeout=REQUEST_TIMEOUT)
+
+model_family = {'gpt-4o-2024-11-20': 'openai',
+                'gpt-4o-mini': 'openai',
+                'o3-mini': 'openai',
+
+                }
 # print(f"Python            {sys.version}")
 # print(f"LangChain         {langchain.__version__}")
 # print(f"OpenAI            {openai.__version__}")
@@ -518,7 +534,7 @@ def fn_filter_urls(state: AgentState) -> AgentState:
         dataframes=pagelist,
         input_prompt=FILTER_PROMPT,
         output_class=Stories,
-        model=ChatOpenAI(model=LOWCOST_MODEL, request_timeout=REQUEST_TIMEOUT),
+        model=model_low,
         item_list_field="items",
         item_id_field="id"
     ))
@@ -647,19 +663,21 @@ def fn_topic_analysis(state: AgentState) -> AgentState:
     # with duplicates across categories, ask the prompt to dedupe
 
     aidf = pd.DataFrame(state['AIdf'])
-    # might have trouble with 50 headlines
-    pages = paginate_df(aidf[["id", "summary"]], maxpagelen=20)
+    tmpdf = aidf[['id', 'title', 'summary']]
+    tmpdf["summary"] = tmpdf["title"] + "\n" + tmpdf["summary"]
+    # seems to have had trouble with 50 headlines
+    pages = paginate_df(tmpdf[["id", "summary"]], maxpagelen=20)
 
     # apply topic extraction prompt to AI headlines
     log(f"start free-form topic extraction using {MODEL}")
-    topic_results = asyncio.run(process_dataframes(
+    topic_results = sprocess_dataframes(
         dataframes=pages,
         input_prompt=TOPIC_PROMPT,
         output_class=TopicSpecList,
-        model=ChatOpenAI(model=MODEL, request_timeout=REQUEST_TIMEOUT),
+        model=model_medium,
         item_list_field="items",
         item_id_field="id"
-    ))
+    )
     topics_df = pd.DataFrame([[item.id, item.extracted_topics] for item in topic_results], columns=[
         "id", "extracted_topics"])
     log(f"{len(topics_df)} free-form topics extracted")
@@ -784,8 +802,7 @@ def fn_topic_clusters(state: AgentState) -> AgentState:
                     tmpdf,
                     TOPIC_WRITER_PROMPT,
                     TopicHeadline,
-                    model=ChatOpenAI(model=LOWCOST_MODEL,
-                                     request_timeout=REQUEST_TIMEOUT),
+                    model=model_low,
                 ))
                 cluster_topic = response.topic_title
                 state["cluster_topics"].append(cluster_topic)
@@ -952,7 +969,7 @@ def fn_propose_cats(state: AgentState) -> AgentState:
         pages,
         TOP_CATEGORIES_PROMPT,
         TopicCategoryList,
-        model=ChatOpenAI(model=HIGHCOST_MODEL),
+        model=model_high,
     ))
     state["cluster_topics"].extend(response)
     state["topics_str"] = '\n'.join(state['cluster_topics'])
@@ -965,7 +982,7 @@ def fn_propose_cats(state: AgentState) -> AgentState:
         [pd.DataFrame(state["cluster_topics"], columns=['topics'])],
         TOPIC_REWRITE_PROMPT,
         TopicCategoryList,
-        model=ChatOpenAI(model=HIGHCOST_MODEL)))
+        model=model_high))
 
     state["cluster_topics"] = response
     state["topics_str"] = '\n'.join(state['cluster_topics'])
@@ -996,25 +1013,10 @@ def fn_compose_summary(state: AgentState) -> AgentState:
     # check that actual prompt matches the template
     # print(FINAL_SUMMARY_PROMPT.format(cat_str=cat_str, bullet_str=bullet_str))
 
-    # prompt_template = ChatPromptTemplate.from_template(FINAL_SUMMARY_PROMPT)
-    # parser = StrOutputParser()
-    # openai_model = ChatOpenAI(model="o3-mini", reasoning_effort="high")
-    # ochain = prompt_template | openai_model | parser
-    # response = ochain.invoke(cat_str=cat_str, bullet_str=bullet_str)
-
-    client = OpenAI()
-    response = client.chat.completions.create(
-        model=HIGHCOST_MODEL,
-        reasoning_effort="high",
-        messages=[
-            {
-                "role": "user",
-                "content": FINAL_SUMMARY_PROMPT.format(cat_str=cat_str, bullet_str=bullet_str)
-            }
-        ]
-    )
-
-    state["summary"] = response.choices[0].message.content
+    prompt_template = ChatPromptTemplate.from_template(FINAL_SUMMARY_PROMPT)
+    ochain = prompt_template | model_high | StrOutputParser()
+    response = ochain.invoke(dict(cat_str=cat_str, bullet_str=bullet_str))
+    state["summary"] = response
     # save bullet_str to local file
     try:
         filename = 'summary.md'
@@ -1032,24 +1034,11 @@ def fn_rewrite_summary(state: AgentState) -> AgentState:
 
     log(f"Rewriting summary using {HIGHCOST_MODEL}")
 
-    # prompt_template = ChatPromptTemplate.from_template(REWRITE_PROMPT)
-    # parser = StrOutputParser()
+    prompt_template = ChatPromptTemplate.from_template(REWRITE_PROMPT)
     # openai_model = ChatOpenAI(model="o3-mini", reasoning_effort="high")
-    # ochain = prompt_template | openai_model | parser
-    # response = ochain.invoke(summary=state["summary"])
+    ochain = prompt_template | model_high | StrOutputParser()
+    response_str = ochain.invoke({'summary': state["summary"]})
 
-    client = OpenAI()
-    response = client.chat.completions.create(
-        model=HIGHCOST_MODEL,
-        reasoning_effort="high",
-        messages=[
-            {
-                "role": "user",
-                "content": REWRITE_PROMPT.format(summary=state["summary"])
-            }
-        ]
-    )
-    response_str = response.choices[0].message.content
     state["n_edits"] += 1
     if response_str.strip().lower().startswith('ok'):
         log("No edits made, edit complete")
