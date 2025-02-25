@@ -40,7 +40,7 @@ from langchain_core.prompts import (ChatPromptTemplate,)
 # SystemMessagePromptTemplate, HumanMessagePromptTemplate)
 
 from ainb_utilities import log
-from ainb_const import (LOWCOST_MODEL, BASEMODEL, MODEL, MAX_INPUT_TOKENS, REQUEST_TIMEOUT,
+from ainb_const import (MAX_INPUT_TOKENS,
                         CANONICAL_TOPIC_PROMPT,
                         SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT)
 
@@ -129,13 +129,13 @@ def count_tokens(s):
         int: The number of tokens in the input string.
     """
     # no tokeniser returned yet for gpt-4o-2024-05-13
-    enc = tiktoken.encoding_for_model(BASEMODEL)
+    enc = tiktoken.encoding_for_model('gpt-4o')
     # enc = tiktoken.get_encoding('o200k_base')
     assert enc.decode(enc.encode("hello world")) == "hello world"
     return len(enc.encode(s))
 
 
-def trunc_tokens(long_prompt, model=BASEMODEL, maxtokens=MAX_INPUT_TOKENS):
+def trunc_tokens(long_prompt, model='gpt-4o', maxtokens=MAX_INPUT_TOKENS):
     """return prompt string, truncated to maxtokens"""
     # Initialize the encoding for the model you are using, e.g., 'gpt-4'
     encoding = tiktoken.encoding_for_model(model)
@@ -230,8 +230,7 @@ async def async_langchain(chain, input_dict, name=""):
 def filter_page(input_df: pd.DataFrame,
                 input_prompt: str,
                 output_class: Type[T],
-                model: ChatOpenAI = ChatOpenAI(
-                    model=LOWCOST_MODEL, request_timeout=REQUEST_TIMEOUT),
+                model: ChatOpenAI,
                 input_vars: Dict[str, Any] = None
                 ) -> T:
     """
@@ -270,8 +269,7 @@ async def filter_page_async(
     input_df: pd.DataFrame,
     input_prompt: str,
     output_class: Type[T],
-    model: ChatOpenAI = ChatOpenAI(
-        model=LOWCOST_MODEL, request_timeout=REQUEST_TIMEOUT),
+    model: ChatOpenAI,
     input_vars: Dict[str, Any] = None,
 ) -> T:
     """
@@ -314,8 +312,7 @@ async def filter_page_async_id(
     input_df: pd.DataFrame,
     input_prompt: str,
     output_class: Type[T],
-    model: ChatOpenAI = ChatOpenAI(
-        model=LOWCOST_MODEL, request_timeout=REQUEST_TIMEOUT),
+    model: ChatOpenAI,
     input_vars: Dict[str, Any] = None,
     item_list_field: str = "items",
     item_id_field: str = "id",
@@ -368,12 +365,11 @@ async def filter_page_async_id(
 async def process_dataframes(dataframes: List[pd.DataFrame],
                              input_prompt: str,
                              output_class: Type[T],
-                             model: ChatOpenAI = ChatOpenAI(
-    model=LOWCOST_MODEL, request_timeout=REQUEST_TIMEOUT),
-    input_vars: Dict[str, Any] = None,
-    item_list_field: str = "items",
-    item_id_field: str = "",
-) -> T:
+                             model: ChatOpenAI,
+                             input_vars: Dict[str, Any] = None,
+                             item_list_field: str = "items",
+                             item_id_field: str = "",
+                             ) -> T:
     """
     Process multiple dataframes asynchronously.
     if item_list_field is provided, flatten the results
@@ -501,11 +497,11 @@ def clean_html(path: Path | str) -> str:
 
         visible_text = title_str + og_title + og_desc + plaintext
         visible_text = trunc_tokens(
-            visible_text, model=MODEL, maxtokens=MAX_INPUT_TOKENS)
+            visible_text, model='gpt-4o', maxtokens=MAX_INPUT_TOKENS)
         return visible_text
 
 
-async def fetch_all_summaries(aidf):
+async def fetch_all_summaries(aidf, model):
     """
     Fetch summaries for all articles in the AIdf DataFrame.
 
@@ -537,9 +533,8 @@ async def fetch_all_summaries(aidf):
          ("user", SUMMARIZE_USER_PROMPT)]
     )
 
-    openai_model = ChatOpenAI(model=MODEL, request_timeout=REQUEST_TIMEOUT)
     parser = StrOutputParser()
-    chain = prompt_template | openai_model | parser
+    chain = prompt_template | model | parser
 
     for row in aidf.itertuples():
         path, rowid = row.path, row.id
@@ -552,23 +547,22 @@ async def fetch_all_summaries(aidf):
     return responses
 
 
-async def get_canonical_topic_results(pages, topic):
+async def get_canonical_topic_results(pages, topic, model_low):
     """call CANONICAL_TOPIC_PROMPT on pages for a single topic"""
     retval = await process_dataframes(dataframes=pages,
                                       input_prompt=CANONICAL_TOPIC_PROMPT,
                                       output_class=CanonicalTopicSpecList,
-                                      model=ChatOpenAI(
-                                          model=LOWCOST_MODEL, request_timeout=REQUEST_TIMEOUT),
+                                      model=model_low,
                                       input_vars={'topic': topic})
     return topic, retval
 
 
-async def get_all_canonical_topic_results(pages, topics):
+async def get_all_canonical_topic_results(pages, topics, model_medium):
     """call all topics on pages"""
     tasks = []
     for topic in topics:
         log(f"Canonical topic {topic}")
-        tasks.append(get_canonical_topic_results(pages, topic))
+        tasks.append(get_canonical_topic_results(pages, topic, model_medium))
     log(f"Sending prompt for {len(tasks)} canonical topics")
     results = await asyncio.gather(*tasks)
     return results
@@ -603,12 +597,11 @@ def clean_topics(row, lcategories):
 def sprocess_dataframes(dataframes: List[pd.DataFrame],
                         input_prompt: str,
                         output_class: Type[T],
-                        model: ChatOpenAI = ChatOpenAI(
-    model=LOWCOST_MODEL),
-    input_vars: Dict[str, Any] = None,
-    item_list_field: str = "items",
-    item_id_field: str = "",
-) -> T:
+                        model: ChatOpenAI,
+                        input_vars: Dict[str, Any] = None,
+                        item_list_field: str = "items",
+                        item_id_field: str = "",
+                        ) -> T:
     """
     Process multiple dataframes asynchronously.
     if item_list_field is provided, flatten the results
@@ -666,7 +659,7 @@ def sfilter_page_async(
     input_df: pd.DataFrame,
     input_prompt: str,
     output_class: Type[T],
-    model: ChatOpenAI = ChatOpenAI(model=LOWCOST_MODEL),
+    model: ChatOpenAI,
     input_vars: Dict[str, Any] = None,
 ) -> T:
     """
@@ -702,7 +695,7 @@ def sfilter_page_async_id(
     input_df: pd.DataFrame,
     input_prompt: str,
     output_class: Type[T],
-    model: ChatOpenAI = ChatOpenAI(model=LOWCOST_MODEL),
+    model: ChatOpenAI,
     input_vars: Dict[str, Any] = None,
     item_list_field: str = "items",
     item_id_field: str = "id",

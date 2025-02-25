@@ -67,7 +67,7 @@ from ainb_utilities import (log, delete_files, filter_unseen_urls_db, insert_art
                             nearest_neighbor_sort, send_gmail, unicode_to_ascii)
 
 from ainb_const import (DOWNLOAD_DIR, PAGES_DIR,
-                        MODEL, LOWCOST_MODEL, HIGHCOST_MODEL, CANONICAL_TOPICS,
+                        CANONICAL_TOPICS,
                         SOURCECONFIG, FILTER_PROMPT, TOPIC_PROMPT, TOPIC_WRITER_PROMPT,
                         FINAL_SUMMARY_PROMPT,
                         TOP_CATEGORIES_PROMPT, TOPIC_REWRITE_PROMPT, REWRITE_PROMPT,
@@ -152,16 +152,28 @@ newscatcher_sources = ['247wallst.com',
                        'yahoo.com',
                        'zdnet.com']
 
-BROWSERS = []
-model_low = ChatOpenAI(model=LOWCOST_MODEL, request_timeout=REQUEST_TIMEOUT)
-model_medium = ChatOpenAI(model=MODEL, request_timeout=REQUEST_TIMEOUT)
-model_high = ChatOpenAI(model=HIGHCOST_MODEL, request_timeout=REQUEST_TIMEOUT)
 
 model_family = {'gpt-4o-2024-11-20': 'openai',
                 'gpt-4o-mini': 'openai',
                 'o3-mini': 'openai',
-
+                'models/gemini-2.0-flash-thinking-exp': 'google',
+                'models/gemini-2.0-pro-exp': 'google',
+                'models/gemini-2.0-flash': 'google',
                 }
+
+
+def get_model(model_name):
+    """get langchain model based on model_name"""
+    if model_name in model_family:
+        model_type = model_family[model_name]
+        if model_type == 'openai':
+            return ChatOpenAI(model=model_name, request_timeout=REQUEST_TIMEOUT)
+        elif model_type == 'google':
+            return ChatGoogleGenerativeAI(model=model_name, request_timeout=REQUEST_TIMEOUT)
+    else:
+        log(f"Unknown model {model_name}")
+        return None
+
 # print(f"Python            {sys.version}")
 # print(f"LangChain         {langchain.__version__}")
 # print(f"OpenAI            {openai.__version__}")
@@ -235,14 +247,14 @@ def fn_initialize(state: AgentState) -> AgentState:
     return state
 
 
-def fn_download_sources(state: AgentState) -> AgentState:
+def fn_download_sources(state: AgentState, BROWSERS: any) -> AgentState:
     """
     Scrapes sources and saves HTML files.
     If state["do_download"] is True, deletes all files in DOWNLOAD_DIR (htmldata) and scrapes fresh copies.
     If state["do_download"] is False, uses existing files in DOWNLOAD_DIR.
     Uses state["sources"] for config info on sources to scrape
     For each source, saves the current filename to state["sources"][sourcename]['latest']
-
+    jina or firecrawl might be better for this
     Args:
         state (AgentState): The current state of the agent.
         do_delete (bool, optional): Whether to delete files in DOWNLOAD_DIR. Defaults to True.
@@ -267,8 +279,7 @@ def fn_download_sources(state: AgentState) -> AgentState:
         # create a closure to download urls in queue asynchronously
         closure = process_source_queue_factory(queue)
 
-        global BROWSERS
-        if 'BROWSERS' not in globals() or len(BROWSERS) < NUM_BROWSERS:
+        if len(BROWSERS) < NUM_BROWSERS:
             BROWSERS = asyncio.run(get_browsers(NUM_BROWSERS))
 
         with ThreadPoolExecutor(max_workers=NUM_BROWSERS) as executor:
@@ -484,7 +495,7 @@ def fn_extract_newsapi(state: AgentState) -> AgentState:
     return state
 
 
-def fn_filter_urls(state: AgentState) -> AgentState:
+def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
     """
     Filters the URLs in state["AIdf"] to include only those that have not been previously seen,
     and are related to AI according to the response from a ChatGPT prompt.
@@ -599,7 +610,7 @@ def fn_filter_urls(state: AgentState) -> AgentState:
         log(f"Asking OpenAI for {missing_site_names} missing site names")
         responses = asyncio.run(process_dataframes(paginate_df(aidf[["url"]]),
                                                    SITE_NAME_PROMPT,
-                                                   Sites))
+                                                   Sites, model=model_low))
         # update site_dict from responses
         new_urls = []
         for r in responses:
@@ -646,7 +657,7 @@ def make_bullet(row, include_topics=True):
     return f"[{title} - {site_name}]({actual_url}){topic_str}{summary}\n\n"
 
 
-def fn_topic_analysis(state: AgentState) -> AgentState:
+def fn_topic_analysis(state: AgentState, model_medium: any) -> AgentState:
     """
     Extracts and selects topics for each headline in the state['AIdf'] dataframe, scrubs them, and stores them back in the dataframe.
 
@@ -663,13 +674,13 @@ def fn_topic_analysis(state: AgentState) -> AgentState:
     # with duplicates across categories, ask the prompt to dedupe
 
     aidf = pd.DataFrame(state['AIdf'])
-    tmpdf = aidf[['id', 'title', 'summary']]
+    tmpdf = aidf[['id', 'title', 'summary']].copy()
     tmpdf["summary"] = tmpdf["title"] + "\n" + tmpdf["summary"]
     # seems to have had trouble with 50 headlines
     pages = paginate_df(tmpdf[["id", "summary"]], maxpagelen=20)
 
     # apply topic extraction prompt to AI headlines
-    log(f"start free-form topic extraction using {MODEL}")
+    log(f"start free-form topic extraction using {str(type(model_medium))}")
     topic_results = sprocess_dataframes(
         dataframes=pages,
         input_prompt=TOPIC_PROMPT,
@@ -694,9 +705,9 @@ def fn_topic_analysis(state: AgentState) -> AgentState:
     lcategories = set([c.lower() for c in categories] +
                       [c.lower() for c in filtered_topics])
 
-    log(f"Starting assigned topic extraction using {LOWCOST_MODEL}")
+    log(f"Starting assigned topic extraction using {str(type(model_medium))}")
     assigned_topics = asyncio.run(
-        get_all_canonical_topic_results(pages, lcategories))
+        get_all_canonical_topic_results(pages, lcategories, model_medium))
     ctr_dict = defaultdict(list)
 
     for (topic, relevant_list) in assigned_topics:
@@ -740,7 +751,7 @@ def fn_topic_analysis(state: AgentState) -> AgentState:
 #     return state
 
 
-def fn_topic_clusters(state: AgentState) -> AgentState:
+def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
     """
     Fetches embeddings for the headlines, creates clusters of similar articles using DBSCAN, and sorts
     using the clusters and a traveling salesman shortest traversal in embedding space.
@@ -870,7 +881,7 @@ def fn_topic_clusters(state: AgentState) -> AgentState:
 
 
 # scrape individual pages
-def fn_download_pages(state: AgentState) -> AgentState:
+def fn_download_pages(state: AgentState, BROWSERS: any) -> AgentState:
     """
     Uses several Selenium browser sessions to download all the pages referenced in the
     state["AIdf"] DataFrame and store their pathnames.
@@ -894,8 +905,7 @@ def fn_download_pages(state: AgentState) -> AgentState:
     # scrape urls in queue asynchronously
     closure = process_url_queue_factory(queue)
 
-    global BROWSERS
-    if 'BROWSERS' not in globals() or len(BROWSERS) < NUM_BROWSERS:
+    if len(BROWSERS) < NUM_BROWSERS:
         BROWSERS = asyncio.run(get_browsers(NUM_BROWSERS))
 
     with ThreadPoolExecutor(max_workers=NUM_BROWSERS) as executor:
@@ -927,7 +937,7 @@ def fn_download_pages(state: AgentState) -> AgentState:
     return state
 
 
-def fn_summarize_pages(state: AgentState) -> AgentState:
+def fn_summarize_pages(state: AgentState, model_medium) -> AgentState:
     """
     Reads all the articles, summarizes each one using a ChatGPT prompt, and sends an email with the summaries.
 
@@ -940,7 +950,7 @@ def fn_summarize_pages(state: AgentState) -> AgentState:
     """
     log("Starting summarize")
     aidf = pd.DataFrame(state['AIdf'])
-    responses = asyncio.run(fetch_all_summaries(aidf))
+    responses = asyncio.run(fetch_all_summaries(aidf, model=model_medium))
     log(f"Received {len(responses)} summaries")
     response_dict = {}
     for response, i in responses:
@@ -952,11 +962,11 @@ def fn_summarize_pages(state: AgentState) -> AgentState:
     return state
 
 
-def fn_propose_cats(state: AgentState) -> AgentState:
+def fn_propose_cats(state: AgentState, model_high: any) -> AgentState:
     """
     ask LLM to analyze for top categories
     """
-    log(f"Proposing categories using {HIGHCOST_MODEL}")
+    log(f"Proposing categories using {str(type(model_high))}")
 
     aidf = pd.DataFrame(state["AIdf"])
     # state["cluster_topics"] should already have cluster names
@@ -974,7 +984,7 @@ def fn_propose_cats(state: AgentState) -> AgentState:
     state["cluster_topics"].extend(response)
     state["topics_str"] = '\n'.join(state['cluster_topics'])
     log(
-        f"Added cluster topics using {HIGHCOST_MODEL}: \n{state['topics_str']}"
+        f"Added cluster topics using {str(type(model_high))}: \n{state['topics_str']}"
     )
 
     # deduplicate and edit topics
@@ -987,7 +997,7 @@ def fn_propose_cats(state: AgentState) -> AgentState:
     state["cluster_topics"] = response
     state["topics_str"] = '\n'.join(state['cluster_topics'])
     log(
-        f"Final edited cluster topics using {HIGHCOST_MODEL}:\n{state['topics_str']}"
+        f"Final edited cluster topics using {str(type(model_high))}:\n{state['topics_str']}"
     )
 
     # save topics to local file
@@ -1002,10 +1012,10 @@ def fn_propose_cats(state: AgentState) -> AgentState:
     return state
 
 
-def fn_compose_summary(state: AgentState) -> AgentState:
+def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
     """Compose summary using FINAL_SUMMARY_PROMPT"""
 
-    log(f"Composing summary using {HIGHCOST_MODEL}")
+    log(f"Composing summary using {str(type(model_high))}")
     aidf = pd.DataFrame(state["AIdf"])
     bullet_str = "\n~~~\n".join(aidf['bullet'])
     cat_str = state['topics_str']
@@ -1029,10 +1039,10 @@ def fn_compose_summary(state: AgentState) -> AgentState:
     return state
 
 
-def fn_rewrite_summary(state: AgentState) -> AgentState:
+def fn_rewrite_summary(state: AgentState, model_high) -> AgentState:
     """Edit summary using REWRITE_PROMPT"""
 
-    log(f"Rewriting summary using {HIGHCOST_MODEL}")
+    log(f"Rewriting summary using {str(type(model_high))}")
 
     prompt_template = ChatPromptTemplate.from_template(REWRITE_PROMPT)
     # openai_model = ChatOpenAI(model="o3-mini", reasoning_effort="high")
@@ -1084,9 +1094,14 @@ def fn_send_mail(state: AgentState) -> AgentState:
 class Agent:
     """Langraph Agent class"""
 
-    def __init__(self, state):
+    def __init__(self, state, model_low, model_medium, model_high):
         """set up state graph and memory"""
         self.state = state
+
+        self.BROWSERS = []
+        self.model_low = get_model(model_low)
+        self.model_medium = get_model(model_medium)
+        self.model_high = get_model(model_high)
 
         graph_builder = StateGraph(AgentState)
         graph_builder.add_node("initialize", self.initialize)
@@ -1143,7 +1158,7 @@ class Agent:
 
     def download_sources(self, state: AgentState) -> AgentState:
         """download sources or load exisitng sources"""
-        self.state = fn_download_sources(state)
+        self.state = fn_download_sources(state, self.BROWSERS)
         return self.state
 
     def extract_web_urls(self, state: AgentState) -> AgentState:
@@ -1174,42 +1189,42 @@ class Agent:
 
     def filter_urls(self, state: AgentState) -> AgentState:
         """filter to previously unseen urls and AI-related headlines only"""
-        self.state = fn_filter_urls(state)
+        self.state = fn_filter_urls(state, self.model_low)
         return self.state
 
     def topic_analysis(self, state: AgentState) -> AgentState:
         """extract and assign topics for each headline"""
-        self.state = fn_topic_analysis(state)
+        self.state = fn_topic_analysis(state, self.model_medium)
         return self.state
 
     def topic_clusters(self, state: AgentState) -> AgentState:
         """identify clusters of similar stores"""
-        self.state = fn_topic_clusters(state)
+        self.state = fn_topic_clusters(state, self.model_low)
         return self.state
 
     def download_pages(self, state: AgentState) -> AgentState:
         """download individual news pages and save text"""
-        self.state = fn_download_pages(state)
+        self.state = fn_download_pages(state, self.BROWSERS)
         return self.state
 
     def summarize_pages(self, state: AgentState) -> AgentState:
         """summarize each page into bullet points"""
-        self.state = fn_summarize_pages(state)
+        self.state = fn_summarize_pages(state, self.model_medium)
         return self.state
 
     def propose_topics(self, state: AgentState) -> AgentState:
         """use LLM to identify most popular and important topics"""
-        self.state = fn_propose_cats(state)
+        self.state = fn_propose_cats(state, self.model_high)
         return self.state
 
     def compose_summary(self, state: AgentState) -> AgentState:
         """compose the first draft of the summary using bullets and topics"""
-        self.state = fn_compose_summary(state)
+        self.state = fn_compose_summary(state, self.model_high)
         return self.state
 
     def rewrite_summary(self, state: AgentState) -> AgentState:
         """edit the summary, combine and sharpen items, add and improve titles"""
-        self.state = fn_rewrite_summary(state)
+        self.state = fn_rewrite_summary(state, self.model_high)
         return self.state
 
     def is_revision_complete(self, state: AgentState) -> str:
@@ -1249,7 +1264,7 @@ class Agent:
         return self.state
 
 
-def initialize_agent(do_download, before_date):
+def initialize_agent(do_download, before_date, model_low, model_medium, model_high):
     """set initial state"""
     state = AgentState({
         'AIdf': [{}],
@@ -1267,7 +1282,7 @@ def initialize_agent(do_download, before_date):
     thread_id = uuid.uuid4().hex
     log(f"Initializing with before_date={state.get('before_date')}, do_download={do_download}, thread_id={thread_id}"
         )
-    return state, Agent(state), thread_id
+    return state, Agent(state, model_low, model_medium, model_high), thread_id
 
 
 if __name__ == "__main__":
@@ -1281,6 +1296,12 @@ if __name__ == "__main__":
                         help='Number of browser instances to run in parallel (default: 4)')
     parser.add_argument('-e', '--max-edits', type=int, default=1,
                         help='Maximum number of summary rewrites')
+    parser.add_argument('-l', '--model-low', type=str, default='gpt-4o-mini',
+                        help='Model (low cost)')
+    parser.add_argument('-m', '--model-medium', type=str, default='gpt-4o-2024-11-20',
+                        help='Model (medium cost)')
+    parser.add_argument('-h', '--model-high', type=str, default='o3-mini',
+                        help='Model (high cost)')
     args = parser.parse_args()
 
     do_download = not args.nofetch
@@ -1289,7 +1310,8 @@ if __name__ == "__main__":
     MAX_EDITS = args.max_edits
     log(f"Starting AInewsbot with do_download={do_download}, before_date='{before_date}', N_BROWSERS={N_BROWSERS}, MAX_EDITS={N_BROWSERS}")
 
-    lg_state, lg_agent, thread_id = initialize_agent(do_download, before_date)
+    lg_state, lg_agent, thread_id = initialize_agent(
+        do_download, before_date, args.model_low, args.model_medium, args.model_high)
     log(f"thread_id: {thread_id}")
     # save in case we want to get the last state from Sqlite and inpsect or resume in Jupyter
     with open('thread_id.txt', 'w', encoding="utf-8") as file:

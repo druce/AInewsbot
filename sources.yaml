@@ -29,6 +29,8 @@ Feedly AI:
   title: Feedly AI
   url: https://feedly.com/i/aiFeeds?options=eyJsYXllcnMiOlt7InBhcnRzIjpbeyJpZCI6Im5scC9mL3RvcGljLzMwMDAifV0sInNlYXJjaEhpbnQiOiJ0ZWNobm9sb2d5IiwidHlwZSI6Im1hdGNoZXMiLCJzYWxpZW5jZSI6ImFib3V0In1dLCJidW5kbGVzIjpbeyJ0eXBlIjoic3RyZWFtIiwiaWQiOiJ1c2VyLzYyZWViYjlmLTcxNTEtNGY5YS1hOGM3LTlhNTdiODIwNTMwOC9jYXRlZ29yeS9HYWRnZXRzIn1dfQ
 # Google News:  # started blocking more effectively
+# should try to search news for 'artificial intelligence' with the google API https://proxiesapi.com/articles/fetching-news-articles-with-the-google-news-api-and-python
+# Google News AI:
 #   click: //*[@aria-label="Artificial intelligence"]
 #   include:
 #   - ^https://news.google.com/read/

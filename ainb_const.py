@@ -31,10 +31,7 @@ BROWSERS = []
 
 SQLITE_DB = 'articles.db'
 
-BASEMODEL = 'gpt-4o'  # tiktoken doesn't always map latest model
-MODEL = 'gpt-4o-2024-11-20'
-LOWCOST_MODEL = 'gpt-4o-mini'
-HIGHCOST_MODEL = 'o3-mini'
+# note that token count may not be accurate for eg google, anthropic
 
 MAX_INPUT_TOKENS = 8192     # includes text of all headlines
 MAX_OUTPUT_TOKENS = 4096    # max in current model
