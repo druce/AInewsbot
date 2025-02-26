@@ -1,8 +1,11 @@
-# Description: Constants, including configs and prompts for AInewsbot project
+"""Description: Constants, including configs and prompts for AInewsbot project"""
 import os
 import dotenv
 dotenv.load_dotenv()
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+
 REQUEST_TIMEOUT = 120
 
 DOWNLOAD_DIR = "htmldata"
@@ -252,6 +255,7 @@ Site descriptions or "About Us" content
 Output Format:
 
 Present the summary in 1-3 concise bullet points using Markdown format (•)
+Return bullet points only without introduction or additional commentary
 Each bullet point should capture a distinct main idea
 Keep language clear and direct
 Include only factual information from the article
@@ -260,10 +264,9 @@ If no substantive news content is found, provide a single bullet point stating '
 Special Instructions:
 
 Focus on the most newsworthy elements
-Maintain journalistic objectivity
-Preserve the original meaning without editorializing
-Ensure accuracy in fact representation
-Prioritize recent developments over historical context
+Preserve the original meaning without additional editorial comment
+Ensure accuracy and neutrality
+Prioritize recent developments over background and context
 
 """
 
@@ -307,7 +310,7 @@ to create an appropriate overarching title for the group:
 
 """
 
-# TODO: more examples, with < 5 examples it tends to output the examples
+# TODO: more examples, with < 5 examples some models tend to output the examples
 
 TOP_CATEGORIES_PROMPT = """You are a specialized news analysis assistant focused on identifying and
 categorizing the day's top news stories and trends. Your task is to analyze provided
@@ -565,14 +568,18 @@ are needed.
 Instructions:
 Do not include ```markdown. Output raw markdown.
 Remove any text which is not news content, such as instructions, comments, informational alerts about processing.
+Remove stories that are not relevant to the newsletter's focus on AI.
+Remove stories that are clickbait spam, using superlatives and exaggerated claims without news substance.
+Remove stories that are speculative opinions without factual basis, like "2 magnificent AI stocks to hold forever".
 For each bullet point, make it as concise as possible, sticking to facts without editorial comment.
 For each section, combine any bullet points which are highly duplicative into a summary bullet point with multiple hyperlinks.
 You may remove bullet points but you may not modify URLs.
 For each section, review and edit the section title.
 The section title should be snappy, punchy, clever, possibly alliterative or punny.
 The section title must be short, engaging, and as consistent with the bullets in the section as possible.
-Remove sections which are devoid of news content. Check carefully to ensure there are no comments on the content or composition of the newsletter.
-At the top of the newsletter add an overall title synthesizing several top news items.
+Remove sections which are devoid of news content.
+Check carefully to ensure there are no comments on the content or composition of the newsletter.
+At the top of the newsletter ensure there is an overall title synthesizing the day's top news themes.
 Respond with the updated newsletter only in markdown format, or the word 'OK' if no changes are needed.
 
 Newsletter to edit:

@@ -189,13 +189,6 @@ def paginate_df(input_df: pd.DataFrame,
     return paginated_dfs
 
 
-def should_retry_exception(exception):
-    """Determine if the exception should trigger a retry. (always retry)"""
-    print(type(exception))
-    print(exception)
-    return True
-
-
 ##############################################################################
 # basic langchain call async function with decorators
 ##############################################################################
@@ -207,20 +200,27 @@ def should_retry_exception(exception):
 # @sleep_and_retry
 # @limits(calls=CALLS_PER_MINUTE, period=60)
 
-
 @retry(
     stop=stop_after_attempt(8),  # Maximum 8 attempts
     # Wait 2^x * multiplier seconds between retries
     wait=wait_exponential(multiplier=1, min=2, max=128),
-    retry=retry_if_exception_type(should_retry_exception),
+    retry=retry_if_exception_type(Exception),
     before_sleep=lambda retry_state: log(
-        f"Retrying after {retry_state.outcome.exception()}, attempt {retry_state.attempt_number}")
+        f"Attempt {retry_state.attempt_number}: {retry_state.outcome.exception()}, tag: {retry_state.args[1].get('tag', '')}")
 )
-async def async_langchain(chain, input_dict, name=""):
+async def async_langchain(chain, input_dict, tag="", verbose=False):
     #     async with sem:
-    """call langchain asynchronously with ainvoke"""
+    """call langchain asynchronously with ainvoke
+    includes a reference tag
+    so if we gather 100 responses we can match them up with the input, retry if needed"""
+    verbose = True
+    if verbose:
+        print(f"async_langchain: {tag}")
+    # Call the chain asynchronously
     response = await chain.ainvoke(input_dict)
-    return response, name
+    if verbose:
+        print(f"async_langchain: {tag} response: {response}")
+    return response, tag
 
 
 ##############################################################################
@@ -261,7 +261,7 @@ def filter_page(input_df: pd.DataFrame,
     stop=stop_after_attempt(8),  # Maximum 8 attempts
     # Wait 2^x * multiplier seconds between retries
     wait=wait_exponential(multiplier=1, min=2, max=128),
-    retry=retry_if_exception_type(should_retry_exception),
+    retry=retry_if_exception_type(Exception),
     before_sleep=lambda retry_state: log(
         f"Retrying after {retry_state.outcome.exception()}, attempt {retry_state.attempt_number}")
 )
@@ -304,7 +304,7 @@ async def filter_page_async(
     stop=stop_after_attempt(8),  # Maximum 8 attempts
     # Wait 2^x * multiplier seconds between retries
     wait=wait_exponential(multiplier=1, min=2, max=128),
-    retry=retry_if_exception_type(should_retry_exception),
+    retry=retry_if_exception_type(Exception),
     before_sleep=lambda retry_state: log(
         f"Retrying after {retry_state.outcome.exception()}, attempt {retry_state.attempt_number}")
 )
@@ -460,7 +460,7 @@ def clean_html(path: Path | str) -> str:
             title_str = "Page title: " + title_tag.string.strip() + \
                 "\n" if title_tag and title_tag.string else ""
         except Exception as exc:
-            log(str(exc), "fetch_all_summaries page_title")
+            log(str(exc), "clean_html page_title")
 
         try:
             # Try to get the title from the Open Graph meta tag
@@ -472,7 +472,7 @@ def clean_html(path: Path | str) -> str:
             ) + "\n" if og_title_tag and og_title_tag.get("content") else ""
             og_title = "Social card title: " + og_title if og_title else ""
         except Exception as exc:
-            log(str(exc), "fetch_all_summaries og_title")
+            log(str(exc), "clean_html og_title")
 
         try:
             # get summary from social media cards
@@ -484,16 +484,16 @@ def clean_html(path: Path | str) -> str:
             og_desc = og_desc_tag["content"] + "\n" if og_desc_tag else ""
             og_desc = 'Social card description: ' + og_desc if og_desc else ""
         except Exception as exc:
-            log(str(exc), "fetch_all_summaries og_desc")
+            log(str(exc), "clean_html og_desc")
 
         # Get text and strip leading/trailing whitespace
-        log(title_str + og_title + og_desc, "fetch_all_summaries")
+        log(title_str + og_title + og_desc, "clean_html")
         plaintext = ""
         try:
             plaintext = trafilatura.extract(html_content)
             plaintext = plaintext.strip() if plaintext else ""
         except Exception as exc:
-            log(str(exc), "fetch_all_summaries trafilatura")
+            log(str(exc), "clean_html trafilatura")
 
         visible_text = title_str + og_title + og_desc + plaintext
         visible_text = trunc_tokens(
@@ -526,6 +526,7 @@ async def fetch_all_summaries(aidf, model):
     get the column names, apply function if provided, apply template using those names
 
     """
+    log("Fetching summaries for all articles")
     tasks = []
 
     prompt_template = ChatPromptTemplate.from_messages(
@@ -539,11 +540,18 @@ async def fetch_all_summaries(aidf, model):
     for row in aidf.itertuples():
         path, rowid = row.path, row.id
         article_str = clean_html(path)
+        log(f"Queuing {rowid}: {article_str[:50]}...")
         task = asyncio.create_task(async_langchain(
-            chain, {"article": article_str}, name=rowid))
+            chain, {"article": article_str}, tag=rowid))
         tasks.append(task)
 
-    responses = await asyncio.gather(*tasks)
+    try:
+        responses = await asyncio.gather(*tasks)
+    except Exception as e:
+        log(f"Error fetching summary: {str(e)}")
+    log(f"Received {len(responses)} summaries")
+    for summary, rowid in responses:
+        log(f"Summary for {rowid}: {summary}")
     return responses
 
 
@@ -722,11 +730,11 @@ def sfilter_page_async_id(
     if input_vars is not None:
         input_dict.update(input_vars)
     # print(input_prompt)
+
+    # Call the chain synchronously
     print(input_text)
-
-    # Call the chain asynchronously
     response = chain.invoke(input_dict)
-
+    print(response)
     # check ids in response
     if item_list_field:
         if hasattr(response, item_list_field):

@@ -56,7 +56,7 @@ from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
                       filter_page_async,
                       get_all_canonical_topic_results, clean_topics,
                       Stories, TopicSpecList, TopicHeadline, TopicCategoryList, Sites,
-                      sprocess_dataframes
+                      #   sprocess_dataframes, sfetch_all_summaries
                       )
 
 from ainb_webscrape import (get_browsers, parse_file,
@@ -247,7 +247,7 @@ def fn_initialize(state: AgentState) -> AgentState:
     return state
 
 
-def fn_download_sources(state: AgentState, BROWSERS: any) -> AgentState:
+def fn_download_sources(state: AgentState, BROWSERS: list) -> AgentState:
     """
     Scrapes sources and saves HTML files.
     If state["do_download"] is True, deletes all files in DOWNLOAD_DIR (htmldata) and scrapes fresh copies.
@@ -280,7 +280,7 @@ def fn_download_sources(state: AgentState, BROWSERS: any) -> AgentState:
         closure = process_source_queue_factory(queue)
 
         if len(BROWSERS) < NUM_BROWSERS:
-            BROWSERS = asyncio.run(get_browsers(NUM_BROWSERS))
+            BROWSERS.extend(asyncio.run(get_browsers(NUM_BROWSERS)))
 
         with ThreadPoolExecutor(max_workers=NUM_BROWSERS) as executor:
             # Create a list of future objects
@@ -538,7 +538,7 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
         .drop(columns=['id']) \
         .reset_index() \
         .rename(columns={'index': 'id'})
-    log(f"Found {len(aidf)} unique new headlines")
+    log(f"Found {len(aidf)} unique cleaned new headlines")
     # filter AI-related headlines using a prompt
     pagelist = paginate_df(aidf[["id", "title"]])
     results = asyncio.run(process_dataframes(
@@ -657,7 +657,7 @@ def make_bullet(row, include_topics=True):
     return f"[{title} - {site_name}]({actual_url}){topic_str}{summary}\n\n"
 
 
-def fn_topic_analysis(state: AgentState, model_medium: any) -> AgentState:
+def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
     """
     Extracts and selects topics for each headline in the state['AIdf'] dataframe, scrubs them, and stores them back in the dataframe.
 
@@ -680,15 +680,15 @@ def fn_topic_analysis(state: AgentState, model_medium: any) -> AgentState:
     pages = paginate_df(tmpdf[["id", "summary"]], maxpagelen=20)
 
     # apply topic extraction prompt to AI headlines
-    log(f"start free-form topic extraction using {str(type(model_medium))}")
-    topic_results = sprocess_dataframes(
+    log(f"start free-form topic extraction using {str(type(model_low))}")
+    topic_results = asyncio.run(process_dataframes(
         dataframes=pages,
         input_prompt=TOPIC_PROMPT,
         output_class=TopicSpecList,
-        model=model_medium,
+        model=model_low,
         item_list_field="items",
         item_id_field="id"
-    )
+    ))
     topics_df = pd.DataFrame([[item.id, item.extracted_topics] for item in topic_results], columns=[
         "id", "extracted_topics"])
     log(f"{len(topics_df)} free-form topics extracted")
@@ -705,9 +705,9 @@ def fn_topic_analysis(state: AgentState, model_medium: any) -> AgentState:
     lcategories = set([c.lower() for c in categories] +
                       [c.lower() for c in filtered_topics])
 
-    log(f"Starting assigned topic extraction using {str(type(model_medium))}")
+    log(f"Starting assigned topic extraction using {str(type(model_low))}")
     assigned_topics = asyncio.run(
-        get_all_canonical_topic_results(pages, lcategories, model_medium))
+        get_all_canonical_topic_results(pages, lcategories, model_low))
     ctr_dict = defaultdict(list)
 
     for (topic, relevant_list) in assigned_topics:
@@ -881,7 +881,7 @@ def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
 
 
 # scrape individual pages
-def fn_download_pages(state: AgentState, BROWSERS: any) -> AgentState:
+def fn_download_pages(state: AgentState, BROWSERS: list) -> AgentState:
     """
     Uses several Selenium browser sessions to download all the pages referenced in the
     state["AIdf"] DataFrame and store their pathnames.
@@ -906,7 +906,7 @@ def fn_download_pages(state: AgentState, BROWSERS: any) -> AgentState:
     closure = process_url_queue_factory(queue)
 
     if len(BROWSERS) < NUM_BROWSERS:
-        BROWSERS = asyncio.run(get_browsers(NUM_BROWSERS))
+        BROWSERS.extend(asyncio.run(get_browsers(NUM_BROWSERS)))
 
     with ThreadPoolExecutor(max_workers=NUM_BROWSERS) as executor:
         # Create a list of future objects
@@ -950,13 +950,19 @@ def fn_summarize_pages(state: AgentState, model_medium) -> AgentState:
     """
     log("Starting summarize")
     aidf = pd.DataFrame(state['AIdf'])
-    responses = asyncio.run(fetch_all_summaries(aidf, model=model_medium))
+    responses = []
+    try:
+        responses = asyncio.run(fetch_all_summaries(aidf, model=model_medium))
+        # responses = sfetch_all_summaries(aidf, model=model_medium)
+    except Exception as e:
+        log("Error fetching summaries")
+        print(e)
     log(f"Received {len(responses)} summaries")
     response_dict = {}
     for response, i in responses:
         response_dict[i] = response
 
-    aidf["summary"] = aidf["id"].apply(lambda rowid: response_dict[rowid])
+    aidf["summary"] = aidf["id"].apply(lambda rowid: response_dict.get(rowid))
     state['AIdf'] = aidf.to_dict(orient='records')
 
     return state
@@ -974,7 +980,7 @@ def fn_propose_cats(state: AgentState, model_high: any) -> AgentState:
     log(f"Initial cluster topics: \n{state['topics_str']}")
 
     # first extract free-form topics and add to cluster topics
-    pages = paginate_df(aidf[["bullet"]])
+    pages = paginate_df(aidf[["bullet"]], maxpagelen=100)
     response = asyncio.run(process_dataframes(
         pages,
         TOP_CATEGORIES_PROMPT,
@@ -1194,7 +1200,7 @@ class Agent:
 
     def topic_analysis(self, state: AgentState) -> AgentState:
         """extract and assign topics for each headline"""
-        self.state = fn_topic_analysis(state, self.model_medium)
+        self.state = fn_topic_analysis(state, self.model_low)
         return self.state
 
     def topic_clusters(self, state: AgentState) -> AgentState:
@@ -1204,7 +1210,9 @@ class Agent:
 
     def download_pages(self, state: AgentState) -> AgentState:
         """download individual news pages and save text"""
+        # print(len(self.BROWSERS))
         self.state = fn_download_pages(state, self.BROWSERS)
+        # print(len(self.BROWSERS))
         return self.state
 
     def summarize_pages(self, state: AgentState) -> AgentState:
