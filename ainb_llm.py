@@ -213,7 +213,6 @@ async def async_langchain(chain, input_dict, tag="", verbose=False):
     """call langchain asynchronously with ainvoke
     includes a reference tag
     so if we gather 100 responses we can match them up with the input, retry if needed"""
-    verbose = True
     if verbose:
         print(f"async_langchain: {tag}")
     # Call the chain asynchronously
@@ -555,6 +554,62 @@ async def fetch_all_summaries(aidf, model):
     return responses
 
 
+def sfetch_all_summaries(aidf, model):
+    """
+    Fetch summaries for all articles in the AIdf DataFrame.
+
+    This function processes each row in the AIdf, extracts the article
+    content using the path column, and generates a summary using the MODEL LLM.
+    Summaries are fetched asynchronously.
+
+    Args:
+        AIdf (pd.DataFrame): A DataFrame containing article information. Each row should
+                             have 'path' and 'id' attributes.
+
+    Returns:
+        list: A list of summaries for each article.
+
+    Raises:
+        Exception: If there is an error during the asynchronous processing of the articles.
+
+    TODO: can make a more generic version
+    pass in prompt, model, output class
+    pass in df with id and value(s)
+    pass in optional function dict to call on each column
+    get the column names, apply function if provided, apply template using those names
+
+    """
+    log("Fetching summaries for all articles")
+    tasks = []
+
+    prompt_template = ChatPromptTemplate.from_messages(
+        [("system", SUMMARIZE_SYSTEM_PROMPT),
+         ("user", SUMMARIZE_USER_PROMPT)]
+    )
+
+    parser = StrOutputParser()
+    chain = prompt_template | model | parser
+
+    for row in aidf.itertuples():
+        path, rowid = row.path, row.id
+        article_str = clean_html(path)
+        log(f"Queuing {rowid}: {article_str[:50]}...")
+        # task = asyncio.create_task(async_langchain(
+        #     chain, {"article": article_str}, tag=rowid))
+        task = asyncio.run(async_langchain(
+            chain, {"article": article_str}, tag=rowid, verbose=True))
+        tasks.append(task)
+
+    # try:
+    #     responses = await asyncio.gather(*tasks)
+    # except Exception as e:
+    #     log(f"Error fetching summary: {str(e)}")
+    # log(f"Received {len(responses)} summaries")
+    for summary, rowid in tasks:
+        log(f"Summary for {rowid}: {summary}")
+    return tasks
+
+
 async def get_canonical_topic_results(pages, topic, model_low):
     """call CANONICAL_TOPIC_PROMPT on pages for a single topic"""
     retval = await process_dataframes(dataframes=pages,
@@ -729,10 +784,9 @@ def sfilter_page_async_id(
     input_dict = {"input_text": input_text}
     if input_vars is not None:
         input_dict.update(input_vars)
-    # print(input_prompt)
-
-    # Call the chain synchronously
+    print(input_prompt)
     print(input_text)
+    # Call the chain synchronously
     response = chain.invoke(input_dict)
     print(response)
     # check ids in response

@@ -1,4 +1,33 @@
 # main AInewsbot agent and top level imports
+from ainb_const import (DOWNLOAD_DIR, PAGES_DIR,
+                        CANONICAL_TOPICS,
+                        SOURCECONFIG, FILTER_PROMPT, TOPIC_PROMPT, TOPIC_WRITER_PROMPT,
+                        FINAL_SUMMARY_PROMPT,
+                        TOP_CATEGORIES_PROMPT, TOPIC_REWRITE_PROMPT, REWRITE_PROMPT,
+                        SITE_NAME_PROMPT, SQLITE_DB,
+                        HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST,
+                        SCREENSHOT_DIR, NUM_BROWSERS, REQUEST_TIMEOUT)
+from ainb_utilities import (log, delete_files, filter_unseen_urls_db, insert_article,
+                            nearest_neighbor_sort, send_gmail, unicode_to_ascii)
+from ainb_webscrape import (get_browsers, parse_file,
+                            process_source_queue_factory,
+                            process_url_queue_factory)
+from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
+                      filter_page_async,
+                      get_all_canonical_topic_results, clean_topics,
+                      Stories, TopicSpecList, TopicHeadline, TopicCategoryList, Sites,
+                      sprocess_dataframes, sfetch_all_summaries
+                      )
+import nest_asyncio
+import markdown
+from langgraph.errors import NodeInterrupt
+from langgraph.graph import StateGraph, START, END
+from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 import pdb
 import os
 from datetime import datetime, timedelta
@@ -32,48 +61,16 @@ from sklearn.cluster import DBSCAN
 # todo, count tokens depending on model
 from openai import OpenAI
 
-from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_anthropic import ChatAnthropic
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
+import langchain
+langchain.verbose = True
 
 # from langchain_core.prompts import ChatPromptTemplate
 # JsonOutputParser, StrOutputParser
 # from langchain_core.output_parsers import SimpleJsonOutputParser
 
-from langgraph.checkpoint.memory import MemorySaver
 # from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-from langgraph.graph import StateGraph, START, END
 # from langgraph.graph.message import add_messages
-from langgraph.errors import NodeInterrupt
 
-import markdown
-
-import nest_asyncio
-
-from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
-                      filter_page_async,
-                      get_all_canonical_topic_results, clean_topics,
-                      Stories, TopicSpecList, TopicHeadline, TopicCategoryList, Sites,
-                      #   sprocess_dataframes, sfetch_all_summaries
-                      )
-
-from ainb_webscrape import (get_browsers, parse_file,
-                            process_source_queue_factory,
-                            process_url_queue_factory)
-
-from ainb_utilities import (log, delete_files, filter_unseen_urls_db, insert_article,
-                            nearest_neighbor_sort, send_gmail, unicode_to_ascii)
-
-from ainb_const import (DOWNLOAD_DIR, PAGES_DIR,
-                        CANONICAL_TOPICS,
-                        SOURCECONFIG, FILTER_PROMPT, TOPIC_PROMPT, TOPIC_WRITER_PROMPT,
-                        FINAL_SUMMARY_PROMPT,
-                        TOP_CATEGORIES_PROMPT, TOPIC_REWRITE_PROMPT, REWRITE_PROMPT,
-                        SITE_NAME_PROMPT, SQLITE_DB,
-                        HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST,
-                        SCREENSHOT_DIR, NUM_BROWSERS, REQUEST_TIMEOUT)
 
 nest_asyncio.apply()  # needed for asyncio.run to work under langgraph
 
@@ -159,6 +156,8 @@ model_family = {'gpt-4o-2024-11-20': 'openai',
                 'models/gemini-2.0-flash-thinking-exp': 'google',
                 'models/gemini-2.0-pro-exp': 'google',
                 'models/gemini-2.0-flash': 'google',
+                'models/gemini-1.5-pro-latest': 'google',
+                'models/gemini-1.5-pro': 'google',
                 }
 
 
@@ -169,7 +168,7 @@ def get_model(model_name):
         if model_type == 'openai':
             return ChatOpenAI(model=model_name, request_timeout=REQUEST_TIMEOUT)
         elif model_type == 'google':
-            return ChatGoogleGenerativeAI(model=model_name, request_timeout=REQUEST_TIMEOUT)
+            return ChatGoogleGenerativeAI(model=model_name, request_timeout=REQUEST_TIMEOUT, verbose=True)
     else:
         log(f"Unknown model {model_name}")
         return None
@@ -198,6 +197,9 @@ class AgentState(TypedDict):
     # ignore stories before this date for deduplication (force reprocess since)
     before_date: str
     do_download: bool  # if False use existing files, else download from sources
+    model_low: str     # cheap fast model like gpt-4o-mini or flash
+    model_medium: str  # medium model like gpt-4o or gemini-1.5-pro
+    model_high: str    # slow expensive thinking model like o3-mini
     sources: dict  # sources to scrap
     sources_reverse: dict[str, str]  # map file names to sources
     bullets: list[str]  # bullet points for summary email
@@ -540,9 +542,9 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
         .rename(columns={'index': 'id'})
     log(f"Found {len(aidf)} unique cleaned new headlines")
     # filter AI-related headlines using a prompt
-    pagelist = paginate_df(aidf[["id", "title"]])
     results = asyncio.run(process_dataframes(
-        dataframes=pagelist,
+        # results = sprocess_dataframes(
+        dataframes=paginate_df(aidf[["id", "title"]]),
         input_prompt=FILTER_PROMPT,
         output_class=Stories,
         model=model_low,
@@ -673,14 +675,16 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
     # could put summaries into vector store and retrieve stories by topic. but then you will have to deal
     # with duplicates across categories, ask the prompt to dedupe
 
+    langchain.verbose = True
     aidf = pd.DataFrame(state['AIdf'])
     tmpdf = aidf[['id', 'title', 'summary']].copy()
     tmpdf["summary"] = tmpdf["title"] + "\n" + tmpdf["summary"]
-    # seems to have had trouble with 50 headlines
+    # gemini seems to have had trouble with 50 headlines
     pages = paginate_df(tmpdf[["id", "summary"]], maxpagelen=20)
 
     # apply topic extraction prompt to AI headlines
     log(f"start free-form topic extraction using {str(type(model_low))}")
+    # pdb.set_trace()
     topic_results = asyncio.run(process_dataframes(
         dataframes=pages,
         input_prompt=TOPIC_PROMPT,
@@ -689,6 +693,14 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
         item_list_field="items",
         item_id_field="id"
     ))
+    # topic_results = sprocess_dataframes(
+    #     dataframes=pages,
+    #     input_prompt=TOPIC_PROMPT,
+    #     output_class=TopicSpecList,
+    #     model=model_low,
+    #     item_list_field="items",
+    #     item_id_field="id"
+    # )
     topics_df = pd.DataFrame([[item.id, item.extracted_topics] for item in topic_results], columns=[
         "id", "extracted_topics"])
     log(f"{len(topics_df)} free-form topics extracted")
@@ -743,12 +755,6 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
     aidf["bullet"] = aidf.apply(make_bullet, axis=1)
     state["AIdf"] = aidf.to_dict(orient='records')
     return state
-
-
-# def fn_topic_analysis(state: AgentState) -> AgentState:
-#     """call async afn_topic_analysis on state"""
-#     state = asyncio.run(afn_topic_analysis(state))
-#     return state
 
 
 def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
@@ -874,13 +880,9 @@ def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
 # could put summaries into vector store and retrieve stories by topic. but then you will have to deal
 # with duplicates across categories, ask the prompt to dedupe
 
-# def fn_topic_clusters(state: AgentState) -> AgentState:
-#     "call async afn_topic_clusters on state"
-#     state = asyncio.run(afn_topic_clusters(state))
-#     return state
-
-
 # scrape individual pages
+
+
 def fn_download_pages(state: AgentState, BROWSERS: list) -> AgentState:
     """
     Uses several Selenium browser sessions to download all the pages referenced in the
@@ -1100,14 +1102,14 @@ def fn_send_mail(state: AgentState) -> AgentState:
 class Agent:
     """Langraph Agent class"""
 
-    def __init__(self, state, model_low, model_medium, model_high):
+    def __init__(self, state: AgentState):
         """set up state graph and memory"""
         self.state = state
 
+        self.model_low = get_model(state["model_low"])
+        self.model_medium = get_model(state["model_medium"])
+        self.model_high = get_model(state["model_high"])
         self.BROWSERS = []
-        self.model_low = get_model(model_low)
-        self.model_medium = get_model(model_medium)
-        self.model_high = get_model(model_high)
 
         graph_builder = StateGraph(AgentState)
         graph_builder.add_node("initialize", self.initialize)
@@ -1198,9 +1200,14 @@ class Agent:
         self.state = fn_filter_urls(state, self.model_low)
         return self.state
 
-    def topic_analysis(self, state: AgentState) -> AgentState:
+    def topic_analysis(self, state: AgentState, model_override: str = "") -> AgentState:
         """extract and assign topics for each headline"""
-        self.state = fn_topic_analysis(state, self.model_low)
+        if model_override:
+            model = get_model(model_override)
+        else:
+            model = self.model_low
+        self.state = fn_topic_analysis(state, model)
+
         return self.state
 
     def topic_clusters(self, state: AgentState) -> AgentState:
@@ -1278,6 +1285,9 @@ def initialize_agent(do_download, before_date, model_low, model_medium, model_hi
         'AIdf': [{}],
         'before_date': before_date,
         'do_download': do_download,
+        'model_low': model_low,
+        'model_medium': model_medium,
+        'model_high': model_high,
         'sources': {},
         'sources_reverse': {},
         'bullets': '',
@@ -1290,7 +1300,7 @@ def initialize_agent(do_download, before_date, model_low, model_medium, model_hi
     thread_id = uuid.uuid4().hex
     log(f"Initializing with before_date={state.get('before_date')}, do_download={do_download}, thread_id={thread_id}"
         )
-    return state, Agent(state, model_low, model_medium, model_high), thread_id
+    return state, Agent(state), thread_id
 
 
 if __name__ == "__main__":

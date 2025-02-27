@@ -85,6 +85,7 @@ Reddit:
   minlength: 8
   title: Reddit multiple subreddits
   url: https://www.reddit.com/r/ChatGPT+ChatGPTCoding+MacOS+MachineLearning+OpenAI+ProgrammerHumor+Windows10+battlestations+buildapc+cordcutters+dataisbeautiful+gadgets+hardware+linux+msp+programming+realtech+software+talesfromtechsupport+tech+technews+technology+techsupportgore+windows/top/?sort=top&t=day
+  # url: https://www.reddit.com/r/ChatGPT
 Techmeme:
   exclude:
   - ^https://www.techmeme.com

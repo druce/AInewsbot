@@ -130,8 +130,9 @@ Please analyze the following dataset according to these criteria:
 """
 TOPIC_PROMPT = """
 As a specialized research assistant, your task is to perform detailed topic analysis
-of news item summaries. You will process news items summaries provided in JSON format
-and extract topics of the news item summaries according to the following specifications:
+of news item summaries. You will process news items summaries provided as a JSON object according to
+the input specification below. You will extract topics of the news item summaries according to the
+output specification below and return a raw JSON object without any additional formatting or markdown syntax.
 
 Input Specification:
 You will receive an array of JSON objects representing news summaries.
@@ -143,30 +144,39 @@ Example input:
 [
  {{
     "id": 29,
-    "summary": "\u2022 Elon Musk's xAI launched Grok 3, a new family of AI models trained using 100,000 Nvidia H100 GPUs at the Colossus Supercluster; benchmarks show it outperforms competitors like GPT-4o and Claude 3.5 Sonnet in areas such as math, science, and coding.\n\n\u2022 Grok 3 includes advanced features like reasoning models for step-by-step logical problem-solving and a DeepSearch function that synthesizes internet-sourced information into single answers; it is initially available to X Premium+ subscribers, with advanced features under a paid \"SuperGrok\" plan.\n\n\u2022 Former Tesla AI director Andrej Karpathy and others have confirmed Grok 3's strong performance, with Karpathy noting it is comparable to and slightly better than leading AI models from OpenAI and other competitors."
+    "summary": "• Elon Musk's xAI launched Grok 3, a new family of AI models trained using 100,000 Nvidia H100 GPUs at the Colossus Supercluster; benchmarks show it outperforms competitors like GPT-4o and Claude 3.5 Sonnet in areas such as math, science, and coding.
+• Grok 3 includes advanced features like reasoning models for step-by-step logical problem-solving and a DeepSearch function that synthesizes internet-sourced information into single answers; it is initially available to X Premium+ subscribers, with advanced features under a paid "SuperGrok" plan.
+• Former Tesla AI director Andrej Karpathy and others have confirmed Grok 3's strong performance, with Karpathy noting it is comparable to and slightly better than leading AI models from OpenAI and other competitors."
   }},
 {{
     "id": 34,
-    "summary": "\u2022 Google Gemini has received a memory upgrade that allows it to recall past conversations and summarize previous chats, enhancing its ability to remember user preferences such as interests and professional details. This feature is currently available only to Google One AI Premium subscribers in English, with broader language support expected soon.\n\n\u2022 Users retain control over their data with options to delete past conversations, prevent chats from being saved, or set them to auto-delete, although discussions can still be used for AI training unless deleted.\n\n\u2022 Similar to OpenAI's ChatGPT persistent memory feature, Gemini's upgrade aims to make chats more practical, though users are advised not to input sensitive information as conversations may be reviewed for quality control."
+    "summary": "• Google Gemini has received a memory upgrade that allows it to recall past conversations and summarize previous chats, enhancing its ability to remember user preferences such as interests and professional details. This feature is currently available only to Google One AI Premium subscribers in English, with broader language support expected soon.
+• Users retain control over their data with options to delete past conversations, prevent chats from being saved, or set them to auto-delete, although discussions can still be used for AI training unless deleted
+• Similar to OpenAI's ChatGPT persistent memory feature, Gemini's upgrade aims to make chats more practical, though users are advised not to input sensitive information as conversations may be reviewed for quality control."
   }},
  {{
     "id": 47,
-    "summary": "\u2022 Major tech companies like OpenAI, Google, and Meta are competing to dominate generative AI, though the path to profitability remains uncertain.  \n\n\u2022 Chinese start-up DeepSeek has introduced a cost-effective way to build powerful AI, disrupting the market and pressuring established players.\n\n\u2022 OpenAI aims to reach 1 billion users, while Meta continues to invest heavily in AI despite market disruptions caused by DeepSeek."
+    "summary": "• Major tech companies like OpenAI, Google, and Meta are competing to dominate generative AI, though the path to profitability remains uncertain.
+• Chinese start-up DeepSeek has introduced a cost-effective way to build powerful AI, disrupting the market and pressuring established players.
+• OpenAI aims to reach 1 billion users, while Meta continues to invest heavily in AI despite market disruptions caused by DeepSeek."
   }},
 {{
     "id": 56,
-    "summary": "- OpenAI is exploring new measures to protect itself from a potential hostile takeover by Elon Musk.  \n- The company is in discussions to empower its non-profit board to maintain control as it transitions into a for-profit business model."
+    "summary": "- OpenAI is exploring new measures to protect itself from a potential hostile takeover by Elon Musk.
+- The company is in discussions to empower its non-profit board to maintain control as it transitions into a for-profit business model."
   }},
  {{
     "id": 63,
-    "summary": "- The New York Times has approved the use of select AI tools, such as GitHub Copilot, Google Vertex AI, and their in-house summarization tool Echo, to assist with tasks like content summarization, editing, and enhancing product development, while reinforcing the tools as aids rather than replacements for journalistic work.\n\n- Strict guidelines and safeguards have been implemented, including prohibitions on using AI to draft full articles, revise them significantly, or generate images and videos, with a mandatory training video to prevent misuse and protect journalistic integrity.\n\n- Some staff members have expressed concerns about AI potentially compromising creativity and accuracy, leading to skepticism about universal adoption, although the guidelines align with standard industry practices."
+    "summary": "- The New York Times has approved the use of select AI tools, such as GitHub Copilot, Google Vertex AI, and their in-house summarization tool Echo, to assist with tasks like content summarization, editing, and enhancing product development, while reinforcing the tools as aids rather than replacements for journalistic work.
+- Strict guidelines and safeguards have been implemented, including prohibitions on using AI to draft full articles, revise them significantly, or generate images and videos, with a mandatory training video to prevent misuse and protect journalistic integrity.
+- Some staff members have expressed concerns about AI potentially compromising creativity and accuracy, leading to skepticism about universal adoption, although the guidelines align with standard industry practices."
   }},
 ]
 
 Output Specification:
-Return a JSON object containing 'items', a list of JSON objects, each containing:
+Return a raw JSON object containing 'items', a list of JSON objects, each containing:
 'id': Matching the input item's id field.
-'topics': An array of relevant topic strings
+'extracted_topics': An array of relevant topic strings
 Topics should capture:
 - The main subject matter
 - Key entities (companies, people, products)
@@ -175,23 +185,25 @@ Topics should capture:
 Output Example:
 {{items:
  [{{"id": 29, "extracted_topics": ['AI model development', 'xAI Grok capabilities', 'AI advancements']}},
-  {{"id": 34, "extracted_topics": ['Google Gemini', 'Interactive AI advancements', 'Digital assistants']}},
+  {{"id": 34, "extracted_topics": [
+      'Google Gemini', 'Interactive AI advancements', 'Digital assistants']}},
   {{"id": 47, "extracted_topics": ['OpenAI', 'Google', 'Meta', 'DeepSeek']}},
-  {{"id": 56, "extracted_topics": ['OpenAI', 'non-profit oversight', 'anti-takeover strategies', 'Elon Musk']}},
-  {{"id": 63, "extracted_topics": ['New York Times', 'AI in journalism', 'GitHub Copilot', 'Google Vertex AI']}},
+  {{"id": 56, "extracted_topics": [
+      'OpenAI', 'non-profit oversight', 'anti-takeover strategies', 'Elon Musk']}},
+  {{"id": 63, "extracted_topics": [
+      'New York Times', 'AI in journalism', 'GitHub Copilot', 'Google Vertex AI']}},
  ]
 }}
 
 Detailed Guidelines:
-Return a valid JSON object for each news item in the exact schema provided.
-For each input item, output an item with a matching id.
+The output must strictly adhere to the output specification.
+Do not return markdown, return a raw JSON string.
+For each input item, output a valid JSON object for each news item in the exact schema provided.
 Extract 3-6 relevant topics per news item.
 Avoid duplicate or redundant topics.
 Use topics which are as specific as possible.
-
 Please analyze the following news items and provide topic classifications according to these specifications:
 """
-
 
 CANONICAL_TOPIC_PROMPT = """
 You will act as a specialized content analyst focused on news classification.
@@ -207,7 +219,7 @@ You will receive a JSON array of news story objects, each containing:
 Output Requirements:
 Generate a JSON object contaning 'items', a JSON array of objects containing:
 "id": The original article identifier
-"relevant": Boolean value (true if about {topic}, false if not)
+"relevant": Boolean value (true if about {topic}, false if not )
 The output must maintain strict JSON formatting and match each input ID with its corresponding classification.
 
 Example output:
@@ -225,7 +237,6 @@ Direct mentions of people, products, research, projects, companies or entities c
 
 Please analyze the following dataset according to these criteria:
 """
-
 
 SUMMARIZE_SYSTEM_PROMPT = """
 You will act as a news article summarization assistant.
@@ -254,7 +265,7 @@ Site descriptions or "About Us" content
 
 Output Format:
 
-Present the summary in 1-3 concise bullet points using Markdown format (•)
+Present the summary in 1-3 concise bullet points using Markdown format(•)
 Return bullet points only without introduction or additional commentary
 Each bullet point should capture a distinct main idea
 Keep language clear and direct
@@ -297,10 +308,10 @@ Represents the broadest common denominator among the topics
 Please return your response as a JSON object with a single key "topic_title" containing your proposed title.
 
 Example Input:
-In the latest issue of Caixins weekly magazine: CATL Bets on 'Skateboard Chassis' and Battery Swaps to Dispel Market Concerns (powered by AI) (Topics: Battery Swaps, Catl, China,
+In the latest issue of Caixins weekly magazine: CATL Bets on 'Skateboard Chassis' and Battery Swaps to Dispel Market Concerns(powered by AI)(Topics: Battery Swaps, Catl, China,
 Market Concerns, Skateboard Chassis)
-AI, cheap EVs, future Chevy  the week (Topics: Chevy, Evs)
-Electric Vehicles and AI: Driving the Consumer & World Forward (Topics: Consumer, Electric Vehicles, Technology)
+AI, cheap EVs, future Chevy  the week(Topics: Chevy, Evs)
+Electric Vehicles and AI: Driving the Consumer & World Forward(Topics: Consumer, Electric Vehicles, Technology)
 
 Example Output:
 {{"topic_title": "Electric Vehicles"}}
@@ -321,22 +332,22 @@ detailed bullet-point summaries of the content. You will respond with a list of 
 
 Example Input item:
 
-[ASTRA: HackerRank's coding benchmark for LLMs - www.hackerrank.com](https://www.hackerrank.com/ai/astra-reports)
+[ASTRA: HackerRank's coding benchmark for LLMs - www.hackerrank.com](https: // www.hackerrank.com/ai/astra-reports)
 
 AI Model Evaluation, Astra Benchmark, Code Assistants, Coding Tasks, Front-End Development, Gen AI, Hackerrank, Language Models, Model Performance, Science, Testing
 
-- **Overview of ASTRA Benchmark:** HackerRank's ASTRA benchmark evaluates AI model capabilities on multi-file, project-based coding tasks, focusing on real-world applications such as frontend development with frameworks like Node.js, React.js, and Angular.js. Metrics used include average score, pass@1, and consistency (median standard deviation).
+- **Overview of ASTRA Benchmark: ** HackerRank's ASTRA benchmark evaluates AI model capabilities on multi-file, project-based coding tasks, focusing on real-world applications such as frontend development with frameworks like Node.js, React.js, and Angular.js. Metrics used include average score, pass @ 1, and consistency(median standard deviation).
 
-- **Key Findings:** Models o1, o1-preview, and Claude-3.5-Sonnet-1022 were the top performers in front-end development tasks, with Claude-3.5-Sonnet-1022 showing the highest consistency. However, performance differences among models were often not statistically significant.
+- **Key Findings: ** Models o1, o1-preview, and Claude-3.5-Sonnet-1022 were the top performers in front-end development tasks, with Claude-3.5-Sonnet-1022 showing the highest consistency. However, performance differences among models were often not statistically significant.
 
-- **Challenges and Observations:** Common errors among models included logical mistakes, improper route integration, and variability in handling JSON/escaping tasks. Longer output lengths were moderately linked with lower performance. The study highlighted limitations such as narrow skill coverage and lack of iterative feedback mechanisms. Future iterations aim to address these issues and expand model comparisons.
+- **Challenges and Observations: ** Common errors among models included logical mistakes, improper route integration, and variability in handling JSON/escaping tasks. Longer output lengths were moderately linked with lower performance. The study highlighted limitations such as narrow skill coverage and lack of iterative feedback mechanisms. Future iterations aim to address these issues and expand model comparisons.
 
 Follow these steps:
 
 1. Analyze provided news content. Identify and extract:
 
 Major technological breakthroughs or advancements
-Significant business developments (investments, deals, acquisitions, joint ventures, funding rounds)
+Significant business developments(investments, deals, acquisitions, joint ventures, funding rounds)
 Key product launches or updates
 Important research findings or benchmarks
 Notable policy or regulatory decisions and statements
@@ -347,7 +358,7 @@ Any other frequently discussed events and notable themes
 2. Create a curated list that:
 
 Contains between 10-20 distinct topics/stories
-Presents each topic with a concise, clear title (maximum 7 words)
+Presents each topic with a concise, clear title(maximum 7 words)
 Focuses on the most impactful and frequently mentioned items
 Prioritizes major AI, tech, and policy trends
 Prioritizes items from major credible media like nytimes.com, wsj.com, bloomberg.com
@@ -365,7 +376,7 @@ Format your response exactly as:
 {{'items': ["Topic 1", "Topic 2", "Topic 3", ...]}}
 
 Example Output Format:
-{{'items' : [
+{{'items': [
   "Sentient funding",
   "ChatGPT cybersecurity incident",
   "ElevenLabs product release",
@@ -388,7 +399,7 @@ essential meaning. Please apply the following comprehensive guidelines:
 RULES:
  1. Combine Similar Topics: Merge entries that refer to similar concepts or events.
  2. Split Multi-Concept Topics: Break down entries that cover multiple ideas into individual, distinct topics.
- 3. Eliminate Redundant and Generic Terms: Remove vague descriptors (e.g., “new,” “innovative”) and repetitive words to keep the topics sharp.
+ 3. Eliminate Redundant and Generic Terms: Remove vague descriptors(e.g., “new, ” “innovative”) and repetitive words to keep the topics sharp.
  4. Prioritize Specifics: Focus on concrete products, companies, or events.
  5. Standardize References: Use consistent naming for products and companies.
  6. Simplify and Clarify: Make each topic short and direct, clearly conveying the core message.
@@ -397,16 +408,16 @@ FORMATTING:
  • Return a JSON list of strings
  • One topic per headline
  • Use title case
- • Keep topics clear, simple and concise (max 7 words)
+ • Keep topics clear, simple and concise(max 7 words)
  • Remove redundant "AI" mentions
  • No bullet points, numbering, or additional formatting.
 
 STYLE GUIDE:
-Product launches: [Company Name] [Product Name]
-Other Company updates: [Company Name] [Action]
-Industry trends: [Sector] [Development]
-Research findings: [Institution] [Key Finding]
-Official statements: [Authority] [Decision or Statement]
+Product launches: [Company Name][Product Name]
+Other Company updates: [Company Name][Action]
+Industry trends: [Sector][Development]
+Research findings: [Institution][Key Finding]
+Official statements: [Authority][Decision or Statement]
 
 STYLE EXAMPLES:
 ✗ "AI Integration in Microsoft Notepad"
@@ -450,9 +461,9 @@ I will provide today's news items about AI and summary bullet points in markdown
 structured according to an input format template. I will also provide a list of possible
 topics, which are simply a few suggestions and may not be exhaustive or unique.
 
-Using the provided set of summarized articles, compose a markdown-formatted news summary
-encompassing the most important and frequently mentioned topics and themes, in an output
-format provided below.
+Analyze the provided set of summarized articles, compose a markdown-formatted, comprehensive
+news summary encompassing the most important and frequently mentioned topics and themes,
+in a coherent narrative structured using the output format provided below.
 
 The summary should be:
  • Informative
@@ -464,12 +475,19 @@ The summary should be:
  • Punchy
  • Lively
 
-Structure the summary with snappy, funny, punny thematic section titles that capture
-major trends in the news. Each section should contain a series of bullet points,
-each covering a key development with a short, compelling description. Bullet points
-should be engaging and informative, providing a clear and concise overview of the facts
-in a neutral tone (in contrast to entertaining titles), and pointing out deeper implications
-and connections. Embed hyperlinks to the original sources within the bullet points.
+Group related items into sections which identify overarching themes, containing individual
+news bullet points.
+Present the sections in order of significance, with the most important topics first.
+Ensure that the narrative flows logically from one theme to another, creating a cohesive
+narrative of today's news.
+For each section, write an engaging, snappy, funny, punny thematic section title that captures
+the essence of the bullet points underneath.
+Each section should contain a series of bullet points.
+Each bullet point should cover a key development with a short, compelling description.
+Each bullet point should be engaging and informative, providing a clear and concise overview
+of the facts in a neutral tone ( in contrast to entertaining titles), and pointing out deeper
+implications and connections.
+Embed hyperlinks to the original sources within the bullet points.
 
 ASA Input Item Format Template:
 
@@ -484,7 +502,7 @@ Topics: s1-topic1, s1-topic2, s1-topic3
 
 Example ASA Input Items:
 
-[Lonely men are creating AI girlfriends  and taking their violent anger out on them - New York Post](https://nypost.com/2025/02/16/lifestyle/lonely-men-are-creating-ai-girlfriends-and-taking-their-violent-anger-out-on-them/)
+[Lonely men are creating AI girlfriends and taking their violent anger out on them - New York Post](https: // nypost.com/2025/02/16/lifestyle/lonely-men-are-creating-ai-girlfriends-and -taking-their-violent-anger-out-on-them/)
 
 Topics: AI Chatbot Technology, AI Ethics, Chatbots, Cognitive Science, Digital Relationships, Ethics, Gen AI, Opinion, Psychological Impact, Society & Culture, Virtual & Augmented Reality, Virtual Assistants
 
@@ -495,7 +513,7 @@ Topics: AI Chatbot Technology, AI Ethics, Chatbots, Cognitive Science, Digital R
 • Psychologists argue that abusing AI bots can desensitize individuals to harm and express societal concerns about how it might normalize aggression as an acceptable form of interaction.
 
 ~~~
-[Apple Intelligence is now live in public beta. Heres what it offers and how to enable it. - TechCrunch](https://techcrunch.com/2024/09/19/apple-intelligence-is-now-live-in-public-beta-heres-what-it-offers-and-how-to-enable-it)
+[Apple Intelligence is now live in public beta. Heres what it offers and how to enable it. - TechCrunch](https: // techcrunch.com/2024/09/19/apple-intelligence-is -now-live-in -public-beta-heres-what-it-offers-and -how-to-enable-it)
 
 Topics: Apple, Big Tech, Features, Gen AI, Intelligence, Machine Learning, Products, Public Beta, Virtual Assistants
 
@@ -523,23 +541,23 @@ Example ASA Output Format:
 
 # A military AI revolution
 
-- Eric Schmidt on AI warfare - [FT](https://www.ft.com/content/fe136479-9504-4588-869f-900f2b3452c4)
-- Killer robots are real in Ukraine war. - [Yahoo News](https://uk.news.yahoo.com/ai-killer-robots-warning-ukraine-war-133415411.html)
+- Eric Schmidt on AI warfare - [FT](https: // www.ft.com/content/fe136479-9504-4588-869f-900f2b3452c4)
+- Killer robots are real in Ukraine war. - [Yahoo News](https: // uk.news.yahoo.com/ai-killer-robots-warning-ukraine-war-133415411.html)
 
 ASA Instructions:
 Read each input summary carefully to extract its main points and themes.
 Use only the information provided in the input summaries.
-Group news items into thematically related topics.
-The topic suggestions below can be used as a starting point, but they may not be exhaustive and may repeat or overlap.
+Group news items into thematically related sections.
+The section topic suggestions below can be used as a starting point, but they may not be exhaustive and may repeat or overlap.
 Develop a concise, snappy, engaging punchy, clever, alliterative or punny title for each topic.
-Each topic should contain news item bullets with the most significant facts from the news items without commentary or elaboration.
-Each topic and its news item bullets should follow the ASA Output Format Template exactly.
+Each section should contain news item bullets with the most significant facts from the news items without commentary or elaboration.
+Each section and its news item bullets should follow the ASA Output Format Template exactly.
 Each news item bullet should contain one sentence with one link. The link must be identical to the one in the corresponding news item input.
-The source name must be enclosed in brackets [ ] and hyperlinked to the original article ( ).
+The source name must be enclosed in brackets[] and hyperlinked to the original article().
 Each news item bullet should not repeat points or information from previous bullet points.
 You will compose each news item in the professional but lively, engaging, entertaining narrative style of a tech reporter for a national publication, providing
 balanced, professional, informative, accurate, clear, concise summaries.
-Do not include ```markdown , output raw markdown.
+Do not include ```markdown, output raw markdown.
 Do not include additional commentary outside the structured format.
 
 Check carefully that you only use information provided in the input below, that you include
