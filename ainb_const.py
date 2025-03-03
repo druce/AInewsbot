@@ -461,9 +461,10 @@ I will provide today's news items about AI and summary bullet points in markdown
 structured according to an input format template. I will also provide a list of possible
 topics, which are simply a few suggestions and may not be exhaustive or unique.
 
-Analyze the provided set of summarized articles, compose a markdown-formatted, comprehensive
-news summary encompassing the most important and frequently mentioned topics and themes,
-in a coherent narrative structured using the output format provided below.
+Analyze the provided set of summarized articles. First, select the most important and
+frequently mentioned topics and themes. Then, compose a markdown-formatted, comprehensive
+news summary encompassing the top news in a coherent narrative structured using the
+output format provided below.
 
 The summary should be:
  • Informative
@@ -588,7 +589,7 @@ Do not include ```markdown. Output raw markdown.
 Remove any text which is not news content, such as instructions, comments, informational alerts about processing.
 Remove stories that are not relevant to the newsletter's focus on AI.
 Remove stories that are clickbait spam, using superlatives and exaggerated claims without news substance.
-Remove stories that are speculative opinions without factual basis, like "2 magnificent AI stocks to hold forever".
+Remove stories that are speculative opinions without factual basis, like "Grok AI predicts top memecoin for huge returns","2 magnificent AI stocks to hold forever".
 For each bullet point, make it as concise as possible, sticking to facts without editorial comment.
 For each section, combine any bullet points which are highly duplicative into a summary bullet point with multiple hyperlinks.
 You may remove bullet points but you may not modify URLs.
