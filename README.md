@@ -9,7 +9,7 @@ A Python notebook/script to help find the latest news about AI (potentially othe
 - Filters URLs to remove duplicates, articles seen before (using a SQLite history database), and non-AI-related articles (using a ChatGPT prompt)
 - Performs headline topic analysis and sorts by topic to help the AI structure the response by topic (use DBSCAN clustering on dimensionality-reduced headline embeddings)
 - Scrapes and summarizes individual articles
-- Have o1-preview compose the newsletter using a prompt + article summaries + topic keywords
+- Have o3-mini compose the newsletter using a prompt + article summaries + topic keywords
 - Re-edits using an an additional prompt to improve the output (can iterate until satisfied)
 - Emails the summary newsletter
 - Requires Firefox / geckodriver, doesn't run headless, needs interactive session
