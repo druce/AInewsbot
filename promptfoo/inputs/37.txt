@@ -1,0 +1,5 @@
+[{"id": 37, "summary": "[US deploys AI to revoke visas of foreign nationals supporting Hamas: Report - www.cnbctv18.com](https://www.cnbctv18.com/world/us-deploys-ai-to-revoke-visas-of-foreign-nationals-supporting-hamas-report-19570130.htm)
+
+- The US State Department has launched an AI-powered initiative to review foreign nationals' social media accounts, focusing on identifying and revoking visas of individuals showing support for Hamas or other terrorist groups; this effort involves a coordinated approach with the Departments of Justice and Homeland Security.  
+- Critics, such as Abed Ayoub of the American-Arab Anti-Discrimination Committee, argue the program raises serious concerns about free speech and potential misuse of AI technology, with comparisons drawn to historical surveillance programs like Operation Boulder.  
+- Supporters, including Secretary of State Marco Rubio, defend the initiative as a national security measure, citing the Immigration and Nationality Act of 1952, which allows visa revocation for individuals perceived as a threat."}]

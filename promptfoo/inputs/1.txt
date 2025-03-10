@@ -1,0 +1,5 @@
+[{"id": 1, "summary": "[AI models are evolving along "freaks and geeks" lines - Axios](https://www.axios.com/2025/03/07/ai-freaks-geeks-gpt-45-qwen-sesame)
+
+- Advances in AI development are diverging into two main paths: reasoning models excelling in coding and math tasks and models improving "soft" skills like creativity and nuanced language use, reflecting the STEM vs. humanities divide.  
+- This week, Alibaba's Qwen QwQ-32B, a reasoning model excelling in technical work with higher efficiency, was released as open source. Simultaneously, OpenAI's GPT-4.5 showcased enhanced verbal intelligence and aesthetics, while Sesame's model demonstrated remarkable conversational flow, despite challenges in measuring such advancements.  
+- Experts debate whether these divergent paths in AI can be reconciled to achieve human-level AI, with some optimistic about eventual integration and others skeptical due to long-standing divides in human intellectual culture."}]

@@ -1,0 +1,5 @@
+[{"id": 5, "summary": "[AI companies are copying each other's homework to make cheap models - Business Insider](https://www.businessinsider.com/deepseek-openai-distillation-big-tech-trouble-cheap-commodity-ai-2025-3)
+
+- The cost of AI development is decreasing through techniques like "distillation," enabling cheaper creation of competitive models, which challenges Big Tech companies by lowering barriers to entry.  
+- Distillation, a process of using a larger "teacher" model to train smaller "student" models, has gained prominence, with companies like DeepSeek producing smaller, high-performing models at drastically lower costs.  
+- This rise in affordable AI raises concerns for proprietary models from companies like OpenAI, as cheaper alternatives threaten their business models, prompting some companies to consider restricting access to reasoning paths in their models to curb distillation efforts."}]

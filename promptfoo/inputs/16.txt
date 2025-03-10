@@ -1,0 +1,5 @@
+[{"id": 16, "summary": "[AI is creating 'overly compliant helpers,' not revolutionaries, said the top scientist at Hugging Face - Business Insider](https://www.businessinsider.com/ai-not-revolutionaries-thomas-wolf-science-breakthrough-agent-hugging-face-2025-3)
+
+- Thomas Wolf, Chief Science Officer at Hugging Face, argued that AI creates "overly compliant helpers" rather than revolutionaries and is not producing new knowledge but merely filling gaps in existing information.  
+- Wolf emphasized that for AI to drive breakthroughs, it must question training data, take counterintuitive approaches, and create new ideas from minimal inputs rather than simply synthesizing data.  
+- Wolf expressed skepticism about the concept of AI accelerating scientific progress drastically, warning that current advancements risk producing "yes-men on servers" rather than transformative thinkers like Einstein."}]

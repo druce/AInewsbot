@@ -1,0 +1,442 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+
+# Learn more about building a configuration: https://promptfoo.dev/docs/configuration/guide
+
+description: "Topic extraction"
+
+# to deal with rate limits, check docs for correct values
+# https://promptfoo.dev/docs/configuration/rate-limits
+# maxConcurrency: 3  # Limit to 2 concurrent API calls
+# maxRetries: 3  # Retry failed calls up to 3 times
+# delay: 1000  # Delay between retries in milliseconds
+
+prompts:
+  - file://prompts/topic_prompt1.txt
+
+providers:
+  - id: openai:gpt-4o-mini
+#  - "openai:gpt-4o"
+  - id: anthropic:messages:claude-3-7-sonnet-20250219
+    config:
+      maxConcurrency: 1
+      delay: 3000
+
+  - id: vertex:gemini-2.0-flash
+#  - "vertex:gemini-2.0-flash-exp"
+#  - "vertex:gemini-1.5-pro"
+#  - "vertex:gemini-2.0-pro-exp"
+
+tests:
+  - vars:
+      input_text: file://inputs/0.txt
+    assert:
+      - type: icontains
+        value: Nvidia
+      - type: icontains
+        value: Broadcom
+      - type: icontains
+        value: chip
+  - vars:
+      input_text: file://inputs/1.txt
+    assert:
+      - type: icontains
+        value: reasoning
+      - type: icontains
+        value: alibaba
+      - type: icontains
+        value: openai
+  - vars:
+      input_text: file://inputs/2.txt
+    assert:
+      - type: icontains
+        value: diffusion
+      - type: icontains
+        value: inception
+      - type: icontains
+        value: code
+
+  - vars:
+      input_text: file://inputs/3.txt
+    assert:
+      - type: icontains
+        value: manus
+      - type: icontains
+        value: agent
+      - type: icontains
+        value: chin
+
+  - vars:
+      input_text: file://inputs/4.txt
+    assert:
+      - type: icontains
+        value: OpenAI
+      - type: icontains
+        value: Musk
+      - type: icontains
+        value: Altman
+
+  - vars:
+      input_text: file://inputs/5.txt
+    assert:
+      - type: icontains
+        value: deepseek
+      - type: icontains
+        value: distill
+      - type: icontains
+        value: cost
+
+  - vars:
+      input_text: file://inputs/6.txt
+    assert:
+      - type: icontains
+        value: wildfire
+      - type: icontains
+        value: forest
+      - type: icontains
+        value: fire
+
+  - vars:
+      input_text: file://inputs/7.txt
+    assert:
+      - type: icontains
+        value: safety
+      - type: icontains
+        value: brundage
+      - type: icontains
+        value: OpenAI
+
+  - vars:
+      input_text: file://inputs/8.txt
+    assert:
+      - type: icontains
+        value: chatgpt
+      - type: icontains
+        value: vs code
+
+  - vars:
+      input_text: file://inputs/9.txt
+    assert:
+      - type: icontains
+        value: Amazon Prime
+      - type: icontains
+        value: dubbing
+      - type: icontains
+        value: localization
+
+  - vars:
+      input_text: file://inputs/10.txt
+    assert:
+      - type: icontains
+        value: alibaba
+      - type: icontains
+        value: deepseek
+      - type: icontains
+        value: stock
+
+  - vars:
+      input_text: file://inputs/11.txt
+    assert:
+      - type: icontains
+        value: YouTube
+      - type: icontains
+        value: deepfake
+      - type: icontains
+        value: cybersecurity
+
+  - vars:
+      input_text: file://inputs/12.txt
+    assert:
+      - type: icontains
+        value: Meta
+      - type: icontains
+        value: Llama
+      - type: icontains
+        value: voice
+
+  - vars:
+      input_text: file://inputs/13.txt
+    assert:
+      - type: icontains
+        value: chess
+      - type: icontains
+        value: cheat
+      - type: icontains
+        value: safety
+
+  - vars:
+      input_text: file://inputs/14.txt
+    assert:
+      - type: icontains
+        value: travel
+      - type: icontains
+        value: plan
+      - type: icontains
+        value: new york
+
+  - vars:
+      input_text: file://inputs/15.txt
+    assert:
+      - type: icontains
+        value: amazon
+      - type: icontains
+        value: aws
+      - type: icontains
+        value: agent
+
+  - vars:
+      input_text: file://inputs/16.txt
+    assert:
+      - type: icontains
+        value: thomas wolf
+      - type: icontains
+        value: hugging face
+
+  - vars:
+      input_text: file://inputs/17.txt
+    assert:
+      - type: icontains
+        value: reinforcement learning
+      - type: icontains
+        value: safety
+
+  - vars:
+      input_text: file://inputs/18.txt
+    assert:
+      - type: icontains
+        value: scale
+      - type: icontains
+        value: outlier
+      - type: icontains
+        value: training
+
+  - vars:
+      input_text: file://inputs/19.txt
+    assert:
+      - type: icontains
+        value: google
+      - type: icontains
+        value: gemini
+      - type: icontains
+        value: search
+
+  - vars:
+      input_text: file://inputs/20.txt
+    assert:
+      - type: icontains
+        value: creative
+      - type: icontains
+        value: content
+
+  - vars:
+      input_text: file://inputs/21.txt
+    assert:
+      - type: icontains
+        value: military
+      - type: icontains
+        value: drone
+      - type: icontains
+        value: warfare
+
+  - vars:
+      input_text: file://inputs/22.txt
+    assert:
+      - type: icontains
+        value: author
+      - type: icontains
+        value: gramma
+      - type: icontains
+        value: language
+
+  - vars:
+      input_text: file://inputs/23.txt
+    assert:
+      - type: icontains
+        value: amazon
+      - type: icontains
+        value: prime
+      - type: icontains
+        value: dub
+
+  - vars:
+      input_text: file://inputs/24.txt
+    assert:
+      - type: icontains
+        value: sesame
+      - type: icontains
+        value: voice
+      - type: icontains
+        value: conversation
+
+  - vars:
+      input_text: file://inputs/25.txt
+    assert:
+      - type: icontains
+        value: microsoft
+      - type: icontains
+        value: agent
+      - type: icontains
+        value: copilot
+
+  - vars:
+      input_text: file://inputs/26.txt
+    assert:
+      - type: icontains
+        value: grok
+      - type: icontains
+        value: social
+      - type: icontains
+        value: integration
+
+  - vars:
+      input_text: file://inputs/27.txt
+    assert:
+      - type: icontains
+        value: google
+      - type: icontains
+        value: disease
+      - type: icontains
+        value: management
+
+  - vars:
+      input_text: file://inputs/28.txt
+    assert:
+      - type: icontains
+        value: ethics
+      - type: icontains
+        value: transplant
+      - type: icontains
+        value: moral
+
+  - vars:
+      input_text: file://inputs/29.txt
+      assert:
+      - type: icontains
+        value: google
+      - type: icontains
+        value: research
+      - type: icontains
+        value: scientist
+
+  - vars:
+      input_text: file://inputs/31.txt
+    assert:
+      - type: icontains
+        value: china
+      - type: icontains
+        value: venture
+
+  - vars:
+      input_text: file://inputs/30.txt
+    assert:
+      - type: icontains
+        value: visa
+      - type: icontains
+        value: speech
+      - type: icontains
+        value: state
+
+  - vars:
+      input_text: file://inputs/32.txt
+    assert:
+      - type: icontains
+        value: qwen
+      - type: icontains
+        value: reasoning
+      - type: icontains
+        value: source
+
+  - vars:
+      input_text: file://inputs/33.txt
+    assert:
+      - type: icontains
+        value: page
+      - type: icontains
+        value: dynatomics
+      - type: icontains
+        value: manufacturing
+
+  - vars:
+      input_text: file://inputs/34.txt
+    assert:
+      - type: icontains
+        value: broadcom
+      - type: icontains
+        value: chip
+      - type: icontains
+        value: vmware
+
+  - vars:
+      input_text: file://inputs/35.txt
+    assert:
+      - type: icontains
+        value: church
+      - type: icontains
+        value: service
+      - type: icontains
+        value: religio
+
+  - vars:
+      input_text: file://inputs/36.txt
+    assert:
+      - type: icontains
+        value: chatgpt
+      - type: icontains
+        value: coding
+      - type: icontains
+        value: xcode
+
+  - vars:
+      input_text: file://inputs/37.txt
+    assert:
+      - type: icontains
+        value: visa
+      - type: icontains
+        value: surveillance
+      - type: icontains
+        value: security
+
+  - vars:
+      input_text: file://inputs/38.txt
+    assert:
+      - type: icontains
+        value: page
+      - type: icontains
+        value: dynatomics
+      - type: icontains
+        value: manufacturing
+
+  - vars:
+      input_text: file://inputs/39.txt
+    assert:
+      - type: icontains
+        value: apple
+      - type: icontains
+        value: siri
+      - type: icontains
+        value: delay
+      - type: icontains
+        value: assistant
+
+  - vars:
+      input_text: file://inputs/40.txt
+    assert:
+      - type: icontains
+        value: microsoft
+      - type: icontains
+        value: mai
+      - type: icontains
+        value: openai
+
+  - vars:
+      input_text: file://inputs/41.txt
+    assert:
+      - type: icontains
+        value: google
+      - type: icontains
+        value: chrome
+      - type: icontains
+        value: antitrust
+
+
+
+

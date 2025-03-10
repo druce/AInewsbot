@@ -4,10 +4,12 @@ tmp/*.png
 tmp/*.gif
 tmp/*.webp
 tmp/*.html*
-
 htmldata/*.html
 articles.db
 .ipynb_checkpoints
+
+# credentials
+gen-*.json
 
 # Ignore compiled Python files
 *.pyc

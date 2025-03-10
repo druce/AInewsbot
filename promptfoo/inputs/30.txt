@@ -1,0 +1,5 @@
+[{"id": 30, "summary": "[Reported U.S. plan to use AI to revoke student visas sparks alarm - www.japantimes.co.jp](https://www.japantimes.co.jp/news/2025/03/07/world/us-student-visas-ai/)
+
+• The U.S. State Department reportedly plans to use AI for a "Catch and Revoke" initiative to review social media accounts of tens of thousands of foreign student visa holders, potentially revoking visas for perceived support of Palestinian Hamas militants, according to Axios.  
+ 
+• Free speech advocates, including FIRE and pro-Palestinian groups, raised concerns about the use of AI in this context, arguing it could infringe on First Amendment rights and fail to account for the complex nature of the Israeli-Palestinian conflict."}]

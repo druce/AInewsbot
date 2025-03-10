@@ -1,0 +1,5 @@
+[{"id": 35, "summary": "[What one Finnish church learned from creating a service almost entirely with AI - New York Post](https://nypost.com/2025/03/08/tech/finland-st-pauls-lutheran-church-holds-ai-created-church-service-depicting-jesus-and-satan/)
+
+- St. Paul’s Lutheran Church in Finland held an AI-based service where artificial intelligence created sermons, songs, visuals, and avatars, including a depiction of Jesus and Satan, drawing over 120 attendees.
+- While attendees and clergy found the experimental service interesting and entertaining, many felt it lacked the emotional connection of a traditional, human-led service, emphasizing the importance of human empathy and spiritual engagement.
+- The church acknowledges AI's potential for support tools like sermon preparation but maintains that AI cannot replace human pastors due to its inability to provide genuine empathy, spiritual guidance, or engage in intimate religious acts like absolution."}]

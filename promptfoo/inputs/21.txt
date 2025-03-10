@@ -1,0 +1,5 @@
+[{"id": 21, "summary": "[Artificial intelligenceis going to make drone wars much more deadly. It's already started. - Business Insider](https://www.businessinsider.com/ukraines-smart-drones-more-likely-hit-targets-2025-3)
+
+- AI-enhanced drones in Ukraine are significantly improving operational effectiveness, with strike success rates increasing from 10-20% to 70-80%, and requiring fewer drones per mission.  
+- These partially autonomous systems focus on navigation and targeting, making them harder to disrupt and reducing pilot skill requirements, with Kyiv pushing further AI and autonomy adoption.  
+- Ukrainian innovations in drone adaptability, flexible designs, and AI advancements, like target recognition, are revolutionizing warfare, though human oversight on engagement decisions remains crucial."}]

@@ -1,0 +1,5 @@
+[{"id": 12, "summary": "[Meta Expands Voice-Powered AI with Llama 4 - PYMNTS](https://www.pymnts.com/meta/2025/meta-expands-voice-powered-ai-with-llama-4/)
+
+- Meta is releasing Llama 4, an advanced AI model focusing on conversational, voice-powered features to enhance natural, two-way communication, aiming to expand its AI capabilities beyond social media and into business applications.  
+- The company is investing heavily in AI, planning to spend up to $65 billion by 2025 and exploring monetization strategies like premium subscriptions and sponsored posts for its Meta AI assistant.  
+- Meta's broader strategy includes integrating voice-interactive AI into wearable devices like smart glasses and offering agentic AI to businesses for automation and customer engagement."}]

@@ -1,0 +1,5 @@
+[{"id": 41, "summary": "[Filings: the US DOJ drops a bid to force Google to sell its AI investments to boost search competition but still seeks a court order requiring it to sell Chrome - Reuters](https://www.reuters.com/technology/us-drops-bid-make-google-sell-ai-investments-antitrust-case-2025-03-07/)
+
+- The U.S. Department of Justice dropped its proposal to force Google to sell its investments in AI companies, such as Anthropic, citing risks of unintended consequences in the evolving AI space.  
+- Prosecutors still seek measures to address Google's alleged search monopoly, including requiring the sale of its Chrome browser and regulating default search engine agreements.  
+- Google has criticized the proposals as overly broad, claiming they would harm consumers, the economy, and national security, and plans to appeal."}]

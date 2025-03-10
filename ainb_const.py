@@ -199,7 +199,8 @@ Detailed Guidelines:
 The output must strictly adhere to the output specification.
 Do not return markdown, return a raw JSON string.
 For each input item, output a valid JSON object for each news item in the exact schema provided.
-Extract 3-6 relevant topics per news item.
+Extract 3-5 relevant topics per news item.
+Do not extract more than 5 topics per news item.
 Avoid duplicate or redundant topics.
 Use topics which are as specific as possible.
 Please analyze the following news items and provide topic classifications according to these specifications:
@@ -463,7 +464,7 @@ topics, which are simply a few suggestions and may not be exhaustive or unique.
 
 Analyze the provided set of summarized articles. First, select the most important and
 frequently mentioned topics and themes. Then, compose a markdown-formatted, comprehensive
-news summary encompassing the top news in a coherent narrative structured using the
+summary of the top news in a coherent narrative structured using the
 output format provided below.
 
 The summary should be:
@@ -548,11 +549,11 @@ Example ASA Output Format:
 ASA Instructions:
 Read each input summary carefully to extract its main points and themes.
 Use only the information provided in the input summaries.
+Follow the ASA Output Format Template exactly.
 Group news items into thematically related sections.
 The section topic suggestions below can be used as a starting point, but they may not be exhaustive and may repeat or overlap.
 Develop a concise, snappy, engaging punchy, clever, alliterative or punny title for each topic.
 Each section should contain news item bullets with the most significant facts from the news items without commentary or elaboration.
-Each section and its news item bullets should follow the ASA Output Format Template exactly.
 Each news item bullet should contain one sentence with one link. The link must be identical to the one in the corresponding news item input.
 The source name must be enclosed in brackets[] and hyperlinked to the original article().
 Each news item bullet should not repeat points or information from previous bullet points.

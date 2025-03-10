@@ -1,0 +1,5 @@
+[{"id": 4, "summary": "[Elon Musk's attempt to stop OpenAI's for-profit transition crashes - www.androidheadlines.com](https://www.androidheadlines.com/2025/03/elon-musk-attempt-to-stop-openais-for-profit-transition-crashes.html)
+
+- US District Judge Yvonne Gonzalez Rogers ruled against Elon Musk's lawsuit seeking to halt OpenAI's transition to a for-profit model, stating that Musk failed to conclusively prove OpenAI's commitment to remaining a nonprofit.  
+- Sam Altman, CEO of OpenAI, argued that transitioning to a for-profit structure is necessary to secure funding for expensive AI development, with OpenAI currently operating under a hybrid nonprofit-for-profit model.  
+- Elon Musk, a co-founder of OpenAI and now founder of AI company xAI, claimed in his lawsuit that OpenAI betrayed him by deviating from its original nonprofit direction."}]

@@ -1,0 +1,12 @@
+[{"id": 22, "summary": "[Your Writing Has a FingerprintAnd This Cutting Edge AI Model Can Identify It - Hacker Noon](https://hackernoon.com/your-writing-has-a-fingerprintand-this-cutting-edge-ai-model-can-spot-it)
+
+- Researchers propose a novel method for detecting authorship using grammatical structures derived from a natural language parser, which may offer improved accuracy over traditional word frequency-based approaches and reduce susceptibility to spoofing or topic bias.  
+- The study demonstrates the effectiveness of tree-based grammatical features in distinguishing authorship, outperforming part-of-speech features when applied to test cases like The Federalist Papers and Jane Austen's Sanditon.  
+- Dimension reduction techniques are employed to manage the high-dimensional feature vectors, with a generalized singular value decomposition (SVD) approach used to enhance classification performance.  
+
+
+[Google Shopping Will Now Use AI to Find You the Right Clothes - www.gadgets360.com](https://www.gadgets360.com/ai/news/google-shopping-ai-features-garment-search-virtual-try-on-rolling-out-7862262)
+
+- Google Shopping has introduced AI-powered features such as image generation, virtual try-on for apparel, and makeup try-on tools, enabling users to visualize products before purchasing.  
+- The platform's new tools allow users to generate apparel designs via text prompts, use augmented reality for virtual makeup application, and expand virtual try-on to include pants and skirts on diverse models.  
+- These features are currently available only in the US, with no timeline provided for expansion to other markets."}]

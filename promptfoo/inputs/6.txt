@@ -1,0 +1,5 @@
+[{"id": 6, "summary": "[AI has 'great potential' for detecting wildfires, study of the Amazon rainforest suggests - Phys.org](https://phys.org/news/2025-03-ai-great-potential-wildfires-amazon.html)
+
+- A study using convolutional neural networks (CNN) combined with satellite imaging achieved 93% accuracy in detecting wildfires in the Amazon rainforest, highlighting AI's potential to enhance early warning systems and response strategies.  
+- The CNN model, trained on a dataset of wildfire and non-wildfire images, showcases advanced capabilities for localized wildfire detection, complementing existing large-scale monitoring systems like MODIS and VIIRS.  
+- Researchers recommend expanding the training dataset to further improve the model's accuracy and suggest additional applications like monitoring deforestation."}]

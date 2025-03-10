@@ -1,0 +1,5 @@
+[{"id": 39, "summary": "[Apple confirms long delay for AI-boosted Siri assistant - Digital Trends](https://www.digitaltrends.com/mobile/apple-siri-ai-makeover-feature-upgrade-capabilities-delay-next-year/)
+
+- Apple has confirmed that the AI-overhauled Siri, designed to provide contextual awareness and app integration, has been delayed until next year, with possibilities of extended delays up to 2027.  
+- Reports suggest internal testing concerns and potential roadmap changes for Siri’s planned features, with Apple considering a partnership with OpenAI to integrate ChatGPT capabilities as a temporary solution.  
+- Competitors like Google’s Gemini are outpacing Siri with advanced capabilities, while Apple is making efforts in localized AI development through collaborations with Chinese companies Alibaba and Baidu."}]

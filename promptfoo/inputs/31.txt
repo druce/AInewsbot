@@ -1,0 +1,5 @@
+[{"id": 31, "summary": "[China plans a state venture capital guidance fund, expected to attract ~$138B over 20 years from local governments and private sector, to support AI and more - CNN](http://www.cnn.com/2025/03/06/tech/china-state-venture-capital-guidance-fund-intl-hnk/)
+
+- China plans to establish a state-backed "venture capital guidance fund" with nearly 1 trillion yuan ($138 billion) in capital over 20 years to support innovation in AI, quantum technology, and hydrogen energy storage.  
+- Premier Li Keqiang announced initiatives to strengthen emerging industries like bio-manufacturing, embodied AI, and 6G technology while prioritizing domestic consumption through increased government spending and consumer subsidies.  
+- Amid US tech restrictions, China highlights progress in AI and robotics, with private company DeepSeek achieving significant AI advancements despite limited chip access, showcasing China's focus on independent innovation."}]

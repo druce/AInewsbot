@@ -1,0 +1,5 @@
+[{"id": 29, "summary": "[Scientists firmly in AI crosshairs as Google launches co-scientist scheme to accelerate scientific breakthroughs just days after another similar project - TechRadar](https://www.techradar.com/pro/scientists-firmly-in-ai-crosshair-as-google-launches-co-scientist-scheme-to-accelerate-scientific-breakthroughs-just-days-after-another-similar-project)
+
+- Google has introduced an AI co-scientist built on Gemini 2.0, designed to assist researchers by generating, evaluating, and refining scientific hypotheses using multiple specialized agents.  
+- The system aims to mirror the scientific method, leveraging tools like web search and specialized AI models, while allowing scientists to provide inputs and feedback in natural language.  
+- Google plans to cautiously roll out the system through a trusted tester program, targeting research organizations."}]

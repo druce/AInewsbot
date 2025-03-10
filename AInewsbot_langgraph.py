@@ -798,7 +798,7 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
     log("Cleaning and formatting topics")
     # pdb.set_trace()
     topics_df["topics"] = topics_df.apply(
-        lambda t: clean_topics(t, lcategories), axis=1)
+        lambda t: clean_topics(t), axis=1)
     topics_df["topic_str"] = topics_df.apply(
         lambda row: ", ".join(row.topics), axis=1)
 

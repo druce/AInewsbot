@@ -1,0 +1,5 @@
+[{"id": 3, "summary": "[What is Manus? China's World-First Fully Autonomous AI Agent Explained - Newsweek](https://www.newsweek.com/manus-new-china-ai-agent-explained-2040445)
+
+- Manus, a new Chinese AI agent, is designed to handle real-world complex tasks such as trip planning, stock analysis, and business-to-business sourcing, boasting capabilities that reportedly surpass OpenAI's Deep Research according to the GAIA benchmark.
+- The AI showcases autonomous functionality, including website browsing and real-time workflow display, and is currently available as an invite-only web preview, with significant interest generated through a demonstration video seen by over 200,000 viewers.
+- Manus is part of China's growing advancements in AI, reflecting the country's ability to develop cost-efficient Large Language Models and autonomous tools, following key breakthroughs like DeepSeek earlier in the year."}]

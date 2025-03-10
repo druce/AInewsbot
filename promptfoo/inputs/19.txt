@@ -1,0 +1,7 @@
+[{"id": 19, "summary": "[Google rolls out AI-only search results - www.the-independent.com](https://www.the-independent.com/tech/google-search-ai-mode-overviews-b2710021.html)
+
+• Google has launched an AI-only search tool, "AI Mode," powered by its Gemini 2.0 agent, delivering answers conversationally instead of listing links, with the feature currently available to Google One AI Premium subscribers.  
+
+• The AI Mode supports nuanced and exploratory queries with follow-up questions and relevant web links, while Google also updated AI Overviews, expanding their frequency for topics like math and coding, accessible without user sign-ins.  
+
+• Google's AI search features have faced criticism, including lawsuits over reduced referral traffic and reliability concerns due to instances of false information provided by the tools."}]

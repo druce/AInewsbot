@@ -1,0 +1,7 @@
+[{"id": 20, "summary": "[Were locked inside a creative bubble, will AI burst it or throw away the key? - TechRadar](https://www.techradar.com/computing/artificial-intelligence/were-locked-inside-a-creative-bubble-will-ai-burst-it-or-throw-away-the-key)
+
+• The creative industry faces a crisis as mainstream media increasingly relies on formulaic and uninspired content to safeguard profits, with AI presenting both a potential tool for rejuvenation and a risk of further creative decline.  
+
+• Concerns grow over the use of AI in content creation, as its cost-effectiveness and efficiency could lead to a focus on mass production over innovation, with the technology already being speculated in cases like poorly received Marvel artwork.  
+
+• AI's rapid evolution could see it replacing various aspects of creative processes, prompting a pivotal choice for media industries: leveraging AI to enhance creativity and working conditions or prioritizing cost-cutting at the expense of originality."}]

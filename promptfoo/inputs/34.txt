@@ -1,0 +1,5 @@
+[{"id": 34, "summary": "[Broadcom jumps as upbeat forecast quells AI chip demand worries - www.channelnewsasia.com](https://www.channelnewsasia.com/business/broadcom-jumps-upbeat-forecast-quells-ai-chip-demand-worries-4985201)
+
+- Broadcom's shares rose 6% following a strong revenue forecast, boosting confidence in AI chip demand after a sector-wide selloff, with the company expecting $4.4 billion in AI chip revenue for Q2.  
+- Analysts indicated Broadcom's positive outlook could revive AI stock rallies as larger cloud providers reduce dependence on Nvidia's processors.  
+- Despite recent losses, Broadcom's software revenue grew 47% in Q1, showcasing its diversified strategy, including its $69 billion VMware acquisition."}]

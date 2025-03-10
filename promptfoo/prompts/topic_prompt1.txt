@@ -1,0 +1,77 @@
+As a specialized research assistant, your task is to perform detailed topic analysis
+of news item summaries. You will process news items summaries provided as a JSON object according to
+the input specification below. You will extract topics of the news item summaries according to the
+output specification below and return a raw JSON object without any additional formatting or markdown syntax.
+
+Input Specification:
+You will receive an array of JSON objects representing news summaries.
+Each headline object contains exactly two fields:
+'id': A unique numeric identifier
+'summary': The news summmary item
+
+Example input:
+[
+ {
+    "id": 29,
+    "summary": "• Elon Musk's xAI launched Grok 3, a new family of AI models trained using 100,000 Nvidia H100 GPUs at the Colossus Supercluster; benchmarks show it outperforms competitors like GPT-4o and Claude 3.5 Sonnet in areas such as math, science, and coding.
+• Grok 3 includes advanced features like reasoning models for step-by-step logical problem-solving and a DeepSearch function that synthesizes internet-sourced information into single answers; it is initially available to X Premium+ subscribers, with advanced features under a paid "SuperGrok" plan.
+• Former Tesla AI director Andrej Karpathy and others have confirmed Grok 3's strong performance, with Karpathy noting it is comparable to and slightly better than leading AI models from OpenAI and other competitors."
+  },
+{
+    "id": 34,
+    "summary": "• Google Gemini has received a memory upgrade that allows it to recall past conversations and summarize previous chats, enhancing its ability to remember user preferences such as interests and professional details. This feature is currently available only to Google One AI Premium subscribers in English, with broader language support expected soon.
+• Users retain control over their data with options to delete past conversations, prevent chats from being saved, or set them to auto-delete, although discussions can still be used for AI training unless deleted
+• Similar to OpenAI's ChatGPT persistent memory feature, Gemini's upgrade aims to make chats more practical, though users are advised not to input sensitive information as conversations may be reviewed for quality control."
+  },
+ {
+    "id": 47,
+    "summary": "• Major tech companies like OpenAI, Google, and Meta are competing to dominate generative AI, though the path to profitability remains uncertain.
+• Chinese start-up DeepSeek has introduced a cost-effective way to build powerful AI, disrupting the market and pressuring established players.
+• OpenAI aims to reach 1 billion users, while Meta continues to invest heavily in AI despite market disruptions caused by DeepSeek."
+  },
+{
+    "id": 56,
+    "summary": "- OpenAI is exploring new measures to protect itself from a potential hostile takeover by Elon Musk.
+- The company is in discussions to empower its non-profit board to maintain control as it transitions into a for-profit business model."
+  },
+ {
+    "id": 63,
+    "summary": "- The New York Times has approved the use of select AI tools, such as GitHub Copilot, Google Vertex AI, and their in-house summarization tool Echo, to assist with tasks like content summarization, editing, and enhancing product development, while reinforcing the tools as aids rather than replacements for journalistic work.
+- Strict guidelines and safeguards have been implemented, including prohibitions on using AI to draft full articles, revise them significantly, or generate images and videos, with a mandatory training video to prevent misuse and protect journalistic integrity.
+- Some staff members have expressed concerns about AI potentially compromising creativity and accuracy, leading to skepticism about universal adoption, although the guidelines align with standard industry practices."
+  },
+]
+
+Output Specification:
+Return a raw JSON object containing 'items', a list of JSON objects, each containing:
+'id': Matching the input item's id field.
+'extracted_topics': An array of relevant topic strings
+Topics should capture:
+- The main subject matter
+- Key entities (companies, people, products)
+- Technical domains, industry sectors, event types
+
+Output Example:
+{items:
+ [{"id": 29, "extracted_topics": ['AI model development', 'xAI Grok capabilities', 'AI advancements']},
+  {"id": 34, "extracted_topics": [
+      'Google Gemini', 'Interactive AI advancements', 'Digital assistants']},
+  {"id": 47, "extracted_topics": ['OpenAI', 'Google', 'Meta', 'DeepSeek']},
+  {"id": 56, "extracted_topics": [
+      'OpenAI', 'non-profit oversight', 'anti-takeover strategies', 'Elon Musk']},
+  {"id": 63, "extracted_topics": [
+      'New York Times', 'AI in journalism', 'GitHub Copilot', 'Google Vertex AI']},
+ ]
+}
+
+Detailed Guidelines:
+The output must strictly adhere to the output specification.
+Do not return markdown, return a raw JSON string.
+For each input item, output a valid JSON object for each news item in the exact schema provided.
+Extract 3-5 relevant topics per news item.
+Do not extract more than 5 topics per news item.
+Avoid duplicate or redundant topics.
+Use topics which are as specific as possible.
+Please analyze the following news items and provide topic classifications according to these specifications:
+
+{{input_text}}

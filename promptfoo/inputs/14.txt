@@ -1,0 +1,5 @@
+[{"id": 14, "summary": "[Bright Lights, Bot City: Having A.I. Plan a Dream Trip to New York - The New York Times](https://www.nytimes.com/2025/03/07/travel/ai-travel-planning-nyc.html)
+
+- Artificial intelligence travel planners provide faster and easier trip research, but users are advised to double-check recommendations for inaccuracies and impractical suggestions.  
+- Different A.I. tools, such as Mindtrip, Vacay, ChatGPT, and Tripadvisor, offer varying features, strengths, and overlapping suggestions, including affordable hotel options and iconic NYC landmarks, but may produce unrealistic itineraries or incorrect details.  
+- A.I. travel planners are currently used mainly for trip research, but future developments may enable A.I. to autonomously book complete trips, emphasizing the need for double-checking all provided information."}]

@@ -1,0 +1,5 @@
+[{"id": 38, "summary": "[Google cofounder Larry Page reportedly developing new AI startup - The Economic Times](https://economictimes.indiatimes.com/tech/artificial-intelligence/google-cofounder-larry-page-reportedly-developing-new-ai-startup/articleshow/118787983.cms)
+
+- Google cofounder Larry Page is reportedly developing an AI startup called Dynatomics, focusing on generating "highly optimised" product designs for manufacturing in collaboration with a small team led by Chris Anderson, former CTO of Kittyhawk.  
+- This is part of a broader trend of former tech executives launching ventures, including initiatives by Jonathan Godwin (formerly of DeepMind), Mira Murati (formerly of OpenAI), and OpenAI cofounder Ilya Sutskever.  
+- The emerging startups are focusing on diverse AI applications, such as generative AI for physical materials, systems encoding human values, and developing safe superintelligence aligned with human interests."}]

@@ -1,0 +1,5 @@
+[{"id": 26, "summary": "[X now lets you query Grok by mentioning it in replies - TechCrunch](https://techcrunch.com/2025/03/07/x-now-lets-you-query-grok-by-mentioning-it-in-
+
+- X has expanded access to xAI's Grok model, allowing users to mention Grok in replies to ask questions and receive explanations about posts.  
+- Grok can also be accessed via a button in the sidebar or next to posts, where it provides text and image explanations through its image understanding feature.  
+- xAI has introduced additional access options for Grok, including a standalone app on iOS and Android, a dedicated website, and a SuperGrok plan offering extra features like unlimited image generation and early access."}]

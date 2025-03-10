@@ -631,7 +631,7 @@ async def get_all_canonical_topic_results(pages, topics, model_medium):
     return results
 
 
-def clean_topics(row, lcategories):
+def clean_topics(row):
     """
     Cleans the extracted_topics and assigned_topics by removing certain common topics and combining them into a single list.
 
@@ -648,7 +648,7 @@ def clean_topics(row, lcategories):
     extracted_topics = [x.title() for x in row.extracted_topics if x.lower() not in {
         "technology", "ai", "artificial intelligence", "gen ai", "no content"}]
     assigned_topics = [x.title()
-                       for x in row.assigned_topics if x.lower() in lcategories]
+                       for x in row.assigned_topics]
     combined = sorted(list(set(extracted_topics + assigned_topics)))
     combined = [s.replace("Genai", "Gen AI") for s in combined]
     combined = [s.replace("Openai", "OpenAI") for s in combined]

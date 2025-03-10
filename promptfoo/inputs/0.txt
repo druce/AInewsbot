@@ -1,0 +1,5 @@
+[{"id": 0, "summary": "[Broadcom just proved Nvidia will be looking over its shoulder for a while longer - Business Insider](https://www.businessinsider.com/broadcom-q1-2025-earnings-stock-soars-nvidia-competition-grows-2025-3)
+
+- Broadcom's AI revenue increased by 77% year-over-year, resulting in a significant stock surge, with $4.1 billion reported in the last quarter and projections of $60-$90 billion in revenue from its largest hyperscaler customers over the next two years.  
+- Broadcom's custom AI chips, designed in collaboration with cloud companies, offer a cost-effective alternative to Nvidia's general-purpose chips, and analysts predict the ASIC market will nearly double to $22 billion this year.  
+- Major Broadcom AI chip customers reportedly include Google, ByteDance, and Meta, with the company engaged in potential agreements with additional clients."}]

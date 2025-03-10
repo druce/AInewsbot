@@ -1,0 +1,7 @@
+[{"id": 7, "summary": "[Former OpenAI policy researcher Miles Brundage criticizes an OpenAI post on safety and alignment, saying it rewrites the history of GPT-2 in a concerning way - TechCrunch](https://techcrunch.com/2025/03/06/openais-ex-policy-lead-criticizes-the-company-for-rewriting-its-ai-safety-history/)
+
+• Former OpenAI policy researcher Miles Brundage criticized the company for "rewriting" its history of cautious AI deployment, particularly regarding GPT-2, which he claims was released with responsible incremental steps consistent with OpenAI's current philosophy.  
+
+• Brundage expressed concerns that OpenAI's recent AI safety document downplays the importance of caution, potentially setting a precedent where overwhelming evidence is required to act on risks, which he finds dangerous for advanced AI systems.  
+
+• OpenAI has faced criticism over prioritizing rapid product releases over safety, dissolving its AGI readiness team, and losing researchers to rivals, amidst increasing competition and high financial losses."}]

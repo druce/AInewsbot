@@ -1,0 +1,5 @@
+[{"id": 11, "summary": "[Hackers Deploy AI Deepfake of YouTube CEO in Credential Theft Scam - HackRead](https://hackread.com/hackers-ai-deepfake-youtube-ceo-credential-theft/)
+
+- Hackers used AI deepfake technology to impersonate YouTube CEO Neal Mohan in phishing emails, directing creators to fake sites to steal credentials and install malware.  
+- YouTube issued a warning stating it never contacts users via private videos, advising creators to treat such videos as phishing scams and avoid clicking associated links.  
+- Experts highlight the growing threat of deepfake scams, showcasing the evolving sophistication of cyberattacks targeting broader audiences and urging vigilance against suspicious emails."}]

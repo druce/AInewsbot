@@ -1,0 +1,5 @@
+[{"id": 24, "summary": "[This new AI voice demo will blow your mind - BGR](https://bgr.com/tech/this-new-ai-voice-demo-will-blow-your-mind/)
+
+- Sesame, a new AI voice model, offers an advanced "voice presence" with realistic interactions, featuring two personas, Miles and Maya, available in an online demo.  
+- Users have reported remarkable experiences, including realistic roleplay scenarios and quick, witty AI responses, highlighting the model's advanced conversational capabilities.  
+- The model's potential raises both excitement for its possibilities and concerns about the implications of highly realistic AI voice technology."}]

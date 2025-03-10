@@ -1,0 +1,5 @@
+[{"id": 23, "summary": "[Prime Video Introduces AI-Powered Dubbing in English and Spanish - www.ghacks.net](https://www.ghacks.net/2025/03/06/prime-video-introduces-ai-powered-dubbing-in-english-and-spanish/)
+
+- Amazon's Prime Video has launched a pilot program using AI to dub 12 previously undubbed titles in English and Spanish, aiming to enhance accessibility and expand global viewership.  
+- AI-powered dubbing seeks to streamline and reduce costs compared to traditional methods while addressing challenges like emotional tone and lip synchronization accuracy.  
+- If successful, this initiative could influence broader adoption of AI in content localization across the media industry."}]

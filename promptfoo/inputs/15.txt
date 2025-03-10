@@ -1,0 +1,5 @@
+[{"id": 15, "summary": "[Amazon reportedly sets up new group to develop agentic AI - www.androidheadlines.com](https://www.androidheadlines.com/2025/03/amazon-agentic-ai-development.html)
+
+- Amazon has reportedly established a new group dedicated to developing agentic AI, aiming to create proactive artificial intelligence agents capable of making decisions and automating daily tasks.  
+- Matt Garman, CEO of AWS, highlighted agentic AI's potential as the "next multi-billion business" for AWS, with Swami Sivasubramanian leading the new group and reporting directly to Garman.  
+- Amazon plans to enhance AI experiences for both consumers and businesses, potentially offering tools for workflow automation and optimization alongside upgraded features like the agentic capabilities demonstrated in Alexa+."}]

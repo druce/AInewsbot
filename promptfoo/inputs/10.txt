@@ -1,0 +1,4 @@
+[{"id": 10, "summary": "[Alibaba launches DeepSeek rival, sending stock surging - biztoc.com](https://biztoc.com/x/42e839432e302cb6)
+
+• Alibaba unveiled a new artificial intelligence reasoning model on Thursday, claiming it outperforms competitors like OpenAI and DeepSeek.  
+• The announcement drove Alibaba's Hong Kong-listed shares up by 8%, contributing to gains in the Hang Seng's China index."}]

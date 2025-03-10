@@ -1,0 +1,5 @@
+[{"id": 17, "summary": "[Reinforcement learning pioneers harshly criticize the "unsafe" state of AI development - TechSpot](https://www.techspot.com/news/107052-reinforcement-learning-pioneers-harshly-criticize-unsafe-state-ai.html)
+
+- Richard Sutton and Andrew Barto, pioneers of reinforcement learning and winners of the Turing Award, criticized AI companies like OpenAI and Google for releasing unsafe AI systems, labeling ChatGPT a profit-driven tool incapable of achieving artificial general intelligence (AGI).  
+- Sutton and Barto argued that AI companies lack safeguards, comparing their practices to testing bridges by opening them to the public, and emphasized the need for sound engineering to mitigate potential negative consequences.  
+- Barto stated that AGI is overhyped as a marketing buzzword, and developers need to better understand human cognition before creating systems with human-level intelligence."}]

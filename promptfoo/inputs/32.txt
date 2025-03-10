@@ -1,0 +1,12 @@
+[{"id": 32, "summary": "[Alibabas Qwen Team Releases QwQ-32B Open-Source Reasoning Model, Said to Perform Similar to DeepSeek-R1 - www.gadgets360.com](https://www.gadgets360.com/ai/news/alibaba-qwq-32b-open-source-reasoning-ai-model-deepseek-r1-qwen-team-released-7868469)
+
+- Alibaba's Qwen Team released the QwQ-32B reasoning AI model, a 32-billion parameter open-source model using reinforcement learning, which performs comparably to the larger 671-billion-parameter DeepSeek-R1 in benchmarks like LiveBench, IFEval, and BFCL.  
+- The QwQ-32B model's open weights are available on Hugging Face and ModelScope under the Apache 2.0 license, which permits academic use but restricts commercial applications; however, full training details or datasets are not disclosed.  
+- The model's capabilities can also be accessed via Qwen Chat for users without the required hardware.  
+
+
+[Crogl, whose AI agent helps cybersecurity researchers analyze daily network alerts to find and fix security incidents, raised a $25M Series A and a $5M seed (Ingrid Lunden/TechCrunch) - TechCrunch](https://techcrunch.com/2025/03/06/crogl-armed-with-30m-takes-the-wraps-off-a-new-ai-iron-man-suit-for-security-analysts/)
+
+- Crogl, a cybersecurity startup, has launched an AI-powered autonomous assistant, described as an "Iron Man suit" for security analysts, designed to help analyze and manage daily network security alerts.  
+- The company raised $30 million in funding, comprising a $25 million Series A led by Menlo Ventures and a $5 million seed round led by Tola Capital, to expand its product and customer base.  
+- The platform leverages a "knowledge engine" to analyze alerts, flag suspicious activity, and enable natural language querying, aiming to improve efficiency in handling the overwhelming volume of security alerts faced by analysts."}]

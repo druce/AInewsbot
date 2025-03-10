@@ -1,0 +1,5 @@
+[{"id": 28, "summary": "[Surprise! People don't want AI deciding who gets a kidney transplant and who dies or endures years of misery - The Register](https://go.theregister.com/feed/www.theregister.com/2025/03/08/ai_kidney_transplant_moral_decisions/)
+
+- Researchers found that current AI models are inadequate for making complex moral decisions, such as allocating kidney transplants, due to their inability to capture human moral reasoning and the fluid nature of moral frameworks.  
+- Participants in a study recognized AI's potential to complement human decision-making by addressing cognitive biases but overwhelmingly preferred that final decisions remain with human experts.  
+- The study highlighted the need for a better computational understanding of moral decision-making before AI can be used meaningfully in moral domains."}]

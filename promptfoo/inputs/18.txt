@@ -1,0 +1,5 @@
+[{"id": 18, "summary": "[A Growing Side Hustle For American College Grads: Fixing AIs Wrong Answers - Forbes](https://www.forbes.com/sites/richardnieva/2025/03/05/scale-ai-outlier-us/)
+
+- Scale AI's platform, Outlier, employs U.S.-based contractors, many with advanced degrees, to train generative AI models by evaluating, refining, and rewriting AI responses; workers are paid per task or hour, earning between $300-$1,000 weekly depending on hours worked.  
+- Criticism has emerged over allegations of wage theft, inadequate mental health support, and time constraints, with contractors filing lawsuits claiming harm and unfair compensation for complex and distressing tasks.  
+- Scale emphasizes its focus on employing American workers to embed expertise, values, and preferences in AI models, aligning with its broader strategy of supporting U.S. AI leadership and securing government contracts."}]

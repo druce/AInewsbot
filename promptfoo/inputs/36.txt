@@ -1,0 +1,5 @@
+[{"id": 36, "summary": "[The ChatGPT Mac app just got a massive coding upgrade  and its coming to Windows soon - TechRadar](https://www.techradar.com/computing/artificial-intelligence/the-chatgpt-mac-app-just-got-a-massive-coding-upgrade-and-its-coming-to-windows-soon)
+
+- ChatGPT's Mac app now features a coding upgrade allowing automatic code insertion into Apple's Xcode, streamlining the development process with new "Apply" and "Auto-apply code" functions.  
+- The update will soon be available for Windows users and integrates with multiple code editors like VS Code, enabling tighter workflow integration.  
+- The upgrade aligns ChatGPT with tools like GitHub Copilot and Xcode's Swift Assist, offering developers improved AI-driven coding capabilities."}]

@@ -1,0 +1,5 @@
+[{"id": 9, "summary": "[Amazon Prime Video Begins Testing AI-Aided Dubbing for Some Movies and Shows - www.gadgets360.com](https://www.gadgets360.com/ai/news/amazon-prime-video-ai-dubbing-pilot-programme-test-movies-series-shows-7860809)
+
+- Amazon Prime Video is testing AI-powered dubbing for 12 licensed movies and shows in English and Latin American Spanish, with plans to expand the service in the future.  
+- The AI dubbing system uses a hybrid approach, combining AI technology with quality control by localization professionals.  
+- The feature aims to make more content accessible to global audiences, focusing on titles without existing dubbing support."}]

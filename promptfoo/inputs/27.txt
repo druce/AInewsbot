@@ -1,0 +1,7 @@
+[{"id": 27, "summary": "[This AI Paper from Google Unveils an AI System that Masters Disease Management and Medication Reasoning Better than Ever - MarkTechPost](https://www.marktechpost.com/2025/03/07/this-ai-paper-from-google-unveils-an-ai-system-that-masters-disease-management-and-medication-reasoning-better-than-ever/)
+
+• Google researchers unveiled an innovative LLM-based AI system for clinical disease management, featuring a multi-agent setup with a Dialogue Agent for patient history tracking and an Mx Agent for structured treatment plans, improving medication reasoning and compliance with clinical guidelines.
+
+• The AI demonstrated superior performance to human clinicians in areas like treatment accuracy, drug reasoning, and guideline adherence during multi-visit case studies, supported by a new RxQA benchmark and large-scale clinical data evaluation.
+
+• This system represents a significant advancement in real-time, patient-centered care by integrating deep contextual reasoning and real-time retrieval capabilities for accurate, evidence-based medical decision-making."}]

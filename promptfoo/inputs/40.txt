@@ -1,0 +1,5 @@
+[{"id": 40, "summary": "[Microsoft creates in-house AI models it believes rival OpenAIs - Fortune](https://fortune.com/2025/03/07/microsoft-creates-in-house-ai-models-it-believes-rival-openais/)
+
+- Microsoft has developed in-house AI models, named MAI, that it believes are competitive with state-of-the-art counterparts from OpenAI and Anthropic, aiming to lessen reliance on its OpenAI partnership.  
+- These models have been tested for tasks like powering Copilot-branded AI assistants and addressing complex queries with reasoning capabilities, complementing Microsoft’s mix of models that include OpenAI’s technology.  
+- Microsoft and OpenAI renegotiated their partnership recently, allowing OpenAI to use other cloud providers under certain conditions, while maintaining a collaborative relationship that runs until 2030."}]

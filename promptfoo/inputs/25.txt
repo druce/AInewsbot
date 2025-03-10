@@ -1,0 +1,5 @@
+[{"id": 25, "summary": "[Microsoft Unveils Two AI Agents That Can Complete Sales Tasks for Enterprise Clients - www.gadgets360.com](https://www.gadgets360.com/ai/news/microsoft-ai-sales-agents-enterprise-clients-automation-tasks-365-copilot-unveiled-7863311)
+
+- Microsoft introduced two AI-powered agents, Sales Agent and Sales Chat, in Microsoft 365 Copilot to assist enterprise sales teams by automating tasks, managing leads, and accelerating the sales cycle.  
+- Sales Agent autonomously handles tasks like researching leads, setting up meetings, and potentially completing low-impact sales, sourcing information from CRM systems, business data, and Microsoft 365 tools.  
+- Sales Chat provides actionable insights from CRM data, emails, meetings, and the web, offering support through natural language prompts to help sales executives save time and improve efficiency."}]

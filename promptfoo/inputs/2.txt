@@ -1,0 +1,7 @@
+[{"id": 2, "summary": "[Why I find diffusion models interesting? - rnikhil.com](https://rnikhil.com/2025/03/06/diffusion-models-eval)
+
+• Inception Labs has developed a Diffusion LLM (dLLM), a new paradigm outperforming similarly sized LLMs in tasks like code generation, offering 5-10x improvements in speed and efficiency by generating words simultaneously instead of predicting tokens sequentially.
+
+• dLLMs mitigate issues like hallucination by validating critical portions before continuing generation and could enhance multi-step workflows in AI agents by maintaining coherence and avoiding errors.
+
+• The model's approach, used historically for image and video generation, allows for novel applications such as generating the end and middle of text before the beginning, improving reasoning and planning capabilities."}]

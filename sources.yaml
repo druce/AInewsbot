@@ -2,7 +2,7 @@ Ars Technica:
   include:
   - ^https://arstechnica.com/(\w+)/(\d+)/(\d+)/
   title: Ars Technica
-  url: https://arstechnica.com/
+  url: https://arstechnica.com/ai/
 Bloomberg Tech:
   include:
   - ^https://www.bloomberg.com/news/

@@ -1,0 +1,5 @@
+[{"id": 8, "summary": "[ChatGPT Now Integrates Directly with Xcode and VS Code on Mac - MacRumors](https://www.macrumors.com/2025/03/07/chatgpt-integrates-with-xcode-mac/)
+
+- OpenAI has updated the ChatGPT macOS app to enable direct code editing in development environments like Xcode, VS Code, and JetBrains tools, eliminating the need for copy-pasting.  
+- Subscribers to ChatGPT Plus, Pro, and Team can access this functionality now, while other user tiers will receive it next week; Windows support is also planned.  
+- This update builds upon ChatGPT’s previous beta feature and positions it as a competitor to AI tools like GitHub Copilot and Swift Assist."}]
