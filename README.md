@@ -19,7 +19,7 @@ A Python notebook/script to help find the latest news about AI (potentially othe
 - Used to help generate a daily newsletter at https://www.skynetandchill.com/
 - Also generates a podcast using podcastfy, which uses a complex prompt to write a script and then perform text-to-speech. Did some manual editing to incorporate images, set up image timings, upload to YouTube, could possibly be automated but still work in progress.
 
-![flowchart](https://github.com/druce/AInewsbot/blob/main/graph.jpeg?raw=true)
+![flowchart](https://github.com/druce/AInewsbot/blob/main/graph.png?raw=true)
 
 ## Podcast generated with podcastfy.ai
 
