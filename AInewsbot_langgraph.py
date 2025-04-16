@@ -158,6 +158,8 @@ model_family = {'gpt-4o-2024-11-20': 'openai',
                 'gpt-4o-mini': 'openai',
                 'o3-mini': 'openai',
                 'gpt-4.5-preview': 'openai',
+                'gpt-4.1': 'openai',
+                'gpt-4.1-mini': 'openai',
                 'models/gemini-2.0-flash-thinking-exp': 'google',
                 'models/gemini-2.0-pro-exp': 'google',
                 'models/gemini-2.0-flash': 'google',
@@ -1392,7 +1394,7 @@ if __name__ == "__main__":
     MAX_EDITS = args.max_edits
     log(f"Starting AInewsbot with do_download={do_download}, before_date='{before_date}', N_BROWSERS={N_BROWSERS}, MAX_EDITS={MAX_EDITS}")
 
-    ml, mm, mh = 'gpt-4o-mini', 'gpt-4o-2024-11-20', 'o3-mini'
+    ml, mm, mh = 'gpt-4.1-mini', 'gpt-4.1', 'o3-mini'
 
     lg_state, lg_agent, thread_id = initialize_agent(ml, mm, mh,
                                                      do_download,
