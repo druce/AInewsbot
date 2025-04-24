@@ -49,7 +49,7 @@ A Python notebook/script to help find the latest news about AI
 
 ### LLM Integration
 - `ainb_llm.py`: LangChain wrappers around ChatOpenAI.
-  - Structured JSON classification (like, is it AI-related?)
+  - Structured JSON classification (simultanously fire a prompt for each row of a dataframe asynchronously, such as, is it AI-related?)
   - Topic extraction
   - Summary generation
   - Prompt-token budgeting
