@@ -8,7 +8,7 @@ A Python notebook/script to help find the latest news about AI
 
 - Used to help generate a daily newsletter at https://www.skynetandchill.com/
 
-- Also generates a podcast using `[podcastfy](https://github.com/souzatharsis/podcastfy)`, using a complex prompt to write a script and then perform text-to-speech.
+- Also generates a podcast using [podcastfy](https://github.com/souzatharsis/podcastfy), using a complex prompt to write a script and then perform text-to-speech.
 
 [![A podcast created with podcastfy](https://img.youtube.com/vi/Fl0xP1Io72k/0.jpg)](https://www.youtube.com/shorts/AOVOOZQthNU)
 
@@ -33,7 +33,7 @@ A Python notebook/script to help find the latest news about AI
 ## 2. Core Components
 
 ### Configuration & Prompts
-- - `sources.yaml`: List of news sources (URL, include/exclude regex, scrolling instructions, etc.).
+- `sources.yaml`: List of news sources (URL, include/exclude regex, scrolling instructions, etc.).
 - `ainb_const.py`: Paths, API keys (via `.env`), model settings, LLM prompts (classification, topic extraction, summarization).
 
 ### Scraping
