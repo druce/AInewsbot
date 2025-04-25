@@ -49,23 +49,30 @@ from openai import OpenAI
 from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, SOURCECONFIG, SOURCES_EXPECTED,
                         FILTER_SYSTEM_PROMPT, FILTER_USER_PROMPT,
                         TOPIC_SYSTEM_PROMPT, TOPIC_USER_PROMPT,
-                        CANONICAL_TOPICS,
-                        TOPIC_WRITER_PROMPT,
+                        LOW_QUALITY_SYSTEM_PROMPT, LOW_QUALITY_USER_PROMPT,
+                        ON_TOPIC_SYSTEM_PROMPT, ON_TOPIC_USER_PROMPT,
+                        IMPORTANCE_SYSTEM_PROMPT, IMPORTANCE_USER_PROMPT,
                         FINAL_SUMMARY_PROMPT,
+                        CANONICAL_TOPICS,
+                        TOPIC_WRITER_SYSTEM_PROMPT, TOPIC_WRITER_USER_PROMPT,
                         TOP_CATEGORIES_PROMPT, TOPIC_REWRITE_PROMPT, REWRITE_PROMPT,
                         SITE_NAME_PROMPT, SQLITE_DB,
                         HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST,
                         SCREENSHOT_DIR, REQUEST_TIMEOUT)
-from ainb_utilities import (log, delete_files, filter_unseen_urls_db, insert_article,
+
+from ainb_utilities import (log, delete_files, filter_unseen_urls_db,
                             nearest_neighbor_sort, send_gmail, unicode_to_ascii)
+
 from ainb_webscrape import (get_browsers, parse_file,
                             process_source_queue_factory,
                             process_url_queue_factory)
+
 from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
                       filter_page_async,
                       get_all_canonical_topic_results, clean_topics,
                       Stories, TopicSpecList, TopicHeadline, TopicCategoryList, Sites,
-                      #   sprocess_dataframes, sfetch_all_summaries
+                      StoryRating, StoryRatings,
+                      sprocess_dataframes
                       )
 
 langchain.verbose = True
@@ -901,8 +908,8 @@ def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
                 display(tmpdf)
                 response = asyncio.run(filter_page_async(
                     tmpdf,
-                    "",
-                    TOPIC_WRITER_PROMPT,
+                    TOPIC_WRITER_SYSTEM_PROMPT,
+                    TOPIC_WRITER_USER_PROMPT,
                     TopicHeadline,
                     model=model_low,
                 ))
@@ -1057,6 +1064,87 @@ def fn_summarize_pages(state: AgentState, model_medium) -> AgentState:
 
     return state
 
+# could abstract this to a generic filter function
+# description , system_prompt, user_prompt, output_class, model, column_name, filter_value
+
+
+def fn_quality_filter(state: AgentState, model_medium) -> AgentState:
+
+    log("Starting quality filter")
+    aidf = pd.DataFrame(state['AIdf'])
+    qdf = aidf[["id", "bullet"]].copy().rename(columns={"bullet": "summary"})
+    pages = paginate_df(qdf, maxpagelen=50)
+    responses = asyncio.run(process_dataframes(
+        pages,
+        LOW_QUALITY_SYSTEM_PROMPT,
+        LOW_QUALITY_USER_PROMPT,
+        StoryRatings,
+        model=model_medium,
+    ))
+    response_dict = {}
+    for response_obj in responses:
+        response_dict[response_obj.id] = response_obj.rating
+    aidf["low_quality"] = aidf["id"].map(response_dict.get)
+    counts_dict = aidf['low_quality'].value_counts().to_dict()
+    log(f"value counts: {counts_dict}")
+    # aidf = aidf.loc[aidf['low_quality'] != 1]
+    log(f"retained {len(aidf)} articles after applying quality filter")
+    state['AIdf'] = aidf.to_dict(orient='records')
+
+    return state
+
+
+def fn_on_topic_filter(state: AgentState, model_medium) -> AgentState:
+
+    log("Starting on-topic filter")
+    aidf = pd.DataFrame(state['AIdf'])
+    qdf = aidf[["id", "bullet"]].copy().rename(columns={"bullet": "summary"})
+    pages = paginate_df(qdf, maxpagelen=50)
+    responses = asyncio.run(process_dataframes(
+        pages,
+        ON_TOPIC_SYSTEM_PROMPT,
+        ON_TOPIC_USER_PROMPT,
+        StoryRatings,
+        model=model_medium,
+    ))
+    response_dict = {}
+    for response_obj in responses:
+        response_dict[response_obj.id] = response_obj.rating
+    aidf["on_topic"] = aidf["id"].map(response_dict.get)
+    counts_dict = aidf['on_topic'].value_counts().to_dict()
+    log(f"value counts: {counts_dict}")
+    # aidf = aidf.loc[aidf['on_topic'] != 0]
+    log(f"retained {len(aidf)} articles after applying on-topic filter")
+    state['AIdf'] = aidf.to_dict(orient='records')
+
+    return state
+
+
+def fn_importance_filter(state: AgentState, model_medium) -> AgentState:
+
+    log("Starting importance filter")
+    aidf = pd.DataFrame(state['AIdf'])
+    qdf = aidf[["id", "bullet"]].copy().rename(columns={"bullet": "summary"})
+    pages = paginate_df(qdf, maxpagelen=50)
+    responses = asyncio.run(process_dataframes(
+        pages,
+        IMPORTANCE_SYSTEM_PROMPT,
+        IMPORTANCE_USER_PROMPT,
+        StoryRatings,
+        model=model_medium,
+    ))
+    response_dict = {}
+    for response_obj in responses:
+        response_dict[response_obj.id] = response_obj.rating
+    aidf["importance"] = aidf["id"].map(response_dict.get)
+    counts_dict = aidf['importance'].value_counts().to_dict()
+    log(f"value counts: {counts_dict}")
+    # aidf = aidf.loc[aidf['importance'] != 0]
+    log(f"retained {len(aidf)} articles after applying importance filter")
+    state['AIdf'] = aidf.to_dict(orient='records')
+
+    return state
+
 
 def fn_propose_topics(state: AgentState, model_high: any) -> AgentState:
     """
@@ -1070,7 +1158,7 @@ def fn_propose_topics(state: AgentState, model_high: any) -> AgentState:
     log(f"Initial cluster topics: \n{state['topics_str']}")
 
     # first extract free-form topics and add to cluster topics
-    pages = paginate_df(aidf[["bullet"]], maxpagelen=100)
+    pages = paginate_df(aidf[["bullet"]], maxpagelen=200)
     response = asyncio.run(process_dataframes(
         pages,
         "",
@@ -1208,13 +1296,14 @@ class Agent:
         graph_builder.add_node("verify_download", self.verify_download)
         graph_builder.add_node("extract_newsapi_urls",
                                self.extract_newsapi_urls)
-        # graph_builder.add_node("extract_newscatcher_urls",
-        #                        self.extract_newscatcher_urls)
         graph_builder.add_node("filter_urls", self.filter_urls)
-        graph_builder.add_node("topic_analysis", self.topic_analysis)
-        graph_builder.add_node("topic_clusters", self.topic_clusters)
         graph_builder.add_node("download_pages", self.download_pages)
         graph_builder.add_node("summarize_pages", self.summarize_pages)
+        graph_builder.add_node("topic_analysis", self.topic_analysis)
+        graph_builder.add_node("topic_clusters", self.topic_clusters)
+        graph_builder.add_node("quality_filter", self.quality_filter)
+        graph_builder.add_node("on_topic_filter", self.on_topic_filter)
+        graph_builder.add_node("importance_filter", self.importance_filter)
         graph_builder.add_node("propose_topics", self.propose_topics)
         graph_builder.add_node("compose_summary", self.compose_summary)
         graph_builder.add_node("rewrite_summary", self.rewrite_summary)
@@ -1226,12 +1315,14 @@ class Agent:
         graph_builder.add_edge("extract_web_urls", "verify_download")
         graph_builder.add_edge("verify_download", "extract_newsapi_urls")
         graph_builder.add_edge("extract_newsapi_urls", "filter_urls")
-        # graph_builder.add_edge("extract_newscatcher_urls", "filter_urls")
         graph_builder.add_edge("filter_urls", "download_pages")
         graph_builder.add_edge("download_pages", "summarize_pages")
         graph_builder.add_edge("summarize_pages", "topic_analysis")
         graph_builder.add_edge("topic_analysis", "topic_clusters")
-        graph_builder.add_edge("topic_clusters", "propose_topics")
+        graph_builder.add_edge("topic_clusters", "quality_filter")
+        graph_builder.add_edge("quality_filter", "on_topic_filter")
+        graph_builder.add_edge("on_topic_filter", "importance_filter")
+        graph_builder.add_edge("importance_filter", "propose_topics")
         graph_builder.add_edge("propose_topics", "compose_summary")
         graph_builder.add_edge("compose_summary", "rewrite_summary")
         graph_builder.add_conditional_edges("rewrite_summary",
@@ -1291,6 +1382,19 @@ class Agent:
         self.state = fn_filter_urls(state, model)
         return self.state
 
+    def download_pages(self, state: AgentState) -> AgentState:
+        """download individual news pages and save text"""
+        # print(len(self.BROWSERS))
+        self.state = fn_download_pages(state, self.BROWSERS)
+        # print(len(self.BROWSERS))
+        return self.state
+
+    def summarize_pages(self, state: AgentState, model_str: str = "") -> AgentState:
+        """summarize each page into bullet points"""
+        model = get_model(model_str) if model_str else self.model_medium
+        self.state = fn_summarize_pages(state, model)
+        return self.state
+
     def topic_analysis(self, state: AgentState, model_str: str = "") -> AgentState:
         """extract and assign topics for each headline"""
         model = get_model(model_str) if model_str else self.model_low
@@ -1303,17 +1407,22 @@ class Agent:
         self.state = fn_topic_clusters(state, model)
         return self.state
 
-    def download_pages(self, state: AgentState) -> AgentState:
-        """download individual news pages and save text"""
-        # print(len(self.BROWSERS))
-        self.state = fn_download_pages(state, self.BROWSERS)
-        # print(len(self.BROWSERS))
+    def quality_filter(self, state: AgentState, model_str: str = "") -> AgentState:
+        """filter low-quality stories"""
+        model = get_model(model_str) if model_str else self.model_medium
+        self.state = fn_quality_filter(state, model)
         return self.state
 
-    def summarize_pages(self, state: AgentState, model_str: str = "") -> AgentState:
-        """summarize each page into bullet points"""
+    def on_topic_filter(self, state: AgentState, model_str: str = "") -> AgentState:
+        """filter off_topic stories"""
         model = get_model(model_str) if model_str else self.model_medium
-        self.state = fn_summarize_pages(state, model)
+        self.state = fn_on_topic_filter(state, model)
+        return self.state
+
+    def importance_filter(self, state: AgentState, model_str: str = "") -> AgentState:
+        """filter important stories"""
+        model = get_model(model_str) if model_str else self.model_medium
+        self.state = fn_importance_filter(state, model)
         return self.state
 
     def propose_topics(self, state: AgentState, model_str: str = "") -> AgentState:

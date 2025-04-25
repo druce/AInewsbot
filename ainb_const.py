@@ -76,6 +76,7 @@ TOPSOURCES = {
 FILTER_SYSTEM_PROMPT = """
 You are a content-classification assistant that labels news headlines as AI-related or not.
 Return **only** a JSON object that satisfies the provided schema.
+For each headline provided, you must return an element with the same id, and a boolean value; do not skip any items.
 No markdown, no markdown fences, no extra keys, no comments.
 """
 
@@ -162,6 +163,7 @@ You are a news-analysis assistant.
 You will receive a list of news summaries in JSON format.
 Task → extract up to 5 distinct, broad topics from each news summary, or an empty list if no topics can be found.
 Return **only** a JSON object that satisfies the provided schema.
+For each news summary provided, you must return an element with the same id, and a list, even if it is empty.
 No markdown, no markdown fences, no extra keys, no comments.
 
 """
@@ -257,6 +259,7 @@ You are a news-analysis assistant.
 You will receive a list of news summaries in JSON format and a topic.
 Task → determine if each news summary is about the provided topic.
 Return **only** a JSON object that satisfies the provided schema.
+For each news item provided, you must return an element with the same id, and a boolean value; do not skip any items.
 No markdown, no markdown fences, no extra keys, no comments.
 """
 
@@ -330,41 +333,104 @@ SUMMARIZE_USER_PROMPT = """Summarize the article below.
 ### <<<END>>>
 """
 
-TOPIC_WRITER_PROMPT = """
-You are a specialized topic analysis assistant focused on creating titles for groups
-of related news headlines. The titles should be concise, accurate, unifying, and surface
-the principal common thread between them. I will provide you with:
+TOPIC_WRITER_SYSTEM_PROMPT = """
+You are a headline-cluster naming assistant.
 
-A set of news headlines, each followed by their extracted key topics in parentheses
-Each headline's extracted topics will be labeled as "Topics:" followed by comma-separated topics
+Goal → Produce ONE short title (≤ 6 words) that captures the main theme shared by every headline in the set.
 
-Your objective is to:
+Rules
+• Title must be clear, specific, easily understood.
+• Avoid jargon or brand taglines.
+• Focus on the broadest common denominator.
 
-Analyze all headlines and their associated topics
-Identify the most prominent common theme or subject that connects these headlines
-Create a single, unified topic title that:
-Captures the essential shared meaning across all headlines
-Uses no more than 6 words
-Is clear, specific, and immediately understandable
-Avoids overly technical language
-Represents the broadest common denominator among the topics
-
-Please return your response as a JSON object with a single key "topic_title" containing your proposed title.
-
-Example Input:
-In the latest issue of Caixins weekly magazine: CATL Bets on 'Skateboard Chassis' and Battery Swaps to Dispel Market Concerns(powered by AI)(Topics: Battery Swaps, Catl, China,
-Market Concerns, Skateboard Chassis)
-AI, cheap EVs, future Chevy  the week(Topics: Chevy, Evs)
-Electric Vehicles and AI: Driving the Consumer & World Forward(Topics: Consumer, Electric Vehicles, Technology)
-
-Example Output:
-{{"topic_title": "Electric Vehicles"}}
-
-Please analyze the following group of headlines and their topics
-to create an appropriate overarching title for the group:
+Return **only** a JSON object containing the title using the provided JSON schema.
 
 """
 
+TOPIC_WRITER_USER_PROMPT = """
+Create a unifying title for these headlines.
+
+### <<<HEADLINES>>>
+{input_text}
+### <<<END>>>
+"""
+
+LOW_QUALITY_SYSTEM_PROMPT = """
+You are a news-quality classifier. You will receive a list of news summaries in JSON format with a numeric ID and a summary in markdown format containing a url.
+
+Rate a story as low_quality = 1 if **any** of the following conditions is true:
+• Summary is heavy on sensational language, hype or clickbait (e.g. “2 magnificent AI stocks to hold forever”, “AI predictions for NFL against the spread”) and light on concrete facts such as newsworthy events, announcements, direct quotes from reputable organizations and newsworthy individuals.
+• Summary is only about a stock price move, buy/sell recommendation, or someone's buy or sell of a stock without underlying news or analysis.
+• Summary is a speculative opinion without analysis or factual basis (e.g. “Grok AI predicts top memecoin for huge returns”).
+
+Otherwise rate the story as low_quality = 0.
+
+Return **only** a JSON object of IDs and ratings using the provided JSON schema.
+For each news item provided, you MUST return an element with the same id, and a value of 0 or 1; do not skip any items.
+No markdown, no markdown fences, no extra keys, no comments.
+"""
+
+LOW_QUALITY_USER_PROMPT = """Classify each story below.
+
+### <<<STORIES>>>
+{input_text}
+### <<<END>>>
+"""
+
+ON_TOPIC_SYSTEM_PROMPT = """You are an AI-news relevance classifier.
+
+Mark rating = 1 if the story clearly covers ANY of the items below;
+otherwise mark rating = 0.
+
+ON-TOPIC CATEGORIES
+• Major AI product launches or upgrades
+• Funding, Series B, IPOs, M&A, large procurement or foundry deals
+• Strategic partnerships that materially shift the competitive landscape
+• Executive moves (CEO, founder, chief scientist, minister, agency head)
+• New GPU / chip generations, large AI-cloud or super-cluster expansions, export-control impacts
+• Research that sets SOTA benchmarks or reveals new emergent capabilities, safety results, or costs
+• Forward-looking statements by key business, scientific, or political leaders
+• Deep analytical journalism or academic work with novel insights
+• New laws, executive orders, regulatory frameworks, standards, major court rulings, or gov-AI budgets
+• High-profile security breaches, jailbreaks, exploits, or breakthroughs in secure/safe deployment
+• Other significant AI-related news or public announcements by key figures
+
+"""
+
+ON_TOPIC_USER_PROMPT = """Rate each news story below as to whether the news story is on topic for an AI-news summary
+
+### <<<STORIES>>>
+{input_text}
+### <<<END>>>
+"""
+
+
+IMPORTANCE_SYSTEM_PROMPT = """You are an AI-news importance classifier.
+
+Mark rating = 1 if the story strongly satisfies one or more of the factors below; otherwise 0.
+
+IMPORTANCE FACTORS
+1 Magnitude of impact : large user base, $ at stake, broad social reach
+2 Novelty : breaks conceptual ground, not a minor iteration
+3 Authority : reputable institution, peer-review, regulatory filing, on-record executive
+4 Verifiability : code, data, benchmarks, or other concrete evidence provided
+5 Timeliness : early signal of an important trend or shift
+6 Breadth : cross-industry / cross-disciplinary / international implications
+7 Strategic consequence : shifts competitive, power, or policy dynamics
+8 Financial materiality : clear valuation or growth or revenue impact
+9 Risk & safety : raises or mitigates critical alignment, security, or ethical risk
+10 Actionability : informs concrete decisions for investors, policymakers, practitioners
+11 Longevity : likely to matter or be referred to in coming days, weeks, or months
+12 Independent corroboration : confirmed by multiple sources or datasets
+13 Clarity : enough technical/context detail to judge merit; minimal hype
+"""
+
+IMPORTANCE_USER_PROMPT = """Rate each news story below as to whether the news story is important for an AI-news summary
+
+### <<<STORIES>>>
+{input_text}
+### <<<END>>>
+"""
 
 TOP_CATEGORIES_PROMPT = """You are a specialized news analysis assistant focused on identifying and
 categorizing the day's top news stories and trends. Your task is to analyze provided
@@ -529,7 +595,7 @@ the essence of the bullet points underneath.
 Each section should contain a series of bullet points.
 Each bullet point should cover a key development with a short, compelling description.
 Each bullet point should be engaging and informative, providing a clear and concise overview
-of the facts in a neutral tone ( in contrast to entertaining titles), and pointing out deeper
+of the facts in a neutral tone (in contrast to entertaining titles), and pointing out deeper
 implications and connections.
 Embed hyperlinks to the original sources within the bullet points.
 
@@ -632,7 +698,7 @@ Do not include ```markdown. Output raw markdown.
 Remove any text which is not news content, such as instructions, comments, informational alerts about processing.
 Remove stories that are not relevant to the newsletter's focus on AI.
 Remove stories that are clickbait spam, using superlatives and exaggerated claims without news substance.
-Remove stories that are speculative opinions without factual basis, like "Grok AI predicts top memecoin for huge returns","2 magnificent AI stocks to hold forever".
+Remove stories that are speculative opinions without factual basis, like "Grok AI predicts top memecoin for huge returns", "2 magnificent AI stocks to hold forever".
 For each bullet point, make it as concise as possible, sticking to facts without editorial comment.
 For each section, combine any bullet points which are highly duplicative into a summary bullet point with multiple hyperlinks.
 You may remove bullet points but you may not modify URLs.

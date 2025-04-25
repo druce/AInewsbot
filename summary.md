@@ -1,28 +1,41 @@
-# Apple’s A.I. and Robotic Remix  
-- Apple debuts AI-generated App Store review summaries in iOS 18.4 by filtering spam and profanity and leveraging multiple LLMs for clear, balanced user insights – [Apple Insider](https://appleinsider.com/articles/25/04/24/apple-explains-how-app-store-reviews-are-summarized-with-ai)  
-- Apple relocates its secret robotics unit from AI chief John Giannandrea’s division to the hardware team led by John Ternus, marking another shift after moving Siri’s oversight – [apple.slashdot.org](https://apple.slashdot.org/story/25/04/24/2025223/apple-to-strip-secret-robotics-unit-from-ai-chief-weeks-after-moving-siri)  
-- Apple merges its robotics teams and appoints Kevin Lynch as the new leader, aiming to accelerate innovative robot development and integrate advanced sensor technologies – [MacRumors](https://www.macrumors.com/2025/04/24/apple-robotics-team-leadership-change/)
+# Picture-Perfect AI: Creative Clouds Go Next-Gen  
+- Adobe rolled out Firefly Image Model 4 and Ultra plus a commercial-grade Video Model with photorealistic 5-second, 1080p outputs, a Text-to-Vector module, mobile apps and collaborative Boards in its biggest generative AI update yet – Neowin  
+- At Max London, Adobe unveiled an all-in-one Firefly web app for images, video, audio and vectors, plus Content Authenticity beta and partner-model integration in Creative Cloud – SiliconANGLE  
+- Adobe announced Firefly mobile apps for iOS/Android and the addition of OpenAI’s GPT, Google Imagen 3 & Veo 2, and Flux 1.1 Pro into Firefly with clear “Content Credentials” labels – Reuters  
+- Skylum’s Luminar Neo Spring update introduces AI Auto Adjust for one-click enhancements, improved Atmosphere AI fog, catalog cache cleaning and DNG export at no extra cost for most users – PetaPixel  
+- OpenAI released gpt-image-1 via its API, letting developers embed ChatGPT’s image generation with built-in safety controls and token pricing, already in use at Adobe, Figma, HeyGen and Quora – TechRepublic  
 
-# Chip Happens: SK Hynix’s AI Power Play  
-- SK Hynix smashes estimates with an operating income of 7.44 trillion won driven by high demand for AI chips and high-bandwidth memory, forecasting a doubling of demand in 2024 – [Live Mint](https://www.livemint.com/companies/company-results/nvidia-supplier-sk-hynix-s-earnings-beat-estimates-on-ai-boom-11745449610668.html)  
-- SK Hynix posts a 42% revenue jump amid industry stockpiling and tariff uncertainties, reflecting a structural shift in memory markets – [The Register](https://www.theregister.com/2025/04/24/sk_hynix_gets_revenue_boost/)  
-- SK Hynix’s Q1 operating profit surges 158% year-on-year, bolstered by AI chip and smartphone segment demand, while key sales to Nvidia remain unchanged – [Channel NewsAsia](https://www.channelnewsasia.com/business/nvidia-supplier-sk-hynixs-q1-profit-more-doubles-tops-expectations-5085026)
+# ChatGPT’s Growth Spurt: Research, Reach & Revenue  
+- OpenAI launched a free, “lightweight” Deep Research tool powered by o4-mini that auto-activates when paid-user quotas run out, offering near-original intelligence in shorter, cheaper reports – ZDNet  
+- The lightweight Deep Research rollout now covers Plus, Pro, Team and Free users, with Enterprise and Education access coming soon, enabling broader low-cost deep dives – TechCrunch  
+- OpenAI is weighing ads for ChatGPT Free to drive up to $125 billion in revenue by 2029, marking a shift toward monetizing casual users despite Sam Altman’s ad-averse stance – BGR  
+- ChatGPT boasts about 160 million daily active users versus Gemini’s 35 million, though Google’s Search integration still reaches 1.5 billion DAUs and 2 billion MAUs – Business Insider  
 
-# OpenAI and Industry Turbulence  
-- Former OpenAI staffers, including AI experts and Nobel laureates, urge California and Delaware AGs to block the company’s for-profit restructuring to preserve public-interest safeguards – [CNBC](https://www.cnbc.com/2025/04/23/ex-openai-staffers-urge-california-delaware-not-to-allow-restructure.html)  
-- Ten ex-OpenAI employees press AGs to reject converting ChatGPT maker to a for-profit entity, warning that such a move would erode essential governance clauses – [Japan Today](https://japantoday.com/category/tech/ex-openai-workers-ask-california-and-delaware-ags-to-block-for-profit-conversion-of-chatgpt-maker)  
-- Ziff Davis launches a federal lawsuit against OpenAI alleging that its content was used to train ChatGPT without permission, seeking hundreds of millions in damages – [The New York Times](https://www.nytimes.com/2025/04/24/business/media/ziff-davis-openai-lawsuit.html)  
-- OpenAI is reportedly exploring an X-like social platform centered on ChatGPT’s image generation to harness unique, real-time data for further model training – [TechCrunch](https://techcrunch.com/video/openai-may-be-developing-its-own-social-platform-but-whos-it-for/)
+# Bots in the Wild: Niche AI Assistants Everywhere  
+- Evil Geniuses and Theta Labs launched “Meesh,” an AI chatbot on Discord and their website that banters, shares trivia and stats as the team’s mascot in real time – VentureBeat  
+- Perplexity AI teams with Motorola to preload its search engine on Razr phones, gifting three months of Perplexity Pro and access to Deep Research for all Moto users – CNBC  
+- Perplexity’s iOS app added a voice-assistant mode for spoken queries, emails, music playback and alerts as Apple’s Siri-AI rollout stalls – CNET  
 
-# Everyday A.I.: Smarter Searches, Shopping, and Voices  
-- ChatGPT, now integrating real-time data streams, offers personalized shopping recommendations and styling tips that challenge traditional Google search paradigms – [Fortune](https://fortune.com/2025/04/24/i-hate-shopping-chatgpt-is-already-helping-me-in-ways-google-never-did-eye-on-ai/)  
-- Perplexity debuts a new AI voice assistant for iPhone which taps into native data and app integrations to tackle Siri’s longstanding limitations – [ZDNet](https://www.zdnet.com/article/step-aside-siri-perplexitys-new-ai-voice-assistant-for-iphone-can-take-it-from-here/)
+# Robotaxis & Road Rules: Driving into Autonomy  
+- Tesla is eyeing a June rollout of its Austin robotaxi service with 300 operators racking up “critical miles,” first-responder drills and an internal app for 10–20 self-driving Model Ys – Business Insider  
+- Uber CEO Dara Khosrowshahi praised Tesla’s self-driving as “delightful,” isn’t fearing a winner-take-all robotaxi battle and even hinted at partnering with Musk’s fleet alongside Waymo rides – Business Insider  
+- Waymo’s Sundar Pichai says the long-term plan could include personal ownership of its lidar-equipped self-driving cars, reviving past Chrysler minivan collaborations – The Verge  
+- The NHTSA will loosen crash-reporting and streamline approvals for autonomous vehicles in a Musk-backed regulatory revamp aimed at a unified national standard – Twitter  
 
-# Smart Lessons & Policy Pivots: AI in Education and Ethics  
-- A pilot study at the University of Illinois reveals that ChatGPT scores a B- in an engineering course, prompting professors to reshape assignments and emphasize AI literacy and critical thinking – [The Register](https://www.theregister.com/2025/04/23/whats_worth_teaching_when_ai/)  
-- President Trump signs an executive order to bolster AI education and workforce training, launching public-private partnerships and task forces to prepare students for a tech-driven future – [biztoc.com](https://biztoc.com/x/6495e81fd39cc74a)  
-- The UK's Copyright Licensing Agency unveils a Generative AI Training Licence that promises legal certainty for LLM developers and fair compensation for publishers over AI training data use – [The Register](https://www.theregister.com/2025/04/24/uk_publishing_body_launches_ai/)
+# Power Plays: Fueling AI’s Insatiable Thirst  
+- Epoch AI warns that by 2030 leading AI supercomputers could demand 9 GW of power—equivalent to nine nuclear reactors—threatening growth unless training is decentralised – PYMNTS  
+- Meta’s $10 billion AI data center in Louisiana hinges on Entergy passing a $5 billion natural-gas plant bill to ratepayers, triggering objections from consumers, climate groups and Walmart – Business Insider  
+- Vertiv outpaced the AI data-center market in Q1 with 24% revenue growth versus 9–12% sector gains, taking share as enterprises and “neoclouds” ramp up buildouts – Investor’s Business Daily  
+- Amazon and Nvidia executives say demand for AI data-center capacity remains undented by recession fears, underlining ongoing expansion plans – biztoc.com  
 
-# Earnings, Servers, and Supercomputing: Broader Tech Moves  
-- Alphabet reports Q1 earnings that beat expectations, with Google’s AI Overviews now reaching 1.5 billion users per month and a robust rollout of the Gemini 2.5 model amidst intensified antitrust scrutiny – [Business Insider](https://www.businessinsider.com/alphabet-q1-earnings-2025-4)  
-- Hewlett Packard Enterprise launches its new ProLiant Gen12 servers featuring quantum-resistant security and liquid-cooling options, targeting enhanced performance for enterprise AI workloads – [SiliconANGLE](https://siliconangle.com/2025/04/24/hpe-proliant-new-capabilities-enterprise-ai-hpefutureready/)
+# Policing the Machine: Lawsuits, Legis & Governance  
+- A GAO report warns that generative AI’s environmental and societal toll—from energy use to misinformation—is poorly understood due to scant data disclosure by developers – Mashable  
+- Ziff Davis sued OpenAI for copyright infringement, alleging exact copies of PCMag, CNET and Mashable content were used to train ChatGPT, seeking hundreds of millions in damages – The New York Times  
+- Five US states (CA, CO, IL, MD, NYC) have enacted AI-hiring laws mandating bias audits, candidate notification, consent for AI analysis and transparency on decision criteria – Archinect  
+- Former OpenAI staffers, backed by Nobel laureates, urged California and Delaware AGs to block OpenAI’s shift to a for-profit model, warning it could erode AGI oversight and public benefit safeguards – Breitbart  
+
+# Classroom to Boardroom: AI Upskilling on the Rise  
+- ChatGPT scored a B- in a third-year engineering course, prompting U of Illinois studies and a Trump-appointed K-12 AI education task force to weave critical thinking into curricula – The Register  
+- Trump’s new executive order forms a Presidential AI Challenge and mandates AI integration in teacher training and K–12 grants to boost nationwide AI literacy – Nextgov  
+- Microsoft’s 2025 Work Trend report coins “Frontier Firms” where human-AI teams drive productivity, with 46% of leaders already automating workflows and roles like “agent boss” emerging – ZDNet  
+- Inflexion Group and AI&Beyond launched AI literacy bootcamps for marketing pros, covering GenAI tools, ethics and accountability to ensure responsible adoption – The Hindu Business Line

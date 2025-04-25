@@ -3,7 +3,6 @@
 # import time
 import pdb
 
-import json
 # from collections import defaultdict
 import math
 # import aiohttp
@@ -114,6 +113,17 @@ class Site(BaseModel):
 class Sites(BaseModel):
     """List of Site class for structured output filtering"""
     items: List[Site] = Field(description="List of Site")
+
+
+class StoryRating(BaseModel):
+    """StoryRating class for generic structured output rating"""
+    id: int = Field(description="The id of the story")
+    rating: int = Field(description="An integer rating of the story")
+
+
+class StoryRatings(BaseModel):
+    """StoryRatings class for structured output filtering of a list of Story"""
+    items: List[StoryRating] = Field(description="List of StoryRating")
 
 ##############################################################################
 # utility functions
@@ -250,7 +260,7 @@ def filter_page(input_df: pd.DataFrame,
     chain = prompt_template | model.with_structured_output(output_class)
 
     # Run the chain
-    input_text = json.dumps(input_df.to_dict(orient='records'), indent=2)
+    input_text = input_df.to_json(orient='records', indent=2)
     input_dict = {"input_text": input_text}
     if input_vars is not None:
         input_dict.update(input_vars)
@@ -300,7 +310,7 @@ async def filter_page_async(
     chain = prompt_template | model.with_structured_output(output_class)
 
     # Convert DataFrame to JSON
-    input_text = json.dumps(input_df.to_dict(orient='records'), indent=2)
+    input_text = input_df.to_json(orient='records', indent=2)
     input_dict = {"input_text": input_text}
     if input_vars is not None:
         input_dict.update(input_vars)
@@ -355,7 +365,7 @@ async def filter_page_async_id(
     chain = prompt_template | model.with_structured_output(output_class)
 
     # Convert DataFrame to JSON
-    input_text = json.dumps(input_df.to_dict(orient='records'), indent=2)
+    input_text = input_df.to_json(orient='records', indent=2)
     input_dict = {"input_text": input_text}
     if input_vars is not None:
         input_dict.update(input_vars)
@@ -715,7 +725,8 @@ def sfilter_page_async(
     chain = prompt_template | model.with_structured_output(output_class)
 
     # Convert DataFrame to JSON
-    input_text = json.dumps(input_df.to_dict(orient='records'), indent=2)
+    pdb.set_trace()
+    input_text = input_df.to_json(orient='records', indent=2)
     input_dict = {"input_text": input_text}
     if input_vars is not None:
         input_dict.update(input_vars)
@@ -763,7 +774,7 @@ def sfilter_page_async_id(
     chain = prompt_template | model.with_structured_output(output_class)
 
     # Convert DataFrame to JSON
-    input_text = json.dumps(input_df.to_dict(orient='records'), indent=2)
+    input_text = input_df.to_json(orient='records', indent=2)
     input_dict = {"input_text": input_text}
     if input_vars is not None:
         input_dict.update(input_vars)
