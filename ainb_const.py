@@ -38,10 +38,12 @@ SQLITE_DB = 'articles.db'
 
 MAX_INPUT_TOKENS = 8192     # includes text of all headlines
 MAX_OUTPUT_TOKENS = 4096    # max in current model
-MAX_RETRIES = 3
+TENACITY_RETRY = 5  # Maximum 5 attempts
+
 TEMPERATURE = 0
 
 SOURCECONFIG = "sources.yaml"
+SOURCES_EXPECTED = 16
 MINTITLELEN = 28
 
 MAXPAGELEN = 50
@@ -71,220 +73,261 @@ TOPSOURCES = {
     'www.scientificamerican.com',
 }
 
-
-FILTER_PROMPT = """
-You will act as a specialized content analyst focused on artificial intelligence news classification.
-Your task is to evaluate news headlines and determine their relevance to artificial intelligence
-and related technologies. Please analyze the provided JSON dataset of news headlines according
-to the following detailed criteria:
-
-Classification Framework:
-
-AI Topics (classify as AI-related if headlines mention):
-Core AI technologies (machine learning, neural networks, deep learning)
-AI applications (computer vision, natural language processing, robotics)
-AI models and platforms (large language models, foundation models)
-AI companies and their products (OpenAI, DeepMind, Anthropic)
-AI-specific products (ChatGPT, Claude, Gemini, DALL-E)
-Key AI industry figures (Sam Altman, Demis Hassabis, etc.)
-AI policy, regulation, and ethics
-AI research, including papers and announcements of innovations
-AI market and business developments
-AI integration into existing products/services
-AI impact on industries/society
-AI infrastructure (chips, computing resources)
-AI investments and funding
-AI partnerships, joint ventures and project launches
-Any other topics with a large AI component
-
-Input Specification:
-You will receive a JSON array of news story objects, each containing:
-"id": A unique numerical identifier
-"title": The news headline text
-
-Input Example:
-[{{'id': 97, 'title': 'AI to predict dementia, detect cancer'}},
- {{'id': 103,'title': 'Figure robot learns to make coffee by watching humans for 10 hours'}},
- {{'id': 103,'title': 'Baby trapped in refrigerator eats own foot'}},
- {{'id': 210,'title': 'ChatGPT removes, then reinstates a summarization assistant without explanation.'}},
- {{'id': 298,'title': 'The 5 most interesting PC monitors from CES 2024'}},
- ]
-
-Output Requirements:
-Generate a JSON object containing "items", an array of objects containing:
-"id": The original article identifier
-"isAI": Boolean value (true if AI-related, false if not)
-The output must maintain strict JSON formatting and match each input ID with its corresponding classification.
-
-Example output:
-{{items:
-[{{'id': 97, 'isAI': true}},
- {{'id': 103, 'isAI': true}},
- {{'id': 103, 'isAI': false}},
- {{'id': 210, 'isAI': true}},
- {{'id': 298, 'isAI': false}}]
-}}
-
-Please analyze the following dataset according to these criteria:
-
-"""
-TOPIC_PROMPT = """
-As a specialized research assistant, your task is to perform detailed topic analysis
-of news item summaries. You will process news items summaries provided as a JSON object according to
-the input specification below. You will extract topics of the news item summaries according to the
-output specification below and return a raw JSON object without any additional formatting or markdown syntax.
-
-Input Specification:
-You will receive an array of JSON objects representing news summaries.
-Each headline object contains exactly two fields:
-'id': A unique numeric identifier
-'summary': The news summmary item
-
-Example input:
-[
- {{
-    "id": 29,
-    "summary": "• Elon Musk's xAI launched Grok 3, a new family of AI models trained using 100,000 Nvidia H100 GPUs at the Colossus Supercluster; benchmarks show it outperforms competitors like GPT-4o and Claude 3.5 Sonnet in areas such as math, science, and coding.
-• Grok 3 includes advanced features like reasoning models for step-by-step logical problem-solving and a DeepSearch function that synthesizes internet-sourced information into single answers; it is initially available to X Premium+ subscribers, with advanced features under a paid "SuperGrok" plan.
-• Former Tesla AI director Andrej Karpathy and others have confirmed Grok 3's strong performance, with Karpathy noting it is comparable to and slightly better than leading AI models from OpenAI and other competitors."
-  }},
-{{
-    "id": 34,
-    "summary": "• Google Gemini has received a memory upgrade that allows it to recall past conversations and summarize previous chats, enhancing its ability to remember user preferences such as interests and professional details. This feature is currently available only to Google One AI Premium subscribers in English, with broader language support expected soon.
-• Users retain control over their data with options to delete past conversations, prevent chats from being saved, or set them to auto-delete, although discussions can still be used for AI training unless deleted
-• Similar to OpenAI's ChatGPT persistent memory feature, Gemini's upgrade aims to make chats more practical, though users are advised not to input sensitive information as conversations may be reviewed for quality control."
-  }},
- {{
-    "id": 47,
-    "summary": "• Major tech companies like OpenAI, Google, and Meta are competing to dominate generative AI, though the path to profitability remains uncertain.
-• Chinese start-up DeepSeek has introduced a cost-effective way to build powerful AI, disrupting the market and pressuring established players.
-• OpenAI aims to reach 1 billion users, while Meta continues to invest heavily in AI despite market disruptions caused by DeepSeek."
-  }},
-{{
-    "id": 56,
-    "summary": "- OpenAI is exploring new measures to protect itself from a potential hostile takeover by Elon Musk.
-- The company is in discussions to empower its non-profit board to maintain control as it transitions into a for-profit business model."
-  }},
- {{
-    "id": 63,
-    "summary": "- The New York Times has approved the use of select AI tools, such as GitHub Copilot, Google Vertex AI, and their in-house summarization tool Echo, to assist with tasks like content summarization, editing, and enhancing product development, while reinforcing the tools as aids rather than replacements for journalistic work.
-- Strict guidelines and safeguards have been implemented, including prohibitions on using AI to draft full articles, revise them significantly, or generate images and videos, with a mandatory training video to prevent misuse and protect journalistic integrity.
-- Some staff members have expressed concerns about AI potentially compromising creativity and accuracy, leading to skepticism about universal adoption, although the guidelines align with standard industry practices."
-  }},
-]
-
-Output Specification:
-Return a raw JSON object containing 'items', a list of JSON objects, each containing:
-'id': Matching the input item's id field.
-'extracted_topics': An array of relevant topic strings
-Topics should capture:
-- The main subject matter
-- Key entities (companies, people, products)
-- Technical domains, industry sectors, event types
-
-Output Example:
-{{items:
- [{{"id": 29, "extracted_topics": ['AI model development', 'xAI Grok capabilities', 'AI advancements']}},
-  {{"id": 34, "extracted_topics": [
-      'Google Gemini', 'Interactive AI advancements', 'Digital assistants']}},
-  {{"id": 47, "extracted_topics": ['OpenAI', 'Google', 'Meta', 'DeepSeek']}},
-  {{"id": 56, "extracted_topics": [
-      'OpenAI', 'non-profit oversight', 'anti-takeover strategies', 'Elon Musk']}},
-  {{"id": 63, "extracted_topics": [
-      'New York Times', 'AI in journalism', 'GitHub Copilot', 'Google Vertex AI']}},
- ]
-}}
-
-Detailed Guidelines:
-The output must strictly adhere to the output specification.
-Do not return markdown, return a raw JSON string.
-For each input item, output a valid JSON object for each news item in the exact schema provided.
-Extract 3-5 relevant topics per news item.
-Do not extract more than 5 topics per news item.
-Avoid duplicate or redundant topics.
-Use topics which are as specific as possible.
-Please analyze the following news items and provide topic classifications according to these specifications:
+FILTER_SYSTEM_PROMPT = """
+You are a content-classification assistant that labels news headlines as AI-related or not.
+Return **only** a JSON object that satisfies the provided schema.
+No markdown, no markdown fences, no extra keys, no comments.
 """
 
-CANONICAL_TOPIC_PROMPT = """
-You will act as a specialized content analyst focused on news classification.
-Your task is to evaluate news summaries and determine if they are about {topic}.
-Please analyze the JSON dataset of news summaries provided below, according
-to the following detailed criteria:
+FILTER_USER_PROMPT = """
+Classify every headline below.
 
-Input Specification:
-You will receive a JSON array of news story objects, each containing:
-"id": A unique numerical identifier
-"summary": The news summary in markdown format
+AI-related if the title mentions (explicitly or implicitly):
+• Core AI technologies: machine learning, neural / deep / transformer networks
+• AI Applications: computer vision, NLP, robotics, autonomous driving, generative media
+• AI hardware, GPU chip supply, AI data centers and infrastructure
+• Companies or labs known for AI: OpenAI, DeepMind, Anthropic, xAI, NVIDIA, etc.
+• AI models & products: ChatGPT, Gemini, Claude, Sora, Midjourney, DeepSeek, etc.
+• New AI products and AI integration into existing products/services
+• AI policy / ethics / safety / regulation / analysis
+• Research results related to AI
+• AI industry figures (Sam Altman, Demis Hassabis, etc.)
+• AI market and business developments, funding rounds, partnerships centered on AI
+• Any other news with a significant AI component
 
-Output Requirements:
-Generate a JSON object contaning 'items', a JSON array of objects containing:
-"id": The original article identifier
-"relevant": Boolean value (true if about {topic}, false if not )
-The output must maintain strict JSON formatting and match each input ID with its corresponding classification.
-
-Example output:
-{{items:
-[{{'id': 97, 'relevant': true}},
- {{'id': 103, 'relevant': true}},
- {{'id': 103, 'relevant': false}},
- {{'id': 210, 'relevant': true}},
- {{'id': 298, 'relevant': false}}]
-}}
-
-Consider a news summary to be about {topic} if it contains any of the following:
-Direct mentions and references to {topic}
-Direct mentions of people, products, research, projects, companies or entities closely associated with {topic}
-
-Please analyze the following dataset according to these criteria:
+Non-AI examples: crypto, ordinary software, non-AI gadgets and medical devices, and anything else.
 """
+
+# pre 4.1 prompt
+# (4.1 doesn't need json schema and examples, desired metadata schema as a param is sufficient)
+# FILTER_PROMPT = """
+# You will act as a specialized content analyst focused on artificial intelligence news classification.
+# Your task is to evaluate news headlines and determine their relevance to artificial intelligence
+# and related technologies. Please analyze the provided JSON dataset of news headlines according
+# to the following detailed criteria.
+
+# Classification Framework
+
+# Classify as AI-related if headlines mention the following topics:
+# Core AI technologies (machine learning, neural networks, deep learning)
+# AI applications (computer vision, natural language processing, robotics)
+# AI models and platforms (large language models, foundation models)
+# AI companies and their products (OpenAI, DeepMind, Anthropic)
+# AI-specific products (ChatGPT, Claude, Gemini, DALL-E)
+# Key AI industry figures (Sam Altman, Demis Hassabis, etc.)
+# AI policy, regulation, and ethics
+# AI research, including papers and announcements of innovations
+# AI market and business developments
+# AI integration into existing products/services
+# AI impact on industries/society
+# AI infrastructure (chips, computing resources)
+# AI investments and funding
+# AI partnerships, joint ventures and project launches
+# Any other topics with a large AI component
+
+# Input Specification:
+# You will receive a JSON array of news story objects, each containing:
+# "id": A unique numerical identifier
+# "title": The news headline text
+
+# Input Example:
+# [{{'id': 97, 'title': 'AI to predict dementia, detect cancer'}},
+#  {{'id': 103,'title': 'Figure robot learns to make coffee by watching humans for 10 hours'}},
+#  {{'id': 103,'title': 'Baby trapped in refrigerator eats own foot'}},
+#  {{'id': 210,'title': 'ChatGPT removes, then reinstates a summarization assistant without explanation.'}},
+#  {{'id': 298,'title': 'The 5 most interesting PC monitors from CES 2024'}},
+#  ]
+
+# Output Requirements:
+# Generate a JSON object containing "items", an array of objects containing:
+# "id": The original article identifier
+# "isAI": Boolean value (true if AI-related, false if not)
+# The output must maintain strict JSON formatting and match each input ID with its corresponding classification.
+
+# Example output:
+# {{items:
+# [{{'id': 97, 'isAI': true}},
+#  {{'id': 103, 'isAI': true}},
+#  {{'id': 103, 'isAI': false}},
+#  {{'id': 210, 'isAI': true}},
+#  {{'id': 298, 'isAI': false}}]
+# }}
+
+# Please analyze the following dataset according to these criteria:
+
+# """
+
+TOPIC_SYSTEM_PROMPT = """
+You are a news-analysis assistant.
+You will receive a list of news summaries in JSON format.
+Task → extract up to 5 distinct, broad topics from each news summary, or an empty list if no topics can be found.
+Return **only** a JSON object that satisfies the provided schema.
+No markdown, no markdown fences, no extra keys, no comments.
+
+"""
+
+TOPIC_USER_PROMPT = """
+Guidelines
+• Topics should capture the main subject, key entities (companies, people, products), and technical or industry domains.
+• Avoid duplicates and generic terms (“technology”, “news”).
+• Each topic should be simple, concise and represent 1 concept, like "LLM updates", "xAI", "Grok"
+"""
+
+# pre 4.1 prompt
+# TOPIC_PROMPT = """
+# As a specialized research assistant, your task is to perform detailed topic analysis
+# of news item summaries. You will process news items summaries provided as a JSON object according to
+# the input specification below. You will extract topics of the news item summaries according to the
+# output specification below and return a raw JSON object without any additional formatting or markdown syntax.
+
+# Input Specification:
+# You will receive an array of JSON objects representing news summaries.
+# Each headline object contains exactly two fields:
+# 'id': A unique numeric identifier
+# 'summary': The news summmary item
+
+# Example input:
+# [
+#  {{
+#     "id": 29,
+#     "summary": "• Elon Musk's xAI launched Grok 3, a new family of AI models trained using 100,000 Nvidia H100 GPUs at the Colossus Supercluster; benchmarks show it outperforms competitors like GPT-4o and Claude 3.5 Sonnet in areas such as math, science, and coding.
+# • Grok 3 includes advanced features like reasoning models for step-by-step logical problem-solving and a DeepSearch function that synthesizes internet-sourced information into single answers; it is initially available to X Premium+ subscribers, with advanced features under a paid "SuperGrok" plan.
+# • Former Tesla AI director Andrej Karpathy and others have confirmed Grok 3's strong performance, with Karpathy noting it is comparable to and slightly better than leading AI models from OpenAI and other competitors."
+#   }},
+# {{
+#     "id": 34,
+#     "summary": "• Google Gemini has received a memory upgrade that allows it to recall past conversations and summarize previous chats, enhancing its ability to remember user preferences such as interests and professional details. This feature is currently available only to Google One AI Premium subscribers in English, with broader language support expected soon.
+# • Users retain control over their data with options to delete past conversations, prevent chats from being saved, or set them to auto-delete, although discussions can still be used for AI training unless deleted
+# • Similar to OpenAI's ChatGPT persistent memory feature, Gemini's upgrade aims to make chats more practical, though users are advised not to input sensitive information as conversations may be reviewed for quality control."
+#   }},
+#  {{
+#     "id": 47,
+#     "summary": "• Major tech companies like OpenAI, Google, and Meta are competing to dominate generative AI, though the path to profitability remains uncertain.
+# • Chinese start-up DeepSeek has introduced a cost-effective way to build powerful AI, disrupting the market and pressuring established players.
+# • OpenAI aims to reach 1 billion users, while Meta continues to invest heavily in AI despite market disruptions caused by DeepSeek."
+#   }},
+# {{
+#     "id": 56,
+#     "summary": "- OpenAI is exploring new measures to protect itself from a potential hostile takeover by Elon Musk.
+# - The company is in discussions to empower its non-profit board to maintain control as it transitions into a for-profit business model."
+#   }},
+#  {{
+#     "id": 63,
+#     "summary": "- The New York Times has approved the use of select AI tools, such as GitHub Copilot, Google Vertex AI, and their in-house summarization tool Echo, to assist with tasks like content summarization, editing, and enhancing product development, while reinforcing the tools as aids rather than replacements for journalistic work.
+# - Strict guidelines and safeguards have been implemented, including prohibitions on using AI to draft full articles, revise them significantly, or generate images and videos, with a mandatory training video to prevent misuse and protect journalistic integrity.
+# - Some staff members have expressed concerns about AI potentially compromising creativity and accuracy, leading to skepticism about universal adoption, although the guidelines align with standard industry practices."
+#   }},
+# ]
+
+# Output Specification:
+# Return a raw JSON object containing 'items', a list of JSON objects, each containing:
+# 'id': Matching the input item's id field.
+# 'extracted_topics': An array of relevant topic strings
+# Topics should capture:
+# - The main subject matter
+# - Key entities (companies, people, products)
+# - Technical domains, industry sectors, event types
+
+# Output Example:
+# {{items:
+#  [{{"id": 29, "extracted_topics": ['AI model development', 'xAI Grok capabilities', 'AI advancements']}},
+#   {{"id": 34, "extracted_topics": [
+#       'Google Gemini', 'Interactive AI advancements', 'Digital assistants']}},
+#   {{"id": 47, "extracted_topics": ['OpenAI', 'Google', 'Meta', 'DeepSeek']}},
+#   {{"id": 56, "extracted_topics": [
+#       'OpenAI', 'non-profit oversight', 'anti-takeover strategies', 'Elon Musk']}},
+#   {{"id": 63, "extracted_topics": [
+#       'New York Times', 'AI in journalism', 'GitHub Copilot', 'Google Vertex AI']}},
+#  ]
+# }}
+
+# Detailed Guidelines:
+# The output must strictly adhere to the output specification.
+# Do not return markdown, return a raw JSON string.
+# For each input item, output a valid JSON object for each news item in the exact schema provided.
+# Extract 3-5 relevant topics per news item.
+# Do not extract more than 5 topics per news item.
+# Avoid duplicate or redundant topics.
+# Use topics which are as specific as possible.
+# Please analyze the following news items and provide topic classifications according to these specifications:
+# """
+
+CANONICAL_SYSTEM_PROMPT = """
+You are a news-analysis assistant.
+You will receive a list of news summaries in JSON format and a topic.
+Task → determine if each news summary is about the provided topic.
+Return **only** a JSON object that satisfies the provided schema.
+No markdown, no markdown fences, no extra keys, no comments.
+"""
+
+CANONICAL_USER_PROMPT = """
+Topic of interest → **{topic}**
+
+Classify each story below:
+• `relevant` = true if the summary is about {topic} or refers directly to people, products, research, companies, projects, or concepts strongly associated with {topic}.
+• Otherwise `relevant` = false.
+
+"""
+
+# CANONICAL_TOPIC_PROMPT = """
+# You will act as a specialized content analyst focused on news classification.
+# Your task is to evaluate news summaries and determine if they are about {topic}.
+# Please analyze the JSON dataset of news summaries provided below, according
+# to the following detailed criteria:
+
+# Input Specification:
+# You will receive a JSON array of news story objects, each containing:
+# "id": A unique numerical identifier
+# "summary": The news summary in markdown format
+
+# Output Requirements:
+# Generate a JSON object contaning 'items', a JSON array of objects containing:
+# "id": The original article identifier
+# "relevant": Boolean value (true if about {topic}, false if not )
+# The output must maintain strict JSON formatting and match each input ID with its corresponding classification.
+
+# Example output:
+# {{items:
+# [{{'id': 97, 'relevant': true}},
+#  {{'id': 103, 'relevant': true}},
+#  {{'id': 103, 'relevant': false}},
+#  {{'id': 210, 'relevant': true}},
+#  {{'id': 298, 'relevant': false}}]
+# }}
+
+# Consider a news summary to be about {topic} if it contains any of the following:
+# Direct mentions and references to {topic}
+# Direct mentions of people, products, research, projects, companies or entities closely associated with {topic}
+
+# Please analyze the following dataset according to these criteria:
+# """
 
 SUMMARIZE_SYSTEM_PROMPT = """
-You will act as a news article summarization assistant.
-Please analyze the text provided, and create a focused summary according to the following specific guidelines.
+You are a news-summarization assistant.
 
-Key Requirements:
+Write 1-3 bullet points (•) that capture ONLY the newsworthy content.
 
-Extract only the core news content, specifically:
+Include
+• Main facts & developments
+• Key quotes
+• Essential background tied directly to the story
 
-Primary facts and developments
-Key quotes from relevant sources
-Critical background information directly related to the story
+Exclude
+• Navigation/UI text, ads, paywalls, cookie banners, JS, legal/footer copy, “About us”, social widgets
 
-Explicitly exclude:
-Website navigation elements
-User interface instructions or prompts
-Login forms
-Javascript instructions
-Cookie/privacy notifications
-Subscription offers or paywalls
-Advertisement content
-Social media widgets
-Footer information
-Legal disclaimers
-Site descriptions or "About Us" content
-
-Output Format:
-
-Present the summary in 1-3 concise bullet points using Markdown format(•)
-Return bullet points only without introduction or additional commentary
-Each bullet point should capture a distinct main idea
-Keep language clear and direct
-Include only factual information from the article
-If no substantive news content is found, provide a single bullet point stating 'no content'
-
-Special Instructions:
-
-Focus on the most newsworthy elements
-Preserve the original meaning without additional editorial comment
-Ensure accuracy and neutrality
-Prioritize recent developments over background and context
-
+Rules
+• Focus on the most recent, newsworthy elements
+• Preserve original meaning—no commentary or opinion
+• Maintain factual accuracy & neutral tone
+• If no substantive news, return one bullet: "no content"
+• Output raw bullets (no code fences, no headings, no extra text—only the bullet strings)
 """
 
-SUMMARIZE_USER_PROMPT = """Summarize the main points of the following text concisely in 3 bullet points or less:
-Text:
+SUMMARIZE_USER_PROMPT = """Summarize the article below.
+
+### <<<ARTICLE>>>
 {article}
+### <<<END>>>
 """
 
 TOPIC_WRITER_PROMPT = """
@@ -322,7 +365,6 @@ to create an appropriate overarching title for the group:
 
 """
 
-# TODO: more examples, with < 5 examples some models tend to output the examples
 
 TOP_CATEGORIES_PROMPT = """You are a specialized news analysis assistant focused on identifying and
 categorizing the day's top news stories and trends. Your task is to analyze provided
@@ -729,7 +771,7 @@ CANONICAL_TOPICS = [
     'Health & Fitness',
     'Sports',
     'Gaming',
-    'Science',
+    # 'Science',
     'Politics',
     'Finance',
     'History',

@@ -46,9 +46,11 @@ from sklearn.cluster import DBSCAN
 from openai import OpenAI
 
 # main AInewsbot agent and top level imports
-from ainb_const import (DOWNLOAD_DIR, PAGES_DIR,
+from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, SOURCECONFIG, SOURCES_EXPECTED,
+                        FILTER_SYSTEM_PROMPT, FILTER_USER_PROMPT,
+                        TOPIC_SYSTEM_PROMPT, TOPIC_USER_PROMPT,
                         CANONICAL_TOPICS,
-                        SOURCECONFIG, FILTER_PROMPT, TOPIC_PROMPT, TOPIC_WRITER_PROMPT,
+                        TOPIC_WRITER_PROMPT,
                         FINAL_SUMMARY_PROMPT,
                         TOP_CATEGORIES_PROMPT, TOPIC_REWRITE_PROMPT, REWRITE_PROMPT,
                         SITE_NAME_PROMPT, SQLITE_DB,
@@ -156,6 +158,7 @@ newscatcher_sources = ['247wallst.com',
 
 model_family = {'gpt-4o-2024-11-20': 'openai',
                 'gpt-4o-mini': 'openai',
+                'o4-mini': 'openai',
                 'o3-mini': 'openai',
                 'gpt-4.5-preview': 'openai',
                 'gpt-4.1': 'openai',
@@ -387,18 +390,17 @@ def fn_verify_download(state: AgentState) -> AgentState:
     """
     sources_downloaded = len(
         pd.DataFrame(state["AIdf"]).groupby("src").count()[['id']])
-    sources_expected = 16
-    missing_sources = sources_expected-sources_downloaded
+    missing_sources = SOURCES_EXPECTED-sources_downloaded
 
     if missing_sources:
         log(
-            f"verify_download failed, found {sources_expected} sources in AIdf, {missing_sources} missing")
+            f"verify_download failed, found {SOURCES_EXPECTED} sources in AIdf, {missing_sources} missing")
         str_missing = str(set(state["sources"].keys(
         )) - set(pd.DataFrame(state["AIdf"]).groupby("src").count()[['id']].index))
         log(f"Missing sources: {str_missing}")
         raise NodeInterrupt(
             f"{missing_sources} missing sources: {str_missing}")
-    log(f"verify_download passed, found {sources_expected} sources in AIdf, {missing_sources} missing")
+    log(f"verify_download passed, found {SOURCES_EXPECTED} sources in AIdf, {missing_sources} missing")
     return state
 
 
@@ -612,7 +614,8 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
     results = asyncio.run(process_dataframes(
         # results = sprocess_dataframes(
         dataframes=paginate_df(aidf[["id", "title"]]),
-        input_prompt=FILTER_PROMPT,
+        system_prompt=FILTER_SYSTEM_PROMPT,
+        user_prompt=FILTER_USER_PROMPT,
         output_class=Stories,
         model=model_low,
         item_list_field="items",
@@ -643,11 +646,23 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
 
     # update SQLite database with all seen URLs (we are doing this using url and ignoring redirects)
     log(f"Inserting {len(aidf)} URLs into {SQLITE_DB}")
-    conn = sqlite3.connect(SQLITE_DB)
-    cursor = conn.cursor()
-    for row in aidf.itertuples():
-        insert_article(conn, cursor, row.src, row.hostname, row.title,
-                       row.url, row.actual_url, row.isAI, datetime.now().date())
+    with sqlite3.connect(SQLITE_DB) as conn:
+        cursor = conn.cursor()
+        try:
+            rows_to_insert = [
+                (row.src, row.src, row.title, row.url, row.actual_url, row.isAI,
+                 datetime.now().date(), datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                for row in aidf.itertuples()
+            ]
+            cursor.executemany(
+                "INSERT OR IGNORE INTO news_articles (src, actual_src, title, url, actual_url, isAI, article_date, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                rows_to_insert
+            )
+            conn.commit()
+        except sqlite3.IntegrityError as e:
+            log(f"Integrity error during batch insert: {e}")
+        except Exception as err:
+            log(f"Error during batch insert: {err}")
 
     # keep headlines that are related to AI
     aidf = aidf.loc[aidf["isAI"] == 1] \
@@ -678,6 +693,7 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
     if missing_site_names:
         log(f"Asking OpenAI for {missing_site_names} missing site names")
         responses = asyncio.run(process_dataframes(paginate_df(aidf[["url"]]),
+                                                   "",
                                                    SITE_NAME_PROMPT,
                                                    Sites, model=model_low))
         # update site_dict from responses
@@ -754,7 +770,8 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
     # pdb.set_trace()
     topic_results = asyncio.run(process_dataframes(
         dataframes=pages,
-        input_prompt=TOPIC_PROMPT,
+        system_prompt=TOPIC_SYSTEM_PROMPT,
+        user_prompt=TOPIC_USER_PROMPT,
         output_class=TopicSpecList,
         model=model_low,
         item_list_field="items",
@@ -784,9 +801,12 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
     lcategories = set([c.lower() for c in categories] +
                       [c.lower() for c in filtered_topics])
 
+    # pdb.set_trace()
     log(f"Starting assigned topic extraction using {str(type(model_low))}")
     assigned_topics = asyncio.run(
         get_all_canonical_topic_results(pages, lcategories, model_low))
+    # assigned_topics = sget_all_canonical_topic_results(
+    #     pages, lcategories, model_low)
     ctr_dict = defaultdict(list)
 
     for (topic, relevant_list) in assigned_topics:
@@ -866,11 +886,8 @@ def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
     aidf.loc[aidf['cluster'] == -1, 'cluster'] = 999
 
     # sort first by clusters found by DBSCAN, then by semantic ordering
-    aidf = aidf.sort_values(['cluster', 'sort_order']) \
-        .reset_index(drop=True) \
-        .reset_index() \
-        .drop(columns=["id"]) \
-        .rename(columns={'index': 'id'})
+    aidf = aidf.sort_values(['cluster', 'sort_order']).reset_index(
+        drop=True).reset_index().drop(columns=["id"]).rename(columns={'index': 'id'})
 
     # show clusters
     state["cluster_topics"] = []
@@ -884,6 +901,7 @@ def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
                 display(tmpdf)
                 response = asyncio.run(filter_page_async(
                     tmpdf,
+                    "",
                     TOPIC_WRITER_PROMPT,
                     TopicHeadline,
                     model=model_low,
@@ -1028,20 +1046,23 @@ def fn_summarize_pages(state: AgentState, model_medium) -> AgentState:
         print(e)
     log(f"Received {len(responses)} summaries")
     response_dict = {}
-    for response, i in responses:
+    article_len_dict = {}
+    for response, i, article_len in responses:
         response_dict[i] = response
+        article_len_dict[i] = article_len
 
     aidf["summary"] = aidf["id"].map(response_dict.get)
+    aidf["article_len"] = aidf["id"].map(article_len_dict.get)
     state['AIdf'] = aidf.to_dict(orient='records')
 
     return state
 
 
-def fn_propose_cats(state: AgentState, model_high: any) -> AgentState:
+def fn_propose_topics(state: AgentState, model_high: any) -> AgentState:
     """
     ask LLM to analyze for top categories
     """
-    log(f"Proposing categories using {str(type(model_high))}")
+    log(f"Proposing topic clusters using {str(type(model_high))}")
 
     aidf = pd.DataFrame(state["AIdf"])
     # state["cluster_topics"] should already have cluster names
@@ -1052,6 +1073,7 @@ def fn_propose_cats(state: AgentState, model_high: any) -> AgentState:
     pages = paginate_df(aidf[["bullet"]], maxpagelen=100)
     response = asyncio.run(process_dataframes(
         pages,
+        "",
         TOP_CATEGORIES_PROMPT,
         TopicCategoryList,
         model=model_high,
@@ -1065,6 +1087,7 @@ def fn_propose_cats(state: AgentState, model_high: any) -> AgentState:
     # deduplicate and edit topics
     response = asyncio.run(process_dataframes(
         [pd.DataFrame(state["cluster_topics"], columns=['topics'])],
+        "",
         TOPIC_REWRITE_PROMPT,
         TopicCategoryList,
         model=model_high))
@@ -1296,7 +1319,7 @@ class Agent:
     def propose_topics(self, state: AgentState, model_str: str = "") -> AgentState:
         """use LLM to identify most popular and important topics"""
         model = get_model(model_str) if model_str else self.model_high
-        self.state = fn_propose_cats(state, model)
+        self.state = fn_propose_topics(state, model)
         return self.state
 
     def compose_summary(self, state: AgentState, model_str: str = "") -> AgentState:
@@ -1394,7 +1417,7 @@ if __name__ == "__main__":
     MAX_EDITS = args.max_edits
     log(f"Starting AInewsbot with do_download={do_download}, before_date='{before_date}', N_BROWSERS={N_BROWSERS}, MAX_EDITS={MAX_EDITS}")
 
-    ml, mm, mh = 'gpt-4.1-mini', 'gpt-4.1', 'o3-mini'
+    ml, mm, mh = 'gpt-4.1-mini', 'gpt-4.1', 'o4-mini'
 
     lg_state, lg_agent, thread_id = initialize_agent(ml, mm, mh,
                                                      do_download,
