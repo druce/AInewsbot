@@ -125,6 +125,22 @@ class StoryRatings(BaseModel):
     """StoryRatings class for structured output filtering of a list of Story"""
     items: List[StoryRating] = Field(description="List of StoryRating")
 
+
+class NewsArticle(BaseModel):
+    """NewsArticle class for structured output filtering"""
+    title: str = Field(description="The title of the story")
+    url: str = Field(description="The URL of the story")
+    summary: str = Field(description="A summary of the story")
+
+
+class Section(BaseModel):
+    section_title: str = Field(description="The title of the section")
+    section_items: List[NewsArticle] = Field(description="List of NewsArticle")
+
+
+class Newsletter(BaseModel):
+    section_items: List[Section] = Field(description="List of Section")
+
 ##############################################################################
 # utility functions
 ##############################################################################
@@ -493,8 +509,8 @@ def clean_html(path: Path | str) -> str:
         try:
             # Try to get the title from the <title> tag
             title_tag = soup.find("title")
-            title_str = "Page title: " + title_tag.string.strip() + \
-                "\n" if title_tag and title_tag.string else ""
+            title_str = "Page title: " + title_tag.string.strip() +
+            "\n" if title_tag and title_tag.string else ""
         except Exception as exc:
             log(str(exc), "clean_html page_title")
 

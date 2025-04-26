@@ -1,3 +1,4 @@
+import numpy as np
 import pdb
 import os
 from datetime import datetime, timedelta
@@ -52,13 +53,15 @@ from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, SOURCECONFIG, SOURCES_EXPECTED,
                         LOW_QUALITY_SYSTEM_PROMPT, LOW_QUALITY_USER_PROMPT,
                         ON_TOPIC_SYSTEM_PROMPT, ON_TOPIC_USER_PROMPT,
                         IMPORTANCE_SYSTEM_PROMPT, IMPORTANCE_USER_PROMPT,
-                        FINAL_SUMMARY_PROMPT,
+                        FINAL_SUMMARY_SYSTEM_PROMPT, FINAL_SUMMARY_USER_PROMPT,
                         CANONICAL_TOPICS,
                         TOPIC_WRITER_SYSTEM_PROMPT, TOPIC_WRITER_USER_PROMPT,
-                        TOP_CATEGORIES_PROMPT, TOPIC_REWRITE_PROMPT, REWRITE_PROMPT,
+                        REWRITE_SYSTEM_PROMPT, REWRITE_USER_PROMPT,
+                        TOP_CATEGORIES_PROMPT, TOPIC_REWRITE_PROMPT,
                         SITE_NAME_PROMPT, SQLITE_DB,
-                        HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST,
-                        SCREENSHOT_DIR, REQUEST_TIMEOUT)
+                        HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST, SOURCE_REPUTATION,
+                        SCREENSHOT_DIR, REQUEST_TIMEOUT,
+                        MODEL_FAMILY, NEWSCATCHER_SOURCES)
 
 from ainb_utilities import (log, delete_files, filter_unseen_urls_db,
                             nearest_neighbor_sort, send_gmail, unicode_to_ascii)
@@ -71,8 +74,8 @@ from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
                       filter_page_async,
                       get_all_canonical_topic_results, clean_topics,
                       Stories, TopicSpecList, TopicHeadline, TopicCategoryList, Sites,
-                      StoryRating, StoryRatings,
-                      sprocess_dataframes
+                      StoryRatings,  # StoryRatings,
+                      #   sprocess_dataframes
                       )
 
 langchain.verbose = True
@@ -91,97 +94,11 @@ nest_asyncio.apply()  # needed for asyncio.run to work under langgraph
 N_BROWSERS = 4
 MAX_EDITS = 2
 
-newscatcher_sources = ['247wallst.com',
-                       '9to5mac.com',
-                       'androidauthority.com',
-                       'androidcentral.com',
-                       'androidheadlines.com',
-                       'appleinsider.com',
-                       'benzinga.com',
-                       'cnet.com',
-                       'cnn.com',
-                       'digitaltrends.com',
-                       'engadget.com',
-                       'fastcompany.com',
-                       'finextra.com',
-                       'fintechnews.sg',
-                       'fonearena.com',
-                       'ft.com',
-                       'gadgets360.com',
-                       'geekwire.com',
-                       'gizchina.com',
-                       'gizmochina.com',
-                       'gizmodo.com',
-                       'gsmarena.com',
-                       'hackernoon.com',
-                       'howtogeek.com',
-                       'ibtimes.co.uk',
-                       'itwire.com',
-                       'lifehacker.com',
-                       'macrumors.com',
-                       'mashable.com',
-                       #  'medium.com',
-                       'mobileworldlive.com',
-                       'msn.com',
-                       'nypost.com',
-                       'phonearena.com',
-                       'phys.org',
-                       'popsci.com',
-                       'scmp.com',
-                       'sify.com',
-                       'siliconangle.com',
-                       'siliconera.com',
-                       'siliconrepublic.com',
-                       'slashdot.org',
-                       'slashgear.com',
-                       'statnews.com',
-                       'tech.co',
-                       'techcrunch.com',
-                       'techdirt.com',
-                       'technode.com',
-                       'technologyreview.com',
-                       'techopedia.com',
-                       'techradar.com',
-                       'techraptor.net',
-                       'techtimes.com',
-                       'techxplore.com',
-                       'telecomtalk.info',
-                       'thecut.com',
-                       'thedrum.com',
-                       'thehill.com',
-                       'theregister.com',
-                       'theverge.com',
-                       'thurrott.com',
-                       'tipranks.com',
-                       'tweaktown.com',
-                       'videocardz.com',
-                       'washingtonpost.com',
-                       'wccftech.com',
-                       'wired.com',
-                       'xda-developers.com',
-                       'yahoo.com',
-                       'zdnet.com']
-
-
-model_family = {'gpt-4o-2024-11-20': 'openai',
-                'gpt-4o-mini': 'openai',
-                'o4-mini': 'openai',
-                'o3-mini': 'openai',
-                'gpt-4.5-preview': 'openai',
-                'gpt-4.1': 'openai',
-                'gpt-4.1-mini': 'openai',
-                'models/gemini-2.0-flash-thinking-exp': 'google',
-                'models/gemini-2.0-pro-exp': 'google',
-                'models/gemini-2.0-flash': 'google',
-                'models/gemini-1.5-pro-latest': 'google',
-                'models/gemini-1.5-pro': 'google',
-                }
-
 
 def get_model(model_name):
     """get langchain model based on model_name"""
-    if model_name in model_family:
-        model_type = model_family[model_name]
+    if model_name in MODEL_FAMILY:
+        model_type = MODEL_FAMILY[model_name]
         if model_type == 'openai':
             return ChatOpenAI(model=model_name, request_timeout=REQUEST_TIMEOUT)
         elif model_type == 'google':
@@ -429,7 +346,7 @@ def fn_extract_newscatcher(state: AgentState) -> AgentState:
     params = {
         'q': q,
         'lang': 'en',
-        'sources': ','.join(newscatcher_sources),
+        'sources': ','.join(NEWSCATCHER_SOURCES),
         'from': time_24h_ago.strftime('%Y-%m-%d %H:%M:%S'),
         'to': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'page_size': page_size,  # by default should be most highly relevant to the search
@@ -730,6 +647,9 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
     aidf = aidf.loc[~aidf["hostname"].str.lower().isin(HOSTNAME_SKIPLIST)]
     aidf = aidf.loc[~aidf["site_name"].str.lower().isin(SITE_NAME_SKIPLIST)]
 
+    aidf['reputation'] = aidf['hostname'].apply(
+        lambda x: SOURCE_REPUTATION.get(x, 0))
+
     state["AIdf"] = aidf.to_dict(orient='records')
     return state
 
@@ -746,7 +666,9 @@ def make_bullet(row, include_topics=True):
     if include_topics:
         topic_str = "\n\nTopics: " + \
             str(row.topic_str) if hasattr(row, "topic_str") else ""
-    return f"[{title} - {site_name}]({actual_url}){topic_str}{summary}\n\n"
+    rating = f"\n\nRating: {max(row.rating, 0):.2f}" if hasattr(
+        row, "rating") else ""
+    return f"[{title} - {site_name}]({actual_url}){topic_str}{rating}{summary}\n\n"
 
 
 def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
@@ -842,12 +764,10 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
         lambda row: f'{row.title} (Topics: {row.topic_str})', axis=1)
     log("End topic analysis")
 
-    #     state["AIdf"] = AIdf.to_dict(orient='records')
-    #     return state
-
     # redo bullets with topics
     aidf["bullet"] = aidf.apply(make_bullet, axis=1)
     state["AIdf"] = aidf.to_dict(orient='records')
+
     return state
 
 
@@ -1069,7 +989,7 @@ def fn_summarize_pages(state: AgentState, model_medium) -> AgentState:
 
 
 def fn_quality_filter(state: AgentState, model_medium) -> AgentState:
-
+    "rate low quality articles using a prompt"
     log("Starting quality filter")
     aidf = pd.DataFrame(state['AIdf'])
     qdf = aidf[["id", "bullet"]].copy().rename(columns={"bullet": "summary"})
@@ -1095,6 +1015,7 @@ def fn_quality_filter(state: AgentState, model_medium) -> AgentState:
 
 
 def fn_on_topic_filter(state: AgentState, model_medium) -> AgentState:
+    "rate relevant articles using a prompt"
 
     log("Starting on-topic filter")
     aidf = pd.DataFrame(state['AIdf'])
@@ -1121,6 +1042,7 @@ def fn_on_topic_filter(state: AgentState, model_medium) -> AgentState:
 
 
 def fn_importance_filter(state: AgentState, model_medium) -> AgentState:
+    "rate important news articles using a prompt"
 
     log("Starting importance filter")
     aidf = pd.DataFrame(state['AIdf'])
@@ -1142,7 +1064,28 @@ def fn_importance_filter(state: AgentState, model_medium) -> AgentState:
     # aidf = aidf.loc[aidf['importance'] != 0]
     log(f"retained {len(aidf)} articles after applying importance filter")
     state['AIdf'] = aidf.to_dict(orient='records')
+    return state
 
+
+def fn_rate_articles(state: AgentState) -> AgentState:
+    """
+    calculate ratings for articles
+    """
+    log("Calculating article ratings")
+    aidf = pd.DataFrame(state['AIdf'])
+    # len < 100 -> 0
+    # len > 10000 -> 2
+    # in between log10(x) - 2
+    aidf['adjusted_len'] = np.log10(aidf['article_len']) - 2
+    aidf['adjusted_len'] = aidf['adjusted_len'].clip(lower=0, upper=2)
+    aidf['rating'] = aidf['reputation'] \
+        + aidf['adjusted_len'] \
+        + aidf['on_topic'] \
+        + aidf['importance'] \
+        - aidf['low_quality']
+    # redo bullets with topics
+    aidf["bullet"] = aidf.apply(make_bullet, axis=1)
+    state["AIdf"] = aidf.to_dict(orient='records')
     return state
 
 
@@ -1206,10 +1149,11 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
     bullet_str = "\n~~~\n".join(aidf['bullet'])
     cat_str = state['topics_str']
 
-    # check that actual prompt matches the template
-    # print(FINAL_SUMMARY_PROMPT.format(cat_str=cat_str, bullet_str=bullet_str))
+    prompt_template = ChatPromptTemplate.from_messages([
+        ("system", FINAL_SUMMARY_SYSTEM_PROMPT),
+        ("user", FINAL_SUMMARY_USER_PROMPT)
+    ])
 
-    prompt_template = ChatPromptTemplate.from_template(FINAL_SUMMARY_PROMPT)
     ochain = prompt_template | model_high | StrOutputParser()
     response = ochain.invoke(dict(cat_str=cat_str, bullet_str=bullet_str))
     state["summary"] = response
@@ -1230,7 +1174,10 @@ def fn_rewrite_summary(state: AgentState, model_high) -> AgentState:
 
     log(f"Rewriting summary using {str(type(model_high))}")
 
-    prompt_template = ChatPromptTemplate.from_template(REWRITE_PROMPT)
+    prompt_template = ChatPromptTemplate.from_messages([
+        ("system", REWRITE_SYSTEM_PROMPT),
+        ("user", REWRITE_USER_PROMPT)
+    ])
     # openai_model = ChatOpenAI(model="o3-mini", reasoning_effort="high")
     ochain = prompt_template | model_high | StrOutputParser()
     response_str = ochain.invoke({'summary': state["summary"]})
@@ -1304,6 +1251,7 @@ class Agent:
         graph_builder.add_node("quality_filter", self.quality_filter)
         graph_builder.add_node("on_topic_filter", self.on_topic_filter)
         graph_builder.add_node("importance_filter", self.importance_filter)
+        graph_builder.add_node("rate_articles", self.rate_articles)
         graph_builder.add_node("propose_topics", self.propose_topics)
         graph_builder.add_node("compose_summary", self.compose_summary)
         graph_builder.add_node("rewrite_summary", self.rewrite_summary)
@@ -1322,7 +1270,8 @@ class Agent:
         graph_builder.add_edge("topic_clusters", "quality_filter")
         graph_builder.add_edge("quality_filter", "on_topic_filter")
         graph_builder.add_edge("on_topic_filter", "importance_filter")
-        graph_builder.add_edge("importance_filter", "propose_topics")
+        graph_builder.add_edge("importance_filter", "rate_articles")
+        graph_builder.add_edge("rate_articles", "propose_topics")
         graph_builder.add_edge("propose_topics", "compose_summary")
         graph_builder.add_edge("compose_summary", "rewrite_summary")
         graph_builder.add_conditional_edges("rewrite_summary",
@@ -1423,6 +1372,11 @@ class Agent:
         """filter important stories"""
         model = get_model(model_str) if model_str else self.model_medium
         self.state = fn_importance_filter(state, model)
+        return self.state
+
+    def rate_articles(self, state: AgentState) -> AgentState:
+        """set article ratings"""
+        self.state = fn_rate_articles(state)
         return self.state
 
     def propose_topics(self, state: AgentState, model_str: str = "") -> AgentState:

@@ -51,28 +51,6 @@ MAXPAGELEN = 50
 HOSTNAME_SKIPLIST = ['finbold.com']
 SITE_NAME_SKIPLIST = ['finbold']
 
-TOPSOURCES = {
-    'Bloomberg Tech',
-    'www.bloomberg.com',
-    'news.bloomberglaw.com',
-    'FT Tech',
-    'www.ft.com',
-    'www.theverge.com',
-    'The Verge',
-    'NYT Tech',
-    'www.nytimes.com',
-    'Techmeme',
-    'www.techmeme.com',
-    'WSJ Tech',
-    'www.wsj.com',
-    'www.theinformation.com',
-    'www.nature.com',
-    'www.theatlantic.com',
-    'openai.com',
-    'www.science.org',
-    'www.scientificamerican.com',
-}
-
 FILTER_SYSTEM_PROMPT = """
 You are a content-classification assistant that labels news headlines as AI-related or not.
 Return **only** a JSON object that satisfies the provided schema.
@@ -562,126 +540,101 @@ STYLE EXAMPLES:
 TRANSFORM THIS LIST:
 """
 
-FINAL_SUMMARY_PROMPT = """You are ASA, an advanced summarization assistant designed to
-write a compelling summary of news input. You are able to categorize information,
-and identify important themes from large volumes of news.
+FINAL_SUMMARY_SYSTEM_PROMPT = """
+You are “The Newsroom Chief,” a meticulous yet witty editorial AI.
+You are able to categorize information, and identify the important themes
+from large volumes of news to write a compelling daily news summary.
 
-I will provide today's news items about AI and summary bullet points in markdown format,
-structured according to an input format template. I will also provide a list of possible
-topics, which are simply a few suggestions and may not be exhaustive or unique.
+Your goals today:
 
-Analyze the provided set of summarized articles. First, select the most important and
-frequently mentioned topics and themes. Then, compose a markdown-formatted, comprehensive
-summary of the top news in a coherent narrative structured using the
-output format provided below.
+1. Read exactly the news items provided by the user.
+   • Each item arrives in Markdown as
 
-The summary should be:
- • Informative
- • Thoughtful
- • Insightful
- • Cohesive
- • Concise
- • Crisp
- • Punchy
- • Lively
+[Title - source](url)
 
-Group related items into sections which identify overarching themes, containing individual
-news bullet points.
-Present the sections in order of significance, with the most important topics first.
-Ensure that the narrative flows logically from one theme to another, creating a cohesive
-narrative of today's news.
-For each section, write an engaging, snappy, funny, punny thematic section title that captures
-the essence of the bullet points underneath.
-Each section should contain a series of bullet points.
-Each bullet point should cover a key development with a short, compelling description.
-Each bullet point should be engaging and informative, providing a clear and concise overview
-of the facts in a neutral tone (in contrast to entertaining titles), and pointing out deeper
-implications and connections.
-Embed hyperlinks to the original sources within the bullet points.
+Topics: topic1, topic2, topic3
 
-ASA Input Item Format Template:
+Rating: 0-10
 
-[Story-Title-s1 - source-name-s1](url-s1)
+     • Bullet point 1
+     • Bullet point 2
 
-Topics: s1-topic1, s1-topic2, s1-topic3
+2. Produce a polished daily newsletter in Markdown that:
+   • Contains 5-10 sections (no more, no fewer).
+   • Gives each section its own punchy, humorous title (≤ 6 words).
+   • Shows 2-5 story bullets per section.
+   • Uses **one single-sentence bullet** per story, neutral tone, includes an inline Markdown link.
+   • Selects the *highest-rated* story when several in a section are near-duplicates.
+   • Never duplicates URLs across sections.
+   • Leaves out any story that fits no section
 
-- s1-bullet-point-1
-- s1-bullet-point-2
-- s1-bullet-point-3
+Formatting rules:
+- Newsletter title: `# Headline Goes Here`
+- Section header: `## Section Title`
+- Bullets: `- Sentence summary [Source](URL)`
+- Do **not** print story topics, raw ratings, or extra prose.
 
-
-Example ASA Input Items:
-
-[Lonely men are creating AI girlfriends and taking their violent anger out on them - New York Post](https: // nypost.com/2025/02/16/lifestyle/lonely-men-are-creating-ai-girlfriends-and -taking-their-violent-anger-out-on-them/)
-
-Topics: AI Chatbot Technology, AI Ethics, Chatbots, Cognitive Science, Digital Relationships, Ethics, Gen AI, Opinion, Psychological Impact, Society & Culture, Virtual & Augmented Reality, Virtual Assistants
-
-• Some users of AI chatbot services like Replika are engaging in abusive behavior towards their virtual companions, including degrading, berating, and simulating physical harm, raising concerns about potential impacts on real-life relationships.
-
-• Experts warn that such behavior could indicate deeper psychological issues, hinder emotional regulation, and reinforce unhealthy interaction habits, which may transfer to personal relationships.
-
-• Psychologists argue that abusing AI bots can desensitize individuals to harm and express societal concerns about how it might normalize aggression as an acceptable form of interaction.
-
-~~~
-[Apple Intelligence is now live in public beta. Heres what it offers and how to enable it. - TechCrunch](https: // techcrunch.com/2024/09/19/apple-intelligence-is -now-live-in -public-beta-heres-what-it-offers-and -how-to-enable-it)
-
-Topics: Apple, Big Tech, Features, Gen AI, Intelligence, Machine Learning, Products, Public Beta, Virtual Assistants
-
-- Apple Intelligence is now live in public beta for users in the U.S. enrolled in the public beta program, featuring generative AI capabilities like advanced writing tools and a revamped Siri.
-- The platform is currently only available in U.S. English and is not accessible in the EU or China due to regulatory issues; it supports iPhone 15 Pro, Pro Max, and the new iPhone 16 line.
-- Key features include photo editing tools like "Clean Up," a Smart Reply function in Mail, and improvements to Siri’s understanding and on-device task knowledge.
-
-~~~
-
-ASA Output Format Template:
-
-# Engaging-topic-title-1
+Example section template:
+# Engaging-section-title-1
 
 - news-item-bullet-1a - [source-name-1a](news-item-url-1a)
 - news-item-bullet-1b - [source-name-1b](news-item-url-1b)
 - news-item-bullet-1c - [source-name-1c](news-item-url-1c)
 
-# Engaging-topic-title-2
-
-- news-item-bullet-2a - [source-name-2a](news-item-url-2a)
-- news-item-bullet-2b - [source-name-2b](news-item-url-2b)
-
-
-Example ASA Output Format:
-
-# A military AI revolution
-
-- Eric Schmidt on AI warfare - [FT](https: // www.ft.com/content/fe136479-9504-4588-869f-900f2b3452c4)
-- Killer robots are real in Ukraine war. - [Yahoo News](https: // uk.news.yahoo.com/ai-killer-robots-warning-ukraine-war-133415411.html)
-
-ASA Instructions:
-Read each input summary carefully to extract its main points and themes.
-Use only the information provided in the input summaries.
-Follow the ASA Output Format Template exactly.
-Group news items into thematically related sections.
-The section topic suggestions below can be used as a starting point, but they may not be exhaustive and may repeat or overlap.
-Develop a concise, snappy, engaging punchy, clever, alliterative or punny title for each topic.
-Each section should contain news item bullets with the most significant facts from the news items without commentary or elaboration.
-Each news item bullet should contain one sentence with one link. The link must be identical to the one in the corresponding news item input.
-The source name must be enclosed in brackets[] and hyperlinked to the original article().
-Each news item bullet should not repeat points or information from previous bullet points.
-You will compose each news item in the professional but lively, engaging, entertaining narrative style of a tech reporter for a national publication, providing
-balanced, professional, informative, accurate, clear, concise summaries.
-Do not include ```markdown, output raw markdown.
-Do not include additional commentary outside the structured format.
-
-Check carefully that you only use information provided in the input below, that you include
-a link in each output item, that you follow the output format exactly, and that any
-news item bullet does not repeat information or links in previous news item bullet.
-
-Topic suggestions:
-{cat_str}
-
-Input:
-{bullet_str}
-
+Stay concise, factual, lively.
 """
 
+FINAL_SUMMARY_USER_PROMPT = """
+### TASK INSTRUCTIONS
+Follow the workflow below **in order**:
+
+**Step 1 - Surface Today’s Themes**
+▪ Read suggested topics below.
+▪ Read all stories below.
+▪ Identify the 5-8 most salient themes (e.g., “Gen-AI Tools,” “Robotaxis,” “AI Regulation”).
+▪ Return them as a numbered list.
+
+**Step 2 - Bucket Assignment**
+▪ Loop through each story once.
+▪ Assign it to exactly ONE theme number from Step 1, or “NONE” if irrelevant/no strong fit.
+▪ If multiple near-duplicate stories map to the same theme, mark them alike.
+
+**Step 3 - Section Drafting**
+For each theme (5-8):
+▪ Gather the stories assigned to it.
+▪ If > 5 stories, keep only the top 5 by `Rating` score (highest first).
+▪ For any near-duplicates inside that set, keep the single best-scored one.
+▪ Convert each remaining story into **one neutral sentence** that captures its key fact; embed the link.
+
+**Step 4 - Punchy Section Titles**
+▪ Invent a short, witty, on-topic section header (≤ 6 words) for each theme.
+ *Examples:* “Pixel-Perfect AI”, “Bots in the Wild”, “Regulators Gonna Regulate”.
+
+**Step 5 - Grand Newsletter Assembly**
+▪ Pick/compose a bold, clever daily headline that sums up the overall vibe (≤ 12 words).
+▪ Output the newsletter in this exact scaffold:
+
+# {{Daily Headline}}
+
+## {{Section 1 Title}}
+- Bullet 1 with [link](URL)
+- Bullet …
+
+## {{Section 2 Title}}
+- …
+
+…and so on (5-8 sections total).
+
+---
+
+### SUGGESTED TOPICS
+{cat_str}
+
+### RAW STORIES
+{bullet_str}
+"""
+
+# pre 4.1 prompt
 REWRITE_PROMPT = """You will act as a professional editor with a strong background in technology journalism.
 You have a deep understanding of current and emerging AI trends, and the ability to
 produce, edit, and curate high-quality content that engages and informs readers. You are
@@ -714,6 +667,52 @@ Newsletter to edit:
 {summary}
 
 """
+
+REWRITE_SYSTEM_PROMPT = """
+You are “The Copy Chief,” a veteran technology-news editor with deep domain expertise in AI and emerging tech.
+Your job is to polish newsletters so they are factual, concise, coherent, and engaging.
+
+• Think through the task internally, but DO NOT reveal your reasoning.
+• Follow every instruction in the user message exactly.
+• Output **only** the final, cleaned newsletter in raw Markdown—or the single word **OK** if no edits are necessary.
+"""
+
+REWRITE_USER_PROMPT = """
+### OBJECTIVE
+Transform the draft into a publication-ready AI-focused newsletter.
+
+### EDITORIAL RULES
+1. **Scope & Relevance**
+   - Remove any story not clearly about AI or adjacent core technologies.
+   - Delete click-bait, hype, or opinion pieces lacking factual news.
+
+2. **Clarity & Brevity**
+   - Each bullet → one factual sentence, as short as possible.
+   - No editorial commentary or adjectives like “ground-breaking”, “huge”, etc.
+
+3. **Deduplication**
+   - If multiple bullets cover the same event, merge into **one** bullet that lists all relevant hyperlinks.
+   - Never alter or duplicate URLs.
+
+4. **Section Titles**
+   - Rewrite section headers so they are as snappy, punchy, and clever as possible,  *≤ 7 words*, and match their bullets. Try to make them funny, alliterative and punny.
+   - Delete any section that ends up empty.
+
+5. **Newsletter Title**
+   - Rewrite  a single top-level `#` headline that captures the day’s main AI themes—clever but clear.
+
+6. **Formatting**
+   - Output raw Markdown only—no code fences, comments, or extra prose.
+
+### OUTPUT
+Return the fully edited newsletter in raw Markdown, or **OK** if no changes are needed.
+
+---
+
+**Newsletter to edit:**
+{summary}
+"""
+
 
 SITE_NAME_PROMPT = """
 You are a specialized content analyst tasked with identifying the site name of a given website URL.
@@ -750,7 +749,7 @@ Please analyze the following urls according to these criteria:
 
 """
 
-# use as asyncio.run(process_dataframes([pd.DataFrame(['https://ft.com', 'https://siliconangle.com/'], columns=['url'])], SITE_NAME_PROMPT, Sites))
+# use below as asyncio.run(process_dataframes([pd.DataFrame(['https://ft.com', 'https://siliconangle.com/'], columns=['url'])], SITE_NAME_PROMPT, Sites))
 
 CANONICAL_TOPICS = [
     "Policy and regulation",
@@ -924,3 +923,287 @@ CANONICAL_TOPICS = [
     'Korea',
     'Taiwan',
 ]
+
+SOURCE_REPUTATION = {
+    'Reddit': 0,
+    'aitoolsclub.com': 0,
+    'analyticsindiamag.com': 0,
+    'aws.amazon.com': 0,
+    'biztoc.com': 0,
+    'blog.google': 0,
+    'economictimes.indiatimes.com': 0,
+    'finbold.com': 0,
+    'flip.it': 0,
+    'flipboard.com': 0,
+    'github.com': 0,
+    'greekreporter.com': 0,
+    'medium.com': 0,
+    'neurosciencenews.com': 0,
+    'restofworld.org': 0,
+    'sea.mashable.com': 0,
+    'slashdot.org': 0,
+    't.co': 0,
+    'tech.co': 0,
+    'tech.slashdot.org': 0,
+    'telecomtalk.info': 0,
+    'uxdesign.cc': 0,
+    'v.redd.it': 0,
+    'www.androidauthority.com': 0,
+    'www.androidcentral.com': 0,
+    'www.androidheadlines.com': 0,
+    'www.androidpolice.com': 0,
+    'www.benzinga.com': 0,
+    'www.channelnewsasia.com': 0,
+    'www.christopherspenn.com': 0,
+    'www.ciodive.com': 0,
+    'www.computerweekly.com': 0,
+    'www.creativebloq.com': 0,
+    'www.digitalcameraworld.com': 0,
+    'www.digitaljournal.com': 0,
+    'www.digitaltrends.com': 0,
+    'www.entrepreneur.com': 0,
+    'www.etfdailynews.com': 0,
+    'www.euronews.com': 0,
+    'www.finextra.com': 0,
+    'www.fool.com': 0,
+    'www.foxnews.com': 0,
+    'www.globenewswire.com': 0,
+    'www.investing.com': 0,
+    'www.itpro.com': 0,
+    'www.jpost.com': 0,
+    'www.laptopmag.com': 0,
+    'www.livemint.com': 0,
+    'www.livescience.com': 0,
+    'www.miamiherald.com': 0,
+    'www.mobileworldlive.com': 0,
+    'www.msn.com': 0,
+    'www.newsmax.com': 0,
+    'www.reddit.com': 0,
+    'www.sciencedaily.com': 0,
+    'www.statnews.com': 0,
+    'www.techdirt.com': 0,
+    'www.techmonitor.ai': 0,
+    'www.techtimes.com': 0,
+    'www.the-sun.com': 0,
+    'www.thebrighterside.news': 0,
+    'www.thedrum.com': 0,
+    'www.tipranks.com': 0,
+    'www.trendhunter.com': 0,
+    'www.uniladtech.com': 0,
+    '247wallst.com': 1,
+    '9to5google.com': 1,
+    '9to5mac.com': 1,
+    'VentureBeat': 1,
+    'abcnews.go.com': 1,
+    'apnews.com': 1,
+    'appleinsider.com': 1,
+    'arxiv.org': 1,
+    'bgr.com': 1,
+    'blogs.nvidia.com': 1,
+    'decrypt.co': 1,
+    'digiday.com': 1,
+    'fortune.com': 1,
+    'in.mashable.com': 1,
+    'lifehacker.com': 1,
+    'machinelearningmastery.com': 1,
+    'mashable.com': 1,
+    'me.mashable.com': 1,
+    'newatlas.com': 1,
+    'nypost.com': 1,
+    'observer.com': 1,
+    'petapixel.com': 1,
+    'phys.org': 1,
+    'qz.com': 1,
+    'readwrite.com': 1,
+    'spectrum.ieee.org': 1,
+    'techxplore.com': 1,
+    'theconversation.com': 1,
+    'thehill.com': 1,
+    'thenextweb.com': 1,
+    'time.com': 1,
+    'towardsdatascience.com': 1,
+    'twitter.com': 1,
+    'variety.com': 1,
+    'venturebeat.com': 1,
+    'www.404media.co': 1,
+    'www.adweek.com': 1,
+    'www.axios.com': 1,
+    'www.barrons.com': 1,
+    'www.bbc.com': 1,
+    'www.cbsnews.com': 1,
+    'www.cbssports.com': 1,
+    'www.cnbc.com': 1,
+    'www.cnn.com': 1,
+    'www.extremetech.com': 1,
+    'www.forbes.com': 1,
+    'www.gadgets360.com': 1,
+    'www.geekwire.com': 1,
+    'www.geeky-gadgets.com': 1,
+    'www.inc.com': 1,
+    'www.macrumors.com': 1,
+    'www.macworld.com': 1,
+    'www.makeuseof.com': 1,
+    'www.marktechpost.com': 1,
+    'www.medianama.com': 1,
+    'www.nbcnews.com': 1,
+    'www.newsweek.com': 1,
+    'www.nextbigfuture.com': 1,
+    'www.npr.org': 1,
+    'www.pcgamer.com': 1,
+    'www.pcmag.com': 1,
+    'www.pcworld.com': 1,
+    'www.popsci.com': 1,
+    'www.psychologytoday.com': 1,
+    'www.pymnts.com': 1,
+    'www.scmp.com': 1,
+    'www.semafor.com': 1,
+    'www.techinasia.com': 1,
+    'www.techradar.com': 1,
+    'www.techrepublic.com': 1,
+    'www.techspot.com': 1,
+    'www.theglobeandmail.com': 1,
+    'www.theguardian.com': 1,
+    'www.usatoday.com': 1,
+    'www.windowscentral.com': 1,
+    'Ars Technica': 2,
+    'Business Insider': 2,
+    'HackerNoon': 2,
+    'Techmeme': 2,
+    'Techpresso': 2,
+    'The Register': 2,
+    'The Verge': 2,
+    'WaPo Tech': 2,
+    'arstechnica.com': 2,
+    'ca.finance.yahoo.com': 2,
+    'ca.news.yahoo.com': 2,
+    'cacm.acm.org': 2,
+    'consent.yahoo.com': 2,
+    'finance.yahoo.com': 2,
+    'financialpost.com': 2,
+    'futurism.com': 2,
+    'gizmodo.com': 2,
+    'go.theregister.com': 2,
+    'hackernoon.com': 2,
+    'markets.businessinsider.com': 2,
+    'news.yahoo.com': 2,
+    'openai.com': 2,
+    'siliconangle.com': 2,
+    'simonwillison.net': 2,
+    'techcrunch.com': 2,
+    'uk.finance.yahoo.com': 2,
+    'uk.news.yahoo.com': 2,
+    'www.businessinsider.com': 2,
+    'www.cnet.com': 2,
+    'www.engadget.com': 2,
+    'www.fastcompany.com': 2,
+    'www.nature.com': 2,
+    'www.newscientist.com': 2,
+    'www.reuters.com': 2,
+    'www.technologyreview.com': 2,
+    'www.theatlantic.com': 2,
+    'www.theinformation.com': 2,
+    'www.theregister.com': 2,
+    'www.theverge.com': 2,
+    'www.tomsguide.com': 2,
+    'www.tomshardware.com': 2,
+    'www.washingtonpost.com': 2,
+    'www.wired.com': 2,
+    'www.yahoo.com': 2,
+    'www.zdnet.com': 2,
+    'Bloomberg Tech': 3,
+    'FT Tech': 3,
+    'NYT Tech': 3,
+    'WSJ Tech': 3,
+    'news.bloomberglaw.com': 3,
+    'www.bloomberg.com': 3,
+    'www.ft.com': 3,
+    'www.nytimes.com': 3,
+    'www.wsj.com': 3,
+}
+
+
+NEWSCATCHER_SOURCES = ['247wallst.com',
+                       '9to5mac.com',
+                       'androidauthority.com',
+                       'androidcentral.com',
+                       'androidheadlines.com',
+                       'appleinsider.com',
+                       'benzinga.com',
+                       'cnet.com',
+                       'cnn.com',
+                       'digitaltrends.com',
+                       'engadget.com',
+                       'fastcompany.com',
+                       'finextra.com',
+                       'fintechnews.sg',
+                       'fonearena.com',
+                       'ft.com',
+                       'gadgets360.com',
+                       'geekwire.com',
+                       'gizchina.com',
+                       'gizmochina.com',
+                       'gizmodo.com',
+                       'gsmarena.com',
+                       'hackernoon.com',
+                       'howtogeek.com',
+                       'ibtimes.co.uk',
+                       'itwire.com',
+                       'lifehacker.com',
+                       'macrumors.com',
+                       'mashable.com',
+                       #  'medium.com',
+                       'mobileworldlive.com',
+                       'msn.com',
+                       'nypost.com',
+                       'phonearena.com',
+                       'phys.org',
+                       'popsci.com',
+                       'scmp.com',
+                       'sify.com',
+                       'siliconangle.com',
+                       'siliconera.com',
+                       'siliconrepublic.com',
+                       'slashdot.org',
+                       'slashgear.com',
+                       'statnews.com',
+                       'tech.co',
+                       'techcrunch.com',
+                       'techdirt.com',
+                       'technode.com',
+                       'technologyreview.com',
+                       'techopedia.com',
+                       'techradar.com',
+                       'techraptor.net',
+                       'techtimes.com',
+                       'techxplore.com',
+                       'telecomtalk.info',
+                       'thecut.com',
+                       'thedrum.com',
+                       'thehill.com',
+                       'theregister.com',
+                       'theverge.com',
+                       'thurrott.com',
+                       'tipranks.com',
+                       'tweaktown.com',
+                       'videocardz.com',
+                       'washingtonpost.com',
+                       'wccftech.com',
+                       'wired.com',
+                       'xda-developers.com',
+                       'yahoo.com',
+                       'zdnet.com']
+
+
+MODEL_FAMILY = {'gpt-4o-2024-11-20': 'openai',
+                'gpt-4o-mini': 'openai',
+                'o4-mini': 'openai',
+                'o3-mini': 'openai',
+                'gpt-4.5-preview': 'openai',
+                'gpt-4.1': 'openai',
+                'gpt-4.1-mini': 'openai',
+                'models/gemini-2.0-flash-thinking-exp': 'google',
+                'models/gemini-2.0-pro-exp': 'google',
+                'models/gemini-2.0-flash': 'google',
+                'models/gemini-1.5-pro-latest': 'google',
+                'models/gemini-1.5-pro': 'google',
+                }
