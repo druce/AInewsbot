@@ -32,8 +32,15 @@ A Python notebook/script to help find the latest news about AI
 
 ## 2. Core Components
 
+### Orchestration
+- `AInewsbot_langgraph.py`: The "main" orchestrator. Follows the workflow in the image below.
+  - Fetch source pages specified in `sources.yaml` (and NewsAPI) → Extract & dedupe URLs → - Classify headlines as AI or not AI, filter previously seen
+  - Scrape indivdual stories & summarize →  Embed & cluster topics, order by topic
+  - Prompt LLM for newsletter → Optional re-edit → Send email (via `smtplib`)
+- `AInewsbot.sh`: Shell wrapper to activate the Conda env and launch the pipeline on a schedule
+
 ### Configuration & Prompts
-- - `sources.yaml`: List of news sources (URL, include/exclude regex, scrolling instructions, etc.).
+- `sources.yaml`: List of news sources (URL, include/exclude regex, scrolling instructions, etc.).
 - `ainb_const.py`: Paths, API keys (via `.env`), model settings, LLM prompts (classification, topic extraction, summarization).
 
 ### Scraping
@@ -49,21 +56,14 @@ A Python notebook/script to help find the latest news about AI
 
 ### LLM Integration
 - `ainb_llm.py`: LangChain wrappers around ChatOpenAI.
+  - Take a current dataframe of news stories (~100 per day) and apply a prompt to each asynchronously (i.e. with 100 parallel LLM calls)
   - Structured JSON classification (like, is it AI-related?)
   - Topic extraction
   - Summary generation
-  - Prompt-token budgeting
-
-### Orchestration
-- `AInewsbot_langgraph.py`: The "main" orchestrator.
-  - Fetch source pages specified in `sources.yaml` (and NewsAPI) → Extract & dedupe URLs → - Classify headlines as AI or not AI, filter previously seen
-  - Scrape indivdual stories & summarize →  Embed & cluster topics, order by topic
-  - Prompt LLM for newsletter → Optional re-edit → Send email (via `smtplib`)
-- `AInewsbot.sh`: Shell wrapper to activate the Conda env and launch the pipeline on a schedule
 
 ### Notebooks & Experiments
 - `AInewsbot_langgraph.ipynb`: Interactive pipeline runner, topic clustering visualizations.
-- `AInewsbot_test_llms.ipynb`: test various LLMs
+- `AInewsbot_test_llms.ipynb`: test best way to call various LLMs
 - `reducer.pkl`, `AIdf.pkl`: Clustering tests & artifacts.
 
 ---
@@ -81,15 +81,14 @@ A Python notebook/script to help find the latest news about AI
 
 ## 4. Dependencies & Setup
 
-- Python 3.x
+- Python 3.x, see requirements.txt
 - Selenium + geckodriver + Firefox (with a custom profile)
 - LangChain and OpenAI LLMs. LangChain is cross-platform and easy to point to different LLM vendors. I have run it in the past with Gemini. Currently it uses 4.1-mini, 4.1, and o3 for simple, complex, and reasoning prompts. Since especially 4.1 is well-designed for agentic workflows prompts are optimized for OpenAI and would take some optimization to run properly using other vendors.
 - Libraries:
-	- see `requirements.txt`
 	- scraping:`beautifulsoup4`, `requests`, `fake-useragent`, `trafilatura`
 	- clustering: `pandas`, `numpy`, `scipy`,
 	- LLM: `langchain_openai`, `tiktoken`, `pydantic` (json mode), `tenacity` (retry)
-	- `dotenv` for `.env` loading
+	- `dotenv` for loading `.env` secrets like API keys
   - `nbformat`, `jupyter` for notebook execution
 
 ---
