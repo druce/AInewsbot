@@ -75,6 +75,7 @@ from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
                       get_all_canonical_topic_results, clean_topics,
                       Stories, TopicSpecList, TopicHeadline, TopicCategoryList, Sites,
                       StoryRatings,  # StoryRatings,
+                      Newsletter
                       #   sprocess_dataframes
                       )
 
@@ -1153,10 +1154,9 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
         ("system", FINAL_SUMMARY_SYSTEM_PROMPT),
         ("user", FINAL_SUMMARY_USER_PROMPT)
     ])
-
-    ochain = prompt_template | model_high | StrOutputParser()
+    ochain = prompt_template | model_high.with_structured_output(Newsletter)
     response = ochain.invoke(dict(cat_str=cat_str, bullet_str=bullet_str))
-    state["summary"] = response
+    state["summary"] = str(response)
     # save bullet_str to local file
     try:
         filename = 'summary.md'

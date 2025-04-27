@@ -128,18 +128,32 @@ class StoryRatings(BaseModel):
 
 class NewsArticle(BaseModel):
     """NewsArticle class for structured output filtering"""
-    title: str = Field(description="The title of the story")
+    src: str = Field(description="The source of the story")
     url: str = Field(description="The URL of the story")
     summary: str = Field(description="A summary of the story")
+
+    def __str__(self):
+        return f"- {self.summary} - [{self.src}]({self.url})"
 
 
 class Section(BaseModel):
     section_title: str = Field(description="The title of the section")
-    section_items: List[NewsArticle] = Field(description="List of NewsArticle")
+    news_items: List[NewsArticle]
+
+    def __str__(self):
+        retval = f"## {self.section_title}\n\n"
+        retval += "\n".join(
+            [str(news_item) for news_item in self.news_items]
+        )
+        return retval
 
 
 class Newsletter(BaseModel):
-    section_items: List[Section] = Field(description="List of Section")
+    section_items: List[Section]
+
+    def __str__(self):
+        return "\n\n".join(str(section) for section in self.section_items)
+
 
 ##############################################################################
 # utility functions
@@ -234,6 +248,8 @@ def paginate_df(input_df: pd.DataFrame,
     retry=retry_if_exception_type(Exception),
     before_sleep=lambda retry_state: log(
         f"Attempt {retry_state.attempt_number}: {retry_state.outcome.exception()}, tag: {retry_state.args[1].get('tag', '')}")
+
+
 )
 async def async_langchain(chain, input_dict, tag="", verbose=False):
     #     async with sem:
@@ -509,8 +525,8 @@ def clean_html(path: Path | str) -> str:
         try:
             # Try to get the title from the <title> tag
             title_tag = soup.find("title")
-            title_str = "Page title: " + title_tag.string.strip() +
-            "\n" if title_tag and title_tag.string else ""
+            title_str = "Page title: " + title_tag.string.strip() + \
+                "\n" if title_tag and title_tag.string else ""
         except Exception as exc:
             log(str(exc), "clean_html page_title")
 
