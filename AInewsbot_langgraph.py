@@ -1,82 +1,77 @@
-from ainb_state import *
+"""
+AInewsbot_langgraph.py
+This is the top-level file for the AInewsbot application. It sets up the state graph
+and runs it using the LangGraph framework. The individual state functions that define
+specific behaviors and transformations are implemented in the `ainb_state.py` module.
 
-from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
-                      filter_page_async,
-                      get_all_canonical_topic_results, clean_topics,
-                      Stories, TopicSpecList, TopicHeadline, TopicCategoryList, Sites,
-                      StoryRatings,  # StoryRatings,
-                      Newsletter
-                      #   sprocess_dataframes
-                      )
-from ainb_webscrape import (get_browsers, parse_file,
-                            process_source_queue_factory,
-                            process_url_queue_factory)
-from ainb_utilities import (log, delete_files, filter_unseen_urls_db,
-                            nearest_neighbor_sort, send_gmail, unicode_to_ascii)
-from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, SOURCECONFIG, SOURCES_EXPECTED,
-                        FILTER_SYSTEM_PROMPT, FILTER_USER_PROMPT,
-                        TOPIC_SYSTEM_PROMPT, TOPIC_USER_PROMPT,
-                        LOW_QUALITY_SYSTEM_PROMPT, LOW_QUALITY_USER_PROMPT,
-                        ON_TOPIC_SYSTEM_PROMPT, ON_TOPIC_USER_PROMPT,
-                        IMPORTANCE_SYSTEM_PROMPT, IMPORTANCE_USER_PROMPT,
-                        FINAL_SUMMARY_SYSTEM_PROMPT, FINAL_SUMMARY_USER_PROMPT,
-                        CANONICAL_TOPICS,
-                        TOPIC_WRITER_SYSTEM_PROMPT, TOPIC_WRITER_USER_PROMPT,
-                        REWRITE_SYSTEM_PROMPT, REWRITE_USER_PROMPT,
-                        TOP_CATEGORIES_PROMPT, TOPIC_REWRITE_PROMPT,
-                        SITE_NAME_PROMPT, SQLITE_DB,
-                        HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST, SOURCE_REPUTATION,
-                        SCREENSHOT_DIR, REQUEST_TIMEOUT,
-                        MODEL_FAMILY, NEWSCATCHER_SOURCES)
-from openai import OpenAI
-from sklearn.cluster import DBSCAN
-import pandas as pd
-from IPython.display import display, Markdown  # , Audio
-import requests
-from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import StateGraph, START, END
-from langgraph.errors import NodeInterrupt
-import langchain
+The script initializes the agent, configures the state graph, and executes the
+workflow for processing news articles, including downloading, filtering, summarizing,
+and sending email summaries. It supports command-line arguments for customization.
+
+Modules and Features:
+- Defines the `AgentState` TypedDict to represent the state of the agent.
+- Implements the `Agent` class to manage the state graph and its execution.
+- Provides utility functions to initialize the agent and run the workflow.
+- Supports integration with multiple AI models (e.g., OpenAI, Google Generative AI).
+- Uses LangGraph for state graph management and execution.
+
+Command-line Arguments:
+- `--nofetch`: Disable web fetching and use existing HTML files.
+- `--before-date`: Process articles before a specific date.
+- `--browsers`: Number of browser instances to run in parallel.
+- `--max-edits`: Maximum number of summary rewrites.
+
+Dependencies:
+- `ainb_state.py`: Contains the individual state functions.
+- `ainb_utilities.py`: Provides logging and utility functions.
+- `ainb_const.py`: Defines constants like model families and request timeouts.
+
+Usage:
+Run this script directly to execute the AInewsbot workflow, or import it as a module
+to use the `Agent` class and related functions programmatically.
+"""
 import nest_asyncio
-import numpy as np
-import pdb
-import os
-from datetime import datetime, timedelta
-import dotenv
-# import subprocess
-import json
 import uuid
-import re
-import pickle
 import argparse
-from collections import Counter, defaultdict
-import asyncio
-
 from typing import TypedDict
 
-import multiprocessing
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import pandas as pd
 
-import sqlite3
-from urllib.parse import urlparse  # , urljoin
+from IPython.display import display, Markdown  # , Audio
 
-import yaml
+from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import StateGraph, START, END
 
-import markdown
+import langchain
 
+from ainb_state import (fn_initialize,
+                        fn_download_sources,
+                        fn_extract_urls,
+                        fn_verify_download,
+                        fn_extract_newscatcher,
+                        fn_extract_newsapi,
+                        fn_filter_urls,
+                        fn_topic_analysis,
+                        fn_topic_clusters,
+                        fn_download_pages,
+                        fn_summarize_pages,
+                        fn_quality_filter,
+                        fn_on_topic_filter,
+                        fn_importance_filter,
+                        fn_rate_articles,
+                        fn_propose_topics,
+                        fn_compose_summary,
+                        fn_rewrite_summary,
+                        fn_is_revision_complete,
+                        fn_send_mail,)
+
+from ainb_utilities import (log,)
+from ainb_const import (REQUEST_TIMEOUT,
+                        MODEL_FAMILY)
 
 # from langchain_anthropic import ChatAnthropic
-
-
-# for token count
-# todo, count tokens depending on model
-
-# main AInewsbot agent and top level imports
-
 
 langchain.verbose = True
 
@@ -86,7 +81,6 @@ langchain.verbose = True
 
 # from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 # from langgraph.graph.message import add_messages
-
 
 nest_asyncio.apply()  # needed for asyncio.run to work under langgraph
 
@@ -144,125 +138,6 @@ class AgentState(TypedDict):
     max_edits: int  # max number of edits to make
     edit_complete: bool  # edit will update if no more edits to make
     n_browsers: int  # number of browsers to use for scraping
-
-
-def fn_initialize(state: AgentState) -> AgentState:
-    """
-    Initializes the agent state by loading source configurations from SOURCECONFIG (sources.yaml) .
-
-    Args:
-        state (AgentState): The current state of the agent.
-        verbose (bool, optional): Whether to print verbose output. Defaults to False.
-
-    Returns:
-        AgentState: The updated state of the agent.
-
-    Raises:
-        yaml.YAMLError: If there is an error while loading the YAML file.
-
-    """
-
-    #  load sources to scrape from sources.yaml
-    with open(SOURCECONFIG, "r", encoding="utf-8") as stream:
-        try:
-            state['sources'] = yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            print("fn_initialize")
-            print(exc)
-
-    log(f"Initialized {len(state['sources'])} items in sources from {SOURCECONFIG}")
-
-    # make a reverse dict to map file titles to source names
-    state['sources_reverse'] = {}
-    for k, v in state['sources'].items():
-        log(f"{k} -> {v['url']} -> {v['title']}.html")
-        v['sourcename'] = k
-        # map filename (title) to source name
-        state['sources_reverse'][v['title']] = k
-
-    log(f"Initialized {len(state['sources_reverse'])} items in sources_reverse")
-
-    return state
-
-
-def fn_download_sources(state: AgentState, browsers: list) -> AgentState:
-    """
-    Scrapes sources and saves HTML files.
-    If state["do_download"] is True, deletes all files in DOWNLOAD_DIR (htmldata) and scrapes fresh copies.
-    If state["do_download"] is False, uses existing files in DOWNLOAD_DIR.
-    Uses state["sources"] for config info on sources to scrape
-    For each source, saves the current filename to state["sources"][sourcename]['latest']
-    jina or firecrawl might be better for this
-    Args:
-        state (AgentState): The current state of the agent.
-        do_delete (bool, optional): Whether to delete files in DOWNLOAD_DIR. Defaults to True.
-
-    Returns:
-        AgentState: The updated state of the agent.
-    """
-
-    if state.get("do_download"):
-        # empty download directories
-        delete_files(DOWNLOAD_DIR)
-        delete_files(PAGES_DIR)
-        delete_files(SCREENSHOT_DIR)
-
-        # save each file specified from sources
-        log(f"Saving HTML files using {state['n_browsers']} browsers")
-        # Create a queue for multiprocessing and populate it
-        queue = multiprocessing.Queue()
-        for item in state.get("sources").values():
-            queue.put(item)
-
-        # create a closure to download urls in queue asynchronously
-        closure = process_source_queue_factory(queue)
-
-        if len(browsers) < state["n_browsers"]:
-            browsers.extend(asyncio.run(get_browsers(state["n_browsers"])))
-
-        with ThreadPoolExecutor(max_workers=state["n_browsers"]) as executor:
-            # Create a list of future objects
-            futures = [executor.submit(closure, browsers[i])
-                       for i in range(state["n_browsers"])]
-
-            # Collect the results (web drivers) as they complete
-            retarray = [future.result() for future in as_completed(futures)]
-
-        # flatten results
-        saved_pages = [item for retarray in retarray for item in retarray]
-
-        for sourcename, sourcefile in saved_pages:
-            log(f"Downloaded {sourcename} to {sourcefile}")
-            state['sources'][sourcename]['latest'] = sourcefile
-        log(f"Saved {len(saved_pages)} HTML files")
-
-    else:   # use existing files
-        log(f"Web fetch disabled, using existing files in {DOWNLOAD_DIR}")
-        # Get the current date
-        datestr = datetime.now().strftime("%m_%d_%Y")
-        files = [os.path.join(DOWNLOAD_DIR, file)
-                 for file in os.listdir(DOWNLOAD_DIR)]
-        # filter files with today's date ending in .html
-        files = [
-            file for file in files if datestr in file and file.endswith(".html")]
-        log(f"Found {len(files)} previously downloaded files")
-        for sourcefile in files:
-            log(sourcefile)
-
-        saved_pages = []
-        for sourcefile in files:
-            filename = os.path.basename(sourcefile)
-            # locate date like '01_14_2024' in filename
-            position = filename.find(" (" + datestr)
-            basename = filename[:position]
-            # match to source name
-            sourcename = state.get("sources_reverse", {}).get(basename)
-            if sourcename is None:
-                log(f"Skipping {basename}, no sourcename metadata")
-                continue
-            state["sources"][sourcename]['latest'] = sourcefile
-
-    return state
 
 
 class Agent:

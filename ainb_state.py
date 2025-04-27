@@ -1,10 +1,60 @@
+
+"""
+This module contains all the state functions for LangGraph nodes used in the AI News Bot project.
+
+Each function is designed to perform a specific task in the pipeline, such as initializing the agent state,
+downloading sources, extracting URLs, filtering content, performing topic analysis, clustering, summarizing,
+and composing newsletters. These functions interact with the `AgentState` object, which serves as the central
+state management structure for the LangGraph workflow.
+
+The functions are intended to be used as nodes in a LangGraph state graph, enabling modular and reusable
+processing steps for tasks like web scraping, content filtering, topic extraction, and email generation.
+
+Key Features:
+- Integration with external APIs (e.g., OpenAI, NewsCatcher, GNews, NewsAPI).
+- Support for multiprocessing and asynchronous operations for efficient data processing.
+- Use of machine learning models for clustering, topic extraction, and content summarization.
+- Modular design for easy customization and extension of the pipeline.
+"""
+import os
+import json
+import re
+import pickle
+from datetime import datetime, timedelta
+from collections import Counter, defaultdict
+import asyncio
+import yaml
+import markdown
+
+from urllib.parse import urlparse  # , urljoin
+
+import sqlite3
+
+import multiprocessing
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+import requests
+
+from IPython.display import display  # , Audio
+
+import numpy as np
+import pandas as pd
+from sklearn.cluster import DBSCAN
+
+from openai import OpenAI
+
+import langchain
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langgraph.errors import NodeInterrupt
+# import subprocess
+
 from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
                       filter_page_async,
                       get_all_canonical_topic_results, clean_topics,
                       Stories, TopicSpecList, TopicHeadline, TopicCategoryList, Sites,
                       StoryRatings,  # StoryRatings,
                       Newsletter
-                      #   sprocess_dataframes
                       )
 from ainb_webscrape import (get_browsers, parse_file,
                             process_source_queue_factory,
@@ -24,47 +74,9 @@ from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, SOURCECONFIG, SOURCES_EXPECTED,
                         TOP_CATEGORIES_PROMPT, TOPIC_REWRITE_PROMPT,
                         SITE_NAME_PROMPT, SQLITE_DB,
                         HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST, SOURCE_REPUTATION,
-                        SCREENSHOT_DIR, REQUEST_TIMEOUT,
-                        MODEL_FAMILY, NEWSCATCHER_SOURCES)
-from openai import OpenAI
-from sklearn.cluster import DBSCAN
-import pandas as pd
-from IPython.display import display, Markdown  # , Audio
-import requests
-from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import StateGraph, START, END
-from langgraph.errors import NodeInterrupt
-import langchain
-import nest_asyncio
-import numpy as np
-import pdb
-import os
-from datetime import datetime, timedelta
-import dotenv
-# import subprocess
-import json
-import uuid
-import re
-import pickle
-import argparse
-from collections import Counter, defaultdict
-import asyncio
+                        SCREENSHOT_DIR, NEWSCATCHER_SOURCES)
 
-from typing import TypedDict
-
-import multiprocessing
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-import sqlite3
-from urllib.parse import urlparse  # , urljoin
-
-import yaml
-
-import markdown
+from AInewsbot_langgraph import AgentState
 
 
 def make_bullet(row, include_topics=True):
@@ -82,6 +94,125 @@ def make_bullet(row, include_topics=True):
     rating = f"\n\nRating: {max(row.rating, 0):.2f}" if hasattr(
         row, "rating") else ""
     return f"[{title} - {site_name}]({actual_url}){topic_str}{rating}{summary}\n\n"
+
+
+def fn_initialize(state: AgentState) -> AgentState:
+    """
+    Initializes the agent state by loading source configurations from SOURCECONFIG (sources.yaml) .
+
+    Args:
+        state (AgentState): The current state of the agent.
+        verbose (bool, optional): Whether to print verbose output. Defaults to False.
+
+    Returns:
+        AgentState: The updated state of the agent.
+
+    Raises:
+        yaml.YAMLError: If there is an error while loading the YAML file.
+
+    """
+
+    #  load sources to scrape from sources.yaml
+    with open(SOURCECONFIG, "r", encoding="utf-8") as stream:
+        try:
+            state['sources'] = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print("fn_initialize")
+            print(exc)
+
+    log(f"Initialized {len(state['sources'])} items in sources from {SOURCECONFIG}")
+
+    # make a reverse dict to map file titles to source names
+    state['sources_reverse'] = {}
+    for k, v in state['sources'].items():
+        log(f"{k} -> {v['url']} -> {v['title']}.html")
+        v['sourcename'] = k
+        # map filename (title) to source name
+        state['sources_reverse'][v['title']] = k
+
+    log(f"Initialized {len(state['sources_reverse'])} items in sources_reverse")
+
+    return state
+
+
+def fn_download_sources(state: AgentState, browsers: list) -> AgentState:
+    """
+    Scrapes sources and saves HTML files.
+    If state["do_download"] is True, deletes all files in DOWNLOAD_DIR (htmldata) and scrapes fresh copies.
+    If state["do_download"] is False, uses existing files in DOWNLOAD_DIR.
+    Uses state["sources"] for config info on sources to scrape
+    For each source, saves the current filename to state["sources"][sourcename]['latest']
+    jina or firecrawl might be better for this
+    Args:
+        state (AgentState): The current state of the agent.
+        do_delete (bool, optional): Whether to delete files in DOWNLOAD_DIR. Defaults to True.
+
+    Returns:
+        AgentState: The updated state of the agent.
+    """
+
+    if state.get("do_download"):
+        # empty download directories
+        delete_files(DOWNLOAD_DIR)
+        delete_files(PAGES_DIR)
+        delete_files(SCREENSHOT_DIR)
+
+        # save each file specified from sources
+        log(f"Saving HTML files using {state['n_browsers']} browsers")
+        # Create a queue for multiprocessing and populate it
+        queue = multiprocessing.Queue()
+        for item in state.get("sources").values():
+            queue.put(item)
+
+        # create a closure to download urls in queue asynchronously
+        closure = process_source_queue_factory(queue)
+
+        if len(browsers) < state["n_browsers"]:
+            browsers.extend(asyncio.run(get_browsers(state["n_browsers"])))
+
+        with ThreadPoolExecutor(max_workers=state["n_browsers"]) as executor:
+            # Create a list of future objects
+            futures = [executor.submit(closure, browsers[i])
+                       for i in range(state["n_browsers"])]
+
+            # Collect the results (web drivers) as they complete
+            retarray = [future.result() for future in as_completed(futures)]
+
+        # flatten results
+        saved_pages = [item for retarray in retarray for item in retarray]
+
+        for sourcename, sourcefile in saved_pages:
+            log(f"Downloaded {sourcename} to {sourcefile}")
+            state['sources'][sourcename]['latest'] = sourcefile
+        log(f"Saved {len(saved_pages)} HTML files")
+
+    else:   # use existing files
+        log(f"Web fetch disabled, using existing files in {DOWNLOAD_DIR}")
+        # Get the current date
+        datestr = datetime.now().strftime("%m_%d_%Y")
+        files = [os.path.join(DOWNLOAD_DIR, file)
+                 for file in os.listdir(DOWNLOAD_DIR)]
+        # filter files with today's date ending in .html
+        files = [
+            file for file in files if datestr in file and file.endswith(".html")]
+        log(f"Found {len(files)} previously downloaded files")
+        for sourcefile in files:
+            log(sourcefile)
+
+        saved_pages = []
+        for sourcefile in files:
+            filename = os.path.basename(sourcefile)
+            # locate date like '01_14_2024' in filename
+            position = filename.find(" (" + datestr)
+            basename = filename[:position]
+            # match to source name
+            sourcename = state.get("sources_reverse", {}).get(basename)
+            if sourcename is None:
+                log(f"Skipping {basename}, no sourcename metadata")
+                continue
+            state["sources"][sourcename]['latest'] = sourcefile
+
+    return state
 
 
 def fn_extract_urls(state: AgentState) -> AgentState:
