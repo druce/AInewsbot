@@ -1,34 +1,68 @@
 # AInewsbot
 
-A Python notebook/script to help find the latest news about AI
+![Python](https://img.shields.io/badge/python-3.8%2B-blue)
+![License](https://img.shields.io/github/license/druce/AInewsbot)
 
-**AInewsbot** is an end-to-end pipeline for **AI news gathering → topic clustering → summarization → AI newsletter & podcast creation**
+A Python pipeline for **AI news gathering → topic clustering → summarization → newsletter & podcast creation**. Used for [skynetandchill.com](https://www.skynetandchill.com/).
 
-(potentially other subjects by modifying source URLs and search keywords)
 
-- Used to help generate a daily newsletter at https://www.skynetandchill.com/
+## Table of Contents
 
-- Also generates a podcast using `[podcastfy](https://github.com/souzatharsis/podcastfy)`, using a complex prompt to write a script and then perform text-to-speech.
+- [Purpose](#1-purpose)
+- [Features](#features)
+- [Quickstart](#quickstart)
+- [Core Components](#2-core-components)
+- [Data & Outputs](#3-data--outputs)
+- [Dependencies & Setup](#4-dependencies--setup)
+- [How to Run](#5-how-to-run)
+- [Example Output](#example-output)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
+
+
+AInewsbot is a Python pipeline and notebook suite for automating the discovery, clustering, and summarization of the latest AI news. It assembles a daily newsletter and can even generate a podcast script and audio, making it ideal for content creators and AI enthusiasts.
+
+- Powers the daily newsletter at [skynetandchill.com](https://www.skynetandchill.com/).
+- Generates podcasts using [podcastfy](https://github.com/souzatharsis/podcastfy), leveraging LLMs for scriptwriting and text-to-speech.
+- Easily adaptable to other topics by changing source URLs and keywords.
 
 [![A podcast created with podcastfy](https://img.youtube.com/vi/Fl0xP1Io72k/0.jpg)](https://www.youtube.com/shorts/AOVOOZQthNU)
 
-[AInewsbot_langraph.ipynb](https://github.com/druce/AInewsbot/blob/main/AInewsbot_langgraph.ipynb)
+Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AInewsbot/blob/main/AInewsbot_langgraph.ipynb).
 
----
 
 ## 1. Purpose
 
 - Automatically gather AI-related news from many sites.
-- Filter and cluster the headlines by topic, scrape and summarize each article.
-- Assemble a daily newsletter (and even a podcast).
-- Built using:
-  - OpenAI + other LLMs via LangChain
-  - Selenium / BeautifulSoup scraping
-  - SciPy clustering
-  - SQLite history tracking
-  - Human-in-the-loop review steps
+- Filter, cluster, and summarize articles by topic.
+- Assemble a daily newsletter and generate a podcast.
+- Human-in-the-loop review steps supported.
 
----
+
+## Features
+
+- Multi-source scraping and deduplication
+- LLM-powered classification, summarization, clustering
+- Newsletter and podcast generation
+- SQLite-based history tracking
+
+
+## Quickstart
+
+1. Copy `dotenv.txt` to `.env` and add your `OPENAI_API_KEY`.
+2. Install dependencies:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Edit `GECKODRIVER_PATH` and `FIREFOX_PROFILE_PATH` in `ainb_const.py`.
+4. Run the main script:
+
+   ```bash
+   python AInewsbot_langgraph.py
+   ```
 
 ## 2. Core Components
 
@@ -81,26 +115,29 @@ A Python notebook/script to help find the latest news about AI
 
 ## 4. Dependencies & Setup
 
-- Python 3.x, see requirements.txt
+- Python 3.x (see `requirements.txt`)
 - Selenium + geckodriver + Firefox (with a custom profile)
-- LangChain and OpenAI LLMs. LangChain is cross-platform and easy to point to different LLM vendors. I have run it in the past with Gemini. Currently it uses 4.1-mini, 4.1, and o3 for simple, complex, and reasoning prompts. Since especially 4.1 is well-designed for agentic workflows prompts are optimized for OpenAI and would take some optimization to run properly using other vendors.
-- Libraries:
-	- scraping:`beautifulsoup4`, `requests`, `fake-useragent`, `trafilatura`
-	- clustering: `pandas`, `numpy`, `scipy`,
-	- LLM: `langchain_openai`, `tiktoken`, `pydantic` (json mode), `tenacity` (retry)
-	- `dotenv` for loading `.env` secrets like API keys
-  - `nbformat`, `jupyter` for notebook execution
+- LangChain and OpenAI LLMs (other LLMs possible)
+- See `requirements.txt` for additional requirements
+
+**Environment Variables:**
+
+- Use the provided `dotenv.txt` as a scaffold for your `.env` file.
+- For basic operation, only `OPENAI_API_KEY` is required.
+- Other supported keys (optional, for advanced features): News APIs, LangSmith, Google Cloud, YouTube upload, Anthropic Claude, ElevenLabs, Perplexity, Pinecone, Reddit, etc.
+
+Example `.env` (minimal):
+
+```env
+OPENAI_API_KEY=sk-...
+```
 
 ---
 
 ## 5. How to Run
 
-1. Populate your `.env` file with required API keys.
-2. Edit `GECKODRIVER_PATH` and `FIREFOX_PROFILE_PATH` in `ainb_const.py`.
-3. Run the main script:
-
-   ```bash
-   python AInewsbot_langgraph.py
+- For advanced usage, schedule runs of `AInewsbot.sh`, customize sources in `sources.yaml`, or run interactively in `AInewsbot_langgraph.ipynb`.
 
 ![flowchart](https://github.com/druce/AInewsbot/blob/main/graph.png?raw=true)
 
+---
