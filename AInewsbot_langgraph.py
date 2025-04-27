@@ -33,7 +33,6 @@ to use the `Agent` class and related functions programmatically.
 import nest_asyncio
 import uuid
 import argparse
-from typing import TypedDict
 
 import pandas as pd
 
@@ -46,7 +45,8 @@ from langgraph.graph import StateGraph, START, END
 
 import langchain
 
-from ainb_state import (fn_initialize,
+from ainb_state import (AgentState,
+                        fn_initialize,
                         fn_download_sources,
                         fn_extract_urls,
                         fn_verify_download,
@@ -112,32 +112,6 @@ def get_model(model_name):
 # print(f"sklearn           {sklearn.__version__}")
 # print(f"umap              {umap.__version__}")
 # print(f"podcastfy         {podcastfy.__version__}")
-
-
-class AgentState(TypedDict):
-    """
-    State of the LangGraph agent.
-    Each node in the graph is a function that takes the current state and returns the updated state.
-    """
-
-    # the current working set of headlines (pandas dataframe not supported)
-    AIdf: list[dict]
-    # ignore stories before this date for deduplication (force reprocess since)
-    before_date: str
-    do_download: bool  # if False use existing files, else download from sources
-    model_low: str     # cheap fast model like gpt-4o-mini or flash
-    model_medium: str  # medium model like gpt-4o or gemini-1.5-pro
-    model_high: str    # slow expensive thinking model like o3-mini
-    sources: dict  # sources to scrap
-    sources_reverse: dict[str, str]  # map file names to sources
-    bullets: list[str]  # bullet points for summary email
-    summary: str  # final summary
-    cluster_topics: list[str]  # list of cluster topics
-    topics_str: str  # edited topics
-    n_edits: int  # count edit iterations so we don't keep editing forever
-    max_edits: int  # max number of edits to make
-    edit_complete: bool  # edit will update if no more edits to make
-    n_browsers: int  # number of browsers to use for scraping
 
 
 class Agent:

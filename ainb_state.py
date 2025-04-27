@@ -25,6 +25,7 @@ from collections import Counter, defaultdict
 import asyncio
 import yaml
 import markdown
+from typing import TypedDict
 
 from urllib.parse import urlparse  # , urljoin
 
@@ -76,7 +77,31 @@ from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, SOURCECONFIG, SOURCES_EXPECTED,
                         HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST, SOURCE_REPUTATION,
                         SCREENSHOT_DIR, NEWSCATCHER_SOURCES)
 
-from AInewsbot_langgraph import AgentState
+
+class AgentState(TypedDict):
+    """
+    State of the LangGraph agent.
+    Each node in the graph is a function that takes the current state and returns the updated state.
+    """
+
+    # the current working set of headlines (pandas dataframe not supported)
+    AIdf: list[dict]
+    # ignore stories before this date for deduplication (force reprocess since)
+    before_date: str
+    do_download: bool  # if False use existing files, else download from sources
+    model_low: str     # cheap fast model like gpt-4o-mini or flash
+    model_medium: str  # medium model like gpt-4o or gemini-1.5-pro
+    model_high: str    # slow expensive thinking model like o3-mini
+    sources: dict  # sources to scrap
+    sources_reverse: dict[str, str]  # map file names to sources
+    bullets: list[str]  # bullet points for summary email
+    summary: str  # final summary
+    cluster_topics: list[str]  # list of cluster topics
+    topics_str: str  # edited topics
+    n_edits: int  # count edit iterations so we don't keep editing forever
+    max_edits: int  # max number of edits to make
+    edit_complete: bool  # edit will update if no more edits to make
+    n_browsers: int  # number of browsers to use for scraping
 
 
 def make_bullet(row, include_topics=True):
