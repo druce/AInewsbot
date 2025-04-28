@@ -29,7 +29,7 @@ A Python notebook/script to help find the latest news about AI
 
 - Used to help generate a daily newsletter at https://www.skynetandchill.com/
 
-- Also generates a podcast using `[podcastfy](https://github.com/souzatharsis/podcastfy)`, using a complex prompt to write a script and then perform text-to-speech.
+- Also generates a podcast using [podcastfy](https://github.com/souzatharsis/podcastfy), using a complex prompt to write a script and then perform text-to-speech.
 
 [![A podcast created with podcastfy](https://img.youtube.com/vi/Fl0xP1Io72k/0.jpg)](https://www.youtube.com/shorts/AOVOOZQthNU)
 
@@ -61,7 +61,7 @@ Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AI
    pip install -r requirements.txt
    ```
 
-3. Edit `GECKODRIVER_PATH` and `FIREFOX_PROFILE_PATH` in `ainb_const.py`.
+3. Edit `FIREFOX_PROFILE_PATH` in `ainb_const.py` to use your own organic profile.
 4. Run the main script:
 
    ```bash
@@ -71,7 +71,7 @@ Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AI
 ## 2. Core Components
 
 ### Orchestration
-- `AInewsbot_langgraph.py`: The "main" orchestrator. Follows the workflow in the image below.
+- `AInewsbot_langgraph.py`: Top-level orchestrator. Follows the workflow in the image below.
   - Fetch source pages specified in `sources.yaml` (and NewsAPI) → Extract & dedupe URLs → - Classify headlines as AI or not AI, filter previously seen
   - Scrape indivdual stories & summarize →  Embed & cluster topics, order by topic
   - Prompt LLM for newsletter → Optional re-edit → Send email (via `smtplib`)
@@ -94,13 +94,13 @@ Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AI
 
 ### LLM Integration
 - `ainb_llm.py`: LangChain wrappers around ChatOpenAI.
-  - Take a current dataframe of news stories (~100 per day) and apply a prompt to each asynchronously (i.e. with 100 parallel LLM calls)
+  - Take a current dataframe of news stories (~100 per day) and apply a prompt to each asynchronously (i.e. with 100 parallel LLM calls for classificaation, topic extraction, filtering, summarization)
   - Structured JSON classification (like, is it AI-related?)
   - Topic extraction
   - Summary generation
 
 ### Notebooks & Experiments
-- `AInewsbot_langgraph.ipynb`: Interactive pipeline runner, topic clustering visualizations.
+- `AInewsbot_langgraph.ipynb`: Interactive pipeline runner, topic clustering, visualizations.
 - `AInewsbot_test_llms.ipynb`: test best way to call various LLMs
 - `reducer.pkl`, `AIdf.pkl`: Clustering tests & artifacts.
 
@@ -128,7 +128,7 @@ Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AI
 
 - Use the provided `dotenv.txt` as a scaffold for your `.env` file.
 - For basic operation, only `OPENAI_API_KEY` is required.
-- Other supported keys (optional, for advanced features): News APIs, LangSmith, Google Cloud, YouTube upload, Anthropic Claude, ElevenLabs, Perplexity, Pinecone, Reddit, etc.
+- Other supported keys (optional, for advanced features and previous experiments): News APIs, LangSmith, Google Cloud, YouTube upload, Anthropic Claude, ElevenLabs, Perplexity, Pinecone, Reddit, etc.
 
 Example `.env` (minimal):
 
