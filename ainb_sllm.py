@@ -3,9 +3,49 @@ for debugging, some synchronous versions of ainb_llm functions
 can call these from top level with pdb.set_trace, and step through
 unlike async versions which will spawn many threads and not allow pdb to work
 """
+from ainb_llm import clean_html, async_langchain
+
+import pdb
+
+# from collections import defaultdict
+import math
+# import aiohttp
+import asyncio
+from typing import List, Type, TypeVar, Dict, Any  # , TypedDict, Annotated,
+from pathlib import Path
+
+from pydantic import BaseModel, Field
 import pandas as pd
-from typing import Type, TypeVar, Dict, Any
+
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type
+)
+
+import tiktoken
+# import openai
+# from openai import OpenAI
+from bs4 import BeautifulSoup
+import trafilatura
+
+
+# import langchain
 from langchain_openai import ChatOpenAI
+from langchain_core.output_parsers import StrOutputParser
+
+# from langchain_google_genai import ChatGoogleGenerativeAI
+# from langchain_anthropic import ChatAnthropic
+# from langchain_core.messages import BaseMessage, AnyMessage, SystemMessage, HumanMessage, ToolMessage
+# MessagesPlaceholder, PromptTemplate,
+from langchain_core.prompts import (ChatPromptTemplate,)
+# SystemMessagePromptTemplate, HumanMessagePromptTemplate)
+
+from ainb_utilities import log
+from ainb_const import (MAX_INPUT_TOKENS, TENACITY_RETRY,
+                        CANONICAL_SYSTEM_PROMPT, CANONICAL_USER_PROMPT,
+                        SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT)
 
 T = TypeVar('T')
 
@@ -204,3 +244,58 @@ def sget_all_canonical_topic_results(pages, topics, model_medium):
     # print(results)
 
     return results
+
+
+def sfetch_all_summaries(aidf, model):
+    """
+    Fetch summaries for all articles in the AIdf DataFrame.
+
+    This function processes each row in the AIdf, extracts the article
+    content using the path column, and generates a summary using the MODEL LLM.
+    Summaries are fetched asynchronously.
+
+    Args:
+        AIdf (pd.DataFrame): A DataFrame containing article information. Each row should
+                             have 'path' and 'id' attributes.
+
+    Returns:
+        list: A list of summaries for each article.
+
+    Raises:
+        Exception: If there is an error during the asynchronous processing of the articles.
+
+    TODO: can make a more generic version
+    pass in prompt, model, output class
+    pass in df with id and value(s)
+    pass in optional function dict to call on each column
+    get the column names, apply function if provided, apply template using those names
+
+    """
+    log("Fetching summaries for all articles")
+    tasks = []
+
+    prompt_template = ChatPromptTemplate.from_messages(
+        [("system", SUMMARIZE_SYSTEM_PROMPT),
+         ("user", SUMMARIZE_USER_PROMPT)]
+    )
+    parser = StrOutputParser()
+    chain = prompt_template | model | parser
+    pdb.set_trace()
+    for row in aidf.itertuples():
+        path, rowid = row.path, row.id
+        article_str = clean_html(path)
+        log(f"Queuing {rowid}: {article_str[:50]}...")
+        # task = asyncio.create_task(async_langchain(
+        #     chain, {"article": article_str}, tag=rowid))
+        summary, rowid, article_len = asyncio.run(async_langchain(
+            chain, {"article": article_str}, tag=rowid, verbose=True))
+        tasks.append((summary, rowid, article_len))
+    pdb.set_trace()
+
+    try:
+        for summary, rowid, article_len in tasks:
+            log(f"Summary for {rowid}: {summary}")
+    except Exception as e:
+        log(f"Error fetching summary: {str(e)}")
+        log("tasks: ", tasks)
+    return tasks

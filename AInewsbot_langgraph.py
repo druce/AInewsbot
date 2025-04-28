@@ -186,7 +186,7 @@ class Agent:
 
     def download_sources(self, state: AgentState) -> AgentState:
         """download sources or load exisitng sources"""
-        self.state = fn_download_sources(state, self.BROWSERS)
+        self.state = fn_download_sources(state)
         return self.state
 
     def extract_web_urls(self, state: AgentState) -> AgentState:
@@ -223,9 +223,7 @@ class Agent:
 
     def download_pages(self, state: AgentState) -> AgentState:
         """download individual news pages and save text"""
-        # print(len(self.BROWSERS))
-        self.state = fn_download_pages(state, self.BROWSERS)
-        # print(len(self.BROWSERS))
+        self.state = fn_download_pages(state)
         return self.state
 
     def summarize_pages(self, state: AgentState, model_str: str = "") -> AgentState:

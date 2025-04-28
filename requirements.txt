@@ -10,7 +10,8 @@ scipy
 scikit-learn
 # ortools
 ipykernel
-selenium
+# selenium
+playwright>=1.43.0
 fake_useragent
 openai
 tiktoken

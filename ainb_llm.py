@@ -452,6 +452,12 @@ async def process_dataframes(dataframes: List[pd.DataFrame],
 
     Returns:
         List of processed results
+
+    will fire off dataframes without any delay but with retry
+    we paginate so we don't have to retry 200 if one fails
+    this may run into tokens per minute rate limits, will error and retry
+    could be smarter and check rate limits first, not easily available in langchain
+    like, ideally if it fails on rate limit, check when it resets and wait til then
     """
     if item_id_field:
         tasks = [
@@ -594,6 +600,7 @@ async def fetch_all_summaries(aidf, model):
     get the column names, apply function if provided, apply template using those names
 
     """
+
     log("Fetching summaries for all articles")
     tasks = []
 
@@ -617,66 +624,10 @@ async def fetch_all_summaries(aidf, model):
         responses = await asyncio.gather(*tasks)
     except Exception as e:
         log(f"Error fetching summary: {str(e)}")
-    log(f"Received {len(responses)} summaries")
+        log(f"Received {len(responses)} summaries")
     for summary, rowid, article_len in responses:
         log(f"Summary for {rowid} (length {article_len}): {summary}")
     return responses
-
-
-def sfetch_all_summaries(aidf, model):
-    """
-    Fetch summaries for all articles in the AIdf DataFrame.
-
-    This function processes each row in the AIdf, extracts the article
-    content using the path column, and generates a summary using the MODEL LLM.
-    Summaries are fetched asynchronously.
-
-    Args:
-        AIdf (pd.DataFrame): A DataFrame containing article information. Each row should
-                             have 'path' and 'id' attributes.
-
-    Returns:
-        list: A list of summaries for each article.
-
-    Raises:
-        Exception: If there is an error during the asynchronous processing of the articles.
-
-    TODO: can make a more generic version
-    pass in prompt, model, output class
-    pass in df with id and value(s)
-    pass in optional function dict to call on each column
-    get the column names, apply function if provided, apply template using those names
-
-    """
-    log("Fetching summaries for all articles")
-    tasks = []
-
-    prompt_template = ChatPromptTemplate.from_messages(
-        [("system", SUMMARIZE_SYSTEM_PROMPT),
-         ("user", SUMMARIZE_USER_PROMPT)]
-    )
-
-    parser = StrOutputParser()
-    chain = prompt_template | model | parser
-
-    for row in aidf.itertuples():
-        path, rowid = row.path, row.id
-        article_str = clean_html(path)
-        log(f"Queuing {rowid}: {article_str[:50]}...")
-        # task = asyncio.create_task(async_langchain(
-        #     chain, {"article": article_str}, tag=rowid))
-        task = asyncio.run(async_langchain(
-            chain, {"article": article_str}, tag=rowid, verbose=True))
-        tasks.append(task)
-
-    # try:
-    #     responses = await asyncio.gather(*tasks)
-    # except Exception as e:
-    #     log(f"Error fetching summary: {str(e)}")
-    # log(f"Received {len(responses)} summaries")
-    for summary, rowid in tasks:
-        log(f"Summary for {rowid}: {summary}")
-    return tasks
 
 
 async def get_canonical_topic_results(pages, topic, model_low):
@@ -725,199 +676,3 @@ def clean_topics(row):
     combined = [s.replace("Ai", "AI") for s in combined]
 
     return combined
-
-
-def sfilter_page_async(
-    input_df: pd.DataFrame,
-    system_prompt: str,
-    user_prompt: str,
-    output_class: Type[T],
-    model: ChatOpenAI,
-    input_vars: Dict[str, Any] = None,
-    opening_delimiter: str = "### <<<DATASET>>>",
-    closing_delimiter: str = "### <<<END>>>###\nThink silently, then respond with the JSON only.",
-) -> T:
-    """
-    Process a single dataframe asynchronously.
-    apply input_prompt to input_df converted to JSON per output_class type schema,
-    supplying additional input_vars, and returning a variable of type output_class
-    """
-    if opening_delimiter:
-        user_prompt += "\n" + opening_delimiter + "\n"
-    user_prompt += "{input_text}"
-    if closing_delimiter:
-        user_prompt += "\n" + closing_delimiter
-
-    prompt_template = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("user", user_prompt)
-    ])
-
-    # Create the chain
-    chain = prompt_template | model.with_structured_output(output_class)
-
-    # Convert DataFrame to JSON
-    pdb.set_trace()
-    input_text = input_df.to_json(orient='records', indent=2)
-    input_dict = {"input_text": input_text}
-    if input_vars is not None:
-        input_dict.update(input_vars)
-    # input_prompt = prompt_template.format_messages(**input_dict)
-    # print(input_prompt)
-    # print(input_text)
-
-    # Call the chain asynchronously
-    response = chain.invoke(input_dict)
-    # print(response)
-
-    return response  # Should be an instance of output_class
-
-
-def sfilter_page_async_id(
-    input_df: pd.DataFrame,
-    system_prompt: str,
-    user_prompt: str,
-    output_class: Type[T],
-    model: ChatOpenAI,
-    input_vars: Dict[str, Any] = None,
-    item_list_field: str = "items",
-    item_id_field: str = "id",
-    opening_delimiter: str = "### <<<DATASET>>>",
-    closing_delimiter: str = "### <<<END>>>\nThink silently, then respond with the JSON only.",
-) -> T:
-    """
-    similar to filter_page_async but checks ids in the response
-    Process a single dataframe asynchronously.
-    apply system_prompt to input_df converted to JSON per output_class type schema,
-    supplying additional input_vars, and returning a variable of type output_class
-    """
-    if opening_delimiter:
-        user_prompt += "\n" + opening_delimiter + "\n"
-    user_prompt += "{input_text}"
-    if closing_delimiter:
-        user_prompt += "\n" + closing_delimiter
-
-    prompt_template = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("user", user_prompt)
-    ])
-
-    # Create the chain
-    chain = prompt_template | model.with_structured_output(output_class)
-
-    # Convert DataFrame to JSON
-    input_text = input_df.to_json(orient='records', indent=2)
-    input_dict = {"input_text": input_text}
-    if input_vars is not None:
-        input_dict.update(input_vars)
-    # input_prompt = prompt_template.format_messages(**input_dict)
-    # print(input_prompt)
-    # print(input_text)
-
-    # Call the chain asynchronously
-    response = chain.invoke(input_dict)
-    # response = chain.invoke(input_dict)
-
-    # check ids in response
-    if item_list_field:
-        if hasattr(response, item_list_field):
-            response_list = getattr(response, item_list_field)
-            if item_id_field:
-                sent_ids = [
-                    item_id for item_id in input_df[item_id_field].to_list()]
-
-                received_ids = [getattr(r, item_id_field)
-                                for r in response_list]
-                difference = set(sent_ids) - set(received_ids)
-                if difference:
-                    log(f"missing items: {str(difference)}")
-                    raise ValueError(
-                        f"No {item_id_field} found in the results")
-
-    # print(response)
-    return response  # instance of output_class
-
-
-def sprocess_dataframes(dataframes: List[pd.DataFrame],
-                        system_prompt: str,
-                        user_prompt: str,
-                        output_class: Type[T],
-                        model: ChatOpenAI,
-                        input_vars: Dict[str, Any] = None,
-                        item_list_field: str = "items",
-                        item_id_field: str = "",
-                        ) -> T:
-    """
-    Process multiple dataframes asynchronously.
-    if item_list_field is provided, flatten the results
-    if item_id_field is proided, check returned ids match sent ids
-
-    Args:
-        dataframes: List of dataframes to process
-        input_prompt: The prompt template to use
-        output_class: The output class for structured output
-        model: The language model to use
-        batch_size: Number of concurrent tasks to run
-
-    Returns:
-        List of processed results
-    """
-    if item_id_field:
-        tasks = [
-            sfilter_page_async_id(df, system_prompt, user_prompt, output_class,
-                                  model, input_vars, item_list_field, item_id_field)
-            for df in dataframes
-        ]
-    else:
-        tasks = [
-            sfilter_page_async(df, system_prompt, user_prompt, output_class,
-                               model, input_vars)
-            for df in dataframes
-        ]
-
-    results = tasks
-
-    # if each result is an object with items as a list of objects then flatten
-    flat_list = []
-    if item_list_field:
-        for result in results:
-            if hasattr(result, item_list_field):
-                flat_list.extend(getattr(result, item_list_field))
-            else:
-                raise ValueError(f"No {item_list_field} found in the results")
-        if item_id_field:   # check ids if provided
-            sent_ids = [
-                item_id for df in dataframes for item_id in df[item_id_field].to_list()]
-            received_ids = [getattr(r, item_id_field) for r in flat_list]
-            difference = set(sent_ids) - set(received_ids)
-            if difference:
-                log(f"missing {item_id_field}, {str(difference)}")
-                raise ValueError(
-                    f"missing {item_id_field} items not found in the results")
-        return flat_list
-    else:
-        log(f"no {item_list_field} in result, returning raw results")
-
-
-def sget_canonical_topic_results(pages, topic, model_low):
-    """call CANONICAL_TOPIC_PROMPT on pages for a single topic"""
-    retval = sprocess_dataframes(dataframes=pages,
-                                 system_prompt=CANONICAL_SYSTEM_PROMPT,
-                                 user_prompt=CANONICAL_USER_PROMPT,
-                                 output_class=CanonicalTopicSpecList,
-                                 model=model_low,
-                                 input_vars={'topic': topic})
-    return topic, retval
-
-
-def sget_all_canonical_topic_results(pages, topics, model_medium):
-    """call all topics on pages"""
-    tasks = []
-    for topic in topics:
-        log(f"Canonical topic {topic}")
-        tasks.append(sget_canonical_topic_results(pages, topic, model_medium))
-    log(f"Sending prompt for {len(tasks)} canonical topics")
-    results = tasks
-    # print(results)
-
-    return results

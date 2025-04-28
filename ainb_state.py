@@ -16,6 +16,7 @@ Key Features:
 - Use of machine learning models for clustering, topic extraction, and content summarization.
 - Modular design for easy customization and extension of the pipeline.
 """
+import pdb
 import os
 import json
 import re
@@ -30,9 +31,6 @@ from typing import TypedDict
 from urllib.parse import urlparse  # , urljoin
 
 import sqlite3
-
-import multiprocessing
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
 
@@ -57,9 +55,9 @@ from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
                       StoryRatings,  # StoryRatings,
                       Newsletter
                       )
-from ainb_webscrape import (get_browsers, parse_file,
-                            process_source_queue_factory,
-                            process_url_queue_factory)
+# from ainb_sllm import sfetch_all_summaries
+from ainb_webscrape import (
+    parse_file, fetch_queue, fetch_source_queue)
 from ainb_utilities import (log, delete_files, filter_unseen_urls_db,
                             nearest_neighbor_sort, send_gmail, unicode_to_ascii)
 from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, SOURCECONFIG, SOURCES_EXPECTED,
@@ -160,17 +158,96 @@ def fn_initialize(state: AgentState) -> AgentState:
     return state
 
 
-def fn_download_sources(state: AgentState, browsers: list) -> AgentState:
+# async def fn_download_worker(queue, browser):
+#     """
+#     Worker function to download sources from the queue via a single browser context.
+
+#     Args:
+#         queue (asyncio.Queue): The queue of sources to download.
+#         browser (BrowserContext): The browser context to use for downloading.
+#     """
+#     # context = await browser.new_context(
+#     #     viewport={"width": 1600, "height": 1600},
+#     # )
+#     results = []
+#     while not queue.empty():
+#         source_dict = queue.get()
+#         sourcename = source_dict['sourcename']
+#         log(f'Processing {sourcename}')
+#         sourcefile = await fetch_source(source_dict, browser)
+#         results.append((sourcename, sourcefile))
+#     return results
+
+
+# async def fn_download_main(queue, n_browsers):
+#     """
+#     Main function to launch n_browsers workers to download sources from the queue
+#     via multiple browser contexts.
+
+#     Args:
+#         queue (asyncio.Queue): The queue of sources to download.
+#         n_browsers (int): The number of browsers to use for downloading.
+#     """
+#     results = []
+#     profile_copies = []
+#     browsers = []
+
+#     args = [
+#         "--disable-blink-features=AutomationControlled",  # Chrome/Blink flag analogue
+#         "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage"
+#     ]
+#     async with async_playwright() as p:
+#         # launch n_browsers browsers
+#         try:
+#             log(f"Launching {n_browsers} browsers")
+#             for i in range(n_browsers):
+#                 log(f"Copying profile {i}")
+#                 tmp_profile = tempfile.mkdtemp(prefix=f"firefox_profile_{i}_")
+#                 shutil.copytree(FIREFOX_PROFILE_PATH,
+#                                 tmp_profile, dirs_exist_ok=True)
+#                 profile_copies.append(tmp_profile)
+#                 log(f"Launching browser {i}")
+#                 browser = await p.firefox.launch_persistent_context(
+#                     user_data_dir=tmp_profile,
+#                     headless=True,                        # run headless, hide splash window
+#                     viewport={"width": 1366, "height": 768},
+#                     # removes Playwright’s default flag
+#                     ignore_default_args=["--enable-automation"],
+#                     args=args,
+#                     # match OS / browser build
+#                     # provide a valid realistic User-Agent string for the latest Firefox on Apple Silicon
+#                     user_agent="Mozilla/5.0 (Macintosh; ARM Mac OS X 14.4; rv:125.0) Gecko/20100101 Firefox/125.0",
+#                     accept_downloads=True,
+#                 )
+#                 await browser.add_init_script("Object.defineProperty(navigator,'webdriver',{get: () => undefined});")
+#                 browsers.append(browser)
+#             # Create n_browsers workers, each with its own browser
+#             tasks = [fn_download_worker(queue, browser)
+#                      for browser in browsers]
+#             results = await asyncio.gather(*tasks)
+#         except Exception as e:
+#             log(f"Error launching browsers: {e}")
+#             return results
+#         finally:
+#             # Ensure all browsers are closed
+#             for i, browser in enumerate(browsers):
+#                 log(f"Closing browser {i}")
+#                 await browser.close()
+#             for tmp_profile in profile_copies:
+#                 log(f"Removing profile {tmp_profile}")
+#                 shutil.rmtree(tmp_profile, ignore_errors=True)
+#     return results
+
+
+def fn_download_sources(state: AgentState) -> AgentState:
     """
     Scrapes sources and saves HTML files.
     If state["do_download"] is True, deletes all files in DOWNLOAD_DIR (htmldata) and scrapes fresh copies.
     If state["do_download"] is False, uses existing files in DOWNLOAD_DIR.
     Uses state["sources"] for config info on sources to scrape
     For each source, saves the current filename to state["sources"][sourcename]['latest']
-    jina or firecrawl might be better for this
     Args:
         state (AgentState): The current state of the agent.
-        do_delete (bool, optional): Whether to delete files in DOWNLOAD_DIR. Defaults to True.
 
     Returns:
         AgentState: The updated state of the agent.
@@ -183,57 +260,39 @@ def fn_download_sources(state: AgentState, browsers: list) -> AgentState:
         delete_files(SCREENSHOT_DIR)
 
         # save each file specified from sources
-        log(f"Saving HTML files using {state['n_browsers']} browsers")
+        log(
+            f"Saving HTML files using async concurrency= {state['n_browsers']}")
         # Create a queue for multiprocessing and populate it
-        queue = multiprocessing.Queue()
+        queue = asyncio.Queue()
         for item in state.get("sources").values():
-            queue.put(item)
+            asyncio.run(queue.put(item))
 
-        # create a closure to download urls in queue asynchronously
-        closure = process_source_queue_factory(queue)
+        results = asyncio.run(fetch_source_queue(queue, state['n_browsers']))
 
-        if len(browsers) < state["n_browsers"]:
-            browsers.extend(asyncio.run(get_browsers(state["n_browsers"])))
+        # saved_pages = [item for ret_array in results for item in ret_array]
+        for source_name, source_file in results:
+            log(f"{source_name} -> {source_file}")
+            state["sources"][source_name]['latest'] = source_file
 
-        with ThreadPoolExecutor(max_workers=state["n_browsers"]) as executor:
-            # Create a list of future objects
-            futures = [executor.submit(closure, browsers[i])
-                       for i in range(state["n_browsers"])]
-
-            # Collect the results (web drivers) as they complete
-            retarray = [future.result() for future in as_completed(futures)]
-
-        # flatten results
-        saved_pages = [item for retarray in retarray for item in retarray]
-
-        for sourcename, sourcefile in saved_pages:
-            log(f"Downloaded {sourcename} to {sourcefile}")
-            state['sources'][sourcename]['latest'] = sourcefile
-        log(f"Saved {len(saved_pages)} HTML files")
+        log(f"Saved {len(results)} HTML files")
 
     else:   # use existing files
         log(f"Web fetch disabled, using existing files in {DOWNLOAD_DIR}")
         # Get the current date
-        datestr = datetime.now().strftime("%m_%d_%Y")
         files = [os.path.join(DOWNLOAD_DIR, file)
                  for file in os.listdir(DOWNLOAD_DIR)]
-        # filter files with today's date ending in .html
-        files = [
-            file for file in files if datestr in file and file.endswith(".html")]
+        # filter files ending in .html
+        files = [file for file in files if file.endswith(".html")]
         log(f"Found {len(files)} previously downloaded files")
         for sourcefile in files:
             log(sourcefile)
 
-        saved_pages = []
         for sourcefile in files:
-            filename = os.path.basename(sourcefile)
-            # locate date like '01_14_2024' in filename
-            position = filename.find(" (" + datestr)
-            basename = filename[:position]
+            filename = os.path.basename(sourcefile).split(".")[0]
             # match to source name
-            sourcename = state.get("sources_reverse", {}).get(basename)
+            sourcename = state.get("sources_reverse", {}).get(filename)
             if sourcename is None:
-                log(f"Skipping {basename}, no sourcename metadata")
+                log(f"Skipping {filename}, no sourcename metadata")
                 continue
             state["sources"][sourcename]['latest'] = sourcefile
 
@@ -491,7 +550,7 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
     aidf = aidf.sort_values("src") \
         .groupby("url") \
         .first() \
-        .reset_index(drop=False) \
+        .reset_index(drop=False)  \
         .drop(columns=['id']) \
         .reset_index() \
         .rename(columns={'index': 'id'})
@@ -501,13 +560,8 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
     # # filter similar titles differing by type of quote or something
     aidf['title'] = aidf['title'].apply(unicode_to_ascii)
     aidf['title_clean'] = aidf['title'].map(lambda s: " ".join(s.split()))
-    aidf = aidf.sort_values("src") \
-        .groupby("title_clean") \
-        .first() \
-        .reset_index(drop=True) \
-        .drop(columns=['id']) \
-        .reset_index() \
-        .rename(columns={'index': 'id'})
+    aidf = aidf.sort_values("src").groupby("title_clean").first().reset_index(
+        drop=True).drop(columns=['id']).reset_index().rename(columns={'index': 'id'})
     log(f"Found {len(aidf)} unique cleaned new headlines")
     # filter AI-related headlines using a prompt
     results = asyncio.run(process_dataframes(
@@ -544,6 +598,7 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
         lambda url: urlparse(url).netloc)
 
     # update SQLite database with all seen URLs (we are doing this using url and ignoring redirects)
+    # ideally should this later , if something breaks before email, need to rerun with before_date set
     log(f"Inserting {len(aidf)} URLs into {SQLITE_DB}")
     with sqlite3.connect(SQLITE_DB) as conn:
         cursor = conn.cursor()
@@ -845,17 +900,81 @@ def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
     log(state["cluster_topics"])
     return state
 
-# TODO: could add a quality rating for stories based on site reputation, length, complexity of story
-# could then add the quality rating to the summaries and tell the prompt to favor high-quality stories
-# could put summaries into vector store and retrieve stories by topic. but then you will have to deal
-# with duplicates across categories, ask the prompt to dedupe
-
 # scrape individual pages
 
 
-def fn_download_pages(state: AgentState, browsers: list) -> AgentState:
+# async def fn_download_pages_worker(queue, browser):
+#     """
+#     Worker function to download sources from the queue via a single browser context.
+
+#     Args:
+#         queue (asyncio.Queue): The queue of sources to download.
+#         browser (BrowserContext): The browser context to use for downloading.
+#     """
+#     # context = await browser.new_context(
+#     #     viewport={"width": 1600, "height": 1600},
+#     # )
+#     results = []
+#     while not queue.empty():
+#         idx, url, title = queue.get()
+#         file_path = await fetch_url(url, title, browser)
+
+#         log(f'fetching {idx}: {url} -> {title}')
+#         results.append((idx, url, title, file_path))
+#     return results
+
+
+# async def fn_download_pages_main(queue, n_browsers):
+#     """
+#     Main function to launch n_browsers workers to download pages from the queue
+#     via multiple browser contexts.
+
+#     Args:
+#         queue (asyncio.Queue): The queue of sources to download.
+#         n_browsers (int): The number of browsers to use for downloading.
+#     """
+#     results = []
+#     profile_copies = []
+#     browsers = []
+#     async with async_playwright() as p:
+#         # launch n_browsers browsers
+#         try:
+#             log(f"Launching {n_browsers} browsers")
+#             for i in range(n_browsers):
+#                 log(f"Copying profile {i+1}")
+#                 tmp_profile = tempfile.mkdtemp(prefix=f"firefox_profile_{i}_")
+#                 shutil.copytree(FIREFOX_PROFILE_PATH,
+#                                 tmp_profile, dirs_exist_ok=True)
+#                 profile_copies.append(tmp_profile)
+#                 log(f"Launching browser {i+1}")
+#                 browsers.append(await p.firefox.launch_persistent_context(
+#                     user_data_dir=tmp_profile,
+#                     headless=False,
+#                     viewport={"width": 1600, "height": 1600},
+#                     accept_downloads=True,
+#                 ))
+#             # Create n_browsers workers, each with its own browser
+#             tasks = [fn_download_pages_worker(queue, browser)
+#                      for browser in browsers]
+#             results = await asyncio.gather(*tasks)
+#         except Exception as e:
+#             log(f"Error launching browsers: {e}")
+#             return results
+#         finally:
+#             # Ensure all browsers are closed
+#             for i, browser in enumerate(browsers):
+#                 log(f"Closing browser {i+1}")
+#                 await browser.close()
+#             for tmp_profile in profile_copies:
+#                 log(f"Removing profile {tmp_profile}")
+#                 shutil.rmtree(tmp_profile, ignore_errors=True)
+#     results_flat = [item for sublist in results for item in sublist]
+#     return results_flat
+
+
+def fn_download_pages(state: AgentState) -> AgentState:
     """
-    Uses several Selenium browser sessions to download all the pages referenced in the
+    Uses several Playwright browser sessions to download all the pages referenced in the
     state["AIdf"] DataFrame and store their pathnames.
 
     Args:
@@ -866,30 +985,16 @@ def fn_download_pages(state: AgentState, browsers: list) -> AgentState:
     """
     log("Queuing URLs for scraping")
     aidf = pd.DataFrame(state['AIdf'])
-    queue = multiprocessing.Queue()
 
-    count = 0
+    # Create a queue for multiprocessing and populate it
+    queue = asyncio.Queue()
     for row in aidf.itertuples():
-        #         if row.cluster < 999:
-        queue.put((row.id, row.url, row.title))
-        count += 1
+        asyncio.run(queue.put((row.id, row.url, row.title)))
 
-    # scrape urls in queue asynchronously
-    closure = process_url_queue_factory(queue)
-
-    if len(browsers) < state["n_browsers"]:
-        browsers.extend(asyncio.run(get_browsers(state["n_browsers"])))
-
-    with ThreadPoolExecutor(max_workers=state["n_browsers"]) as executor:
-        # Create a list of future objects
-        futures = [executor.submit(closure, browsers[i])
-                   for i in range(state["n_browsers"])]
-
-        # Collect the results (web drivers) as they complete
-        retarray = [future.result() for future in as_completed(futures)]
-
-    # flatten results
-    saved_pages = [item for retarray in retarray for item in retarray]
+    log(
+        f"Saving HTML files using async concurrency= {state['n_browsers']}")
+    # pdb.set_trace()
+    saved_pages = asyncio.run(fetch_queue(queue, state['n_browsers']))
 
     pages_df = pd.DataFrame(saved_pages)
     if len(pages_df):
@@ -1030,7 +1135,13 @@ def fn_rate_articles(state: AgentState) -> AgentState:
     calculate ratings for articles
     """
     log("Calculating article ratings")
-    aidf = pd.DataFrame(state['AIdf'])
+    aidf = pd.DataFrame(state['AIdf']).fillna({
+        'article_len': 1,
+        'reputation': 0,
+        'on_topic': 0,
+        'importance': 0,
+        'low_quality': 0,
+    })
     # len < 100 -> 0
     # len > 10000 -> 2
     # in between log10(x) - 2
@@ -1040,8 +1151,8 @@ def fn_rate_articles(state: AgentState) -> AgentState:
         + aidf['adjusted_len'] \
         + aidf['on_topic'] \
         + aidf['importance'] \
-        - aidf['low_quality']
-    # redo bullets with topics
+        - aidf['low_quality'] \
+        # redo bullets with topics
     aidf["bullet"] = aidf.apply(make_bullet, axis=1)
     state["AIdf"] = aidf.to_dict(orient='records')
     return state

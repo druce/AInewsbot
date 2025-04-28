@@ -27,7 +27,7 @@ from ainb_const import SQLITE_DB
 ############################################################################################################
 VERBOSE = 1
 # Configure logging
-# captures a ton of info from selenium and bs4 if level is DEBUG, might crash Jupyter
+# captures a ton of info from from external modules like bs4 if level is DEBUG, might crash Jupyter
 
 # Check if VERBOSE variable exists and is set to 1
 if 'VERBOSE' in globals() and VERBOSE == 1:
@@ -63,7 +63,7 @@ def log(action_str, source_str="", level=logging.INFO):
 # Example usage
 # log("This is a test message", "TestModule", logging.INFO)
 # Configure logging
-# captures a ton of info from selenium and bs4 if level is DEBUG, might crash Jupyter
+# captures a ton of info from external modules like bs4 if level is DEBUG, might crash Jupyter
 ############################################################################################################
 # utility functions
 ############################################################################################################

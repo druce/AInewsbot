@@ -1,7 +1,7 @@
 Ars Technica:
   include:
   - ^https://arstechnica.com/(\w+)/(\d+)/(\d+)/
-  title: Ars Technica
+  title: Ars_Technica
   url: https://arstechnica.com/ai/
 Bloomberg:
   include:
@@ -12,7 +12,7 @@ Business Insider:
   exclude:
   - ^https://www.insider.com
   - ^https://www.passionfroot.me
-  title: Business Insider
+  title: Business_Insider
   url: https://www.businessinsider.com/tech
 FT:
   include:
@@ -26,7 +26,7 @@ Feedly AI:
   - ^https://blog.feedly.com
   scroll: 5
   initial_sleep: 30
-  title: Feedly AI
+  title: Feedly_AI
   url: https://feedly.com/i/aiFeeds?options=eyJsYXllcnMiOlt7InBhcnRzIjpbeyJpZCI6Im5scC9mL3RvcGljLzMwMDAifV0sInNlYXJjaEhpbnQiOiJ0ZWNobm9sb2d5IiwidHlwZSI6Im1hdGNoZXMiLCJzYWxpZW5jZSI6ImFib3V0In1dLCJidW5kbGVzIjpbeyJ0eXBlIjoic3RyZWFtIiwiaWQiOiJ1c2VyLzYyZWViYjlmLTcxNTEtNGY5YS1hOGM3LTlhNTdiODIwNTMwOC9jYXRlZ29yeS9HYWRnZXRzIn1dfQ
 # Google News:  # started blocking more effectively
 # should try to search news for 'artificial intelligence' with the google API https://proxiesapi.com/articles/fetching-news-articles-with-the-google-news-api-and-python
@@ -41,15 +41,16 @@ Hacker News 1:
   exclude:
   - https://news.ycombinator.com/
   - https://www.ycombinator.com/
-  title: Hacker News 1
+  title: Hacker_News_1
   url: https://news.ycombinator.com/
   minlength: 5
 Hacker News 2:
   exclude:
   - https://news.ycombinator.com
   - https://www.ycombinator.com
-  title: Hacker News 2
+  title: Hacker_News_2
   url: https://news.ycombinator.com/?p=2
+
 HackerNoon:
   exclude:
   - ^https://hackernoon.com/$
@@ -70,7 +71,7 @@ HackerNoon:
 New York Times:
   include:
   - ^https://www.nytimes.com/(\d+)/(\d+)/(\d+)/
-  title: New York Times
+  title: New_York_Times
   url: https://www.nytimes.com/section/technology
 Reddit:
   exclude:
@@ -99,12 +100,12 @@ Techmeme:
 The Register:
   include:
   - ^https://www.theregister.com/(\d+)/(\d+)/(\d+)/
-  title: The Register
+  title: The_Register
   url: https://www.theregister.com/software/ai_ml/
 The Verge:
   include:
   - ^https://www.theverge.com/news
-  title: The Verge
+  title: The_Verge
   url: https://www.theverge.com/ai-artificial-intelligence
 VentureBeat:
   title: VentureBeat
@@ -115,5 +116,5 @@ WSJ:
 Washington Post:
   include:
   - https://www.washingtonpost.com/(\w+)/(\d+)/(\d+)/(\d+)/
-  title: Washington Post
+  title: Washington_Post
   url: https://www.washingtonpost.com/technology/innovations/

@@ -19,8 +19,6 @@ if not os.path.exists(PAGES_DIR):
 if not os.path.exists(SCREENSHOT_DIR):
     os.makedirs(SCREENSHOT_DIR)
 
-# Path to geckodriver
-GECKODRIVER_PATH = '/Users/drucev/webdrivers/geckodriver'
 # Path to browser app
 # FIREFOX_APP_PATH = '/Applications/Firefox.app'
 # Path to profile
@@ -28,7 +26,7 @@ FIREFOX_PROFILE_PATH = '/Users/drucev/Library/Application Support/Firefox/Profil
 CHROME_PROFILE_PATH = '/Users/drucev/Library/Application Support/Google/Chrome'
 CHROME_PROFILE = 'Profile 7'
 CHROME_DRIVER_PATH = '/Users/drucev/Library/Application Support/undetected_chromedriver/undetected_chromedriver'
-SLEEPTIME = 10
+SLEEP_TIME = 10
 NUM_BROWSERS = 4
 BROWSERS = []
 
@@ -44,7 +42,7 @@ TEMPERATURE = 0
 
 SOURCECONFIG = "sources.yaml"
 SOURCES_EXPECTED = 16
-MINTITLELEN = 28
+MIN_TITLE_LEN = 28
 
 MAXPAGELEN = 50
 

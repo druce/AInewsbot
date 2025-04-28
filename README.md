@@ -21,11 +21,15 @@ A Python pipeline for **AI news gathering → topic clustering → summarization
 - [License](#license)
 
 
-AInewsbot is a Python pipeline and notebook suite for automating the discovery, clustering, and summarization of the latest AI news. It assembles a daily newsletter and can even generate a podcast script and audio, making it ideal for content creators and AI enthusiasts.
+A Python notebook/script to help find the latest news about AI
 
-- Powers the daily newsletter at [skynetandchill.com](https://www.skynetandchill.com/).
-- Generates podcasts using [podcastfy](https://github.com/souzatharsis/podcastfy), leveraging LLMs for scriptwriting and text-to-speech.
-- Easily adaptable to other topics by changing source URLs and keywords.
+**AInewsbot** is an end-to-end pipeline for **AI news gathering → topic clustering → summarization → AI newsletter & podcast creation**
+
+(potentially other subjects by modifying source URLs and search keywords)
+
+- Used to help generate a daily newsletter at https://www.skynetandchill.com/
+
+- Also generates a podcast using `[podcastfy](https://github.com/souzatharsis/podcastfy)`, using a complex prompt to write a script and then perform text-to-speech.
 
 [![A podcast created with podcastfy](https://img.youtube.com/vi/Fl0xP1Io72k/0.jpg)](https://www.youtube.com/shorts/AOVOOZQthNU)
 
@@ -79,7 +83,7 @@ Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AI
 
 ### Scraping
 - `ainb_webscrape.py`:
-  - Downloads “landing pages” using Selenium (Firefox/geckodriver)
+  - Downloads “landing pages” using Playwright
   - Extracts story links
   - Downloads full-article HTML
   - Captures screenshots to potentially show during YouTube podcast
@@ -116,7 +120,7 @@ Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AI
 ## 4. Dependencies & Setup
 
 - Python 3.x (see `requirements.txt`)
-- Selenium + geckodriver + Firefox (with a custom profile)
+- Playwright
 - LangChain and OpenAI LLMs (other LLMs possible)
 - See `requirements.txt` for additional requirements
 

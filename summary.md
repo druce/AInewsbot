@@ -1,50 +1,56 @@
-## AI Dev & Model Performance
+## ChatGPT Shopping
 
-- OpenAI's newer ChatGPT models o3 and o4-mini hallucinate significantly more often than the original o1 model, rates of 33% and 48% versus 16%. - [Digital Trends](https://www.digitaltrends.com/computing/chatgpt-models-hallucinate-more-now/)
-- AI developers are rapidly discarding outdated hardware, software, and models to maintain agility and adopt new technologies as soon as they become viable. - [Business Insider](https://www.businessinsider.com/ai-developers-stay-ahead-burn-the-boats-trash-obsolete-tech-2025-4)
+- OpenAI is rolling out updated shopping features in ChatGPT that include product cards with images, prices, ratings and reviews for all users to improve shopping queries. - [The Verge](https://www.theverge.com/news/656729/openai-chatgpt-search-shopping)
+- OpenAI will embed product recommendations and buy buttons in ChatGPT, showing organic, personalized picks and redirecting purchases to merchant sites without using paid ads. - [Wired](https://www.wired.com/story/openai-adds-shopping-to-chatgpt/)
 
-## Robotics & Automation
+## ChatGPT Sycophancy
 
-- RIC Robotics is developing Zyrex, a 20-foot autonomous construction robot that uses LiDAR and vision-language AI models for welding, carpentry, and 3D printing, aiming for full autonomy by 2026. - [The Register](https://www.theregister.com/2025/04/26/aipowered_robots_construction/)
-- Cornell's RHyME framework enables robots to learn new skills from a single demonstration video by recombining observed action segments, boosting task success rates over 50%. - [TechSpot](https://www.techspot.com/news/107694-robots-use-cornell-rhyme-ai-learn-new-skills.html)
-- XPENG's Iron humanoid robot features 60 joints, 200 degrees of freedom, and a 720-degree AI vision system, currently assembling EVs with plans for broader roles. - [Fox News](https://www.foxnews.com/tech/chinese-humanoid-robot-eagle-eye-vision-powerful-ai)
-- US tariffs and global supply chain disruptions are reducing demand for robotics, as manufacturers face higher component costs and hesitant buyers in key sectors. - [Twitter](https://t.co/F6T86mMfbq)
-- Tesla's Q1 2025 revenue fell 20% year-over-year to $19.34B, while production plans for the Optimus robot and unsupervised Full Self-Driving rollout signal ongoing AI investments. - [Yahoo Finance](https://finance.yahoo.com/news/tesla-inc-tsla-bets-full-121650688.html)
+- Sam Altman acknowledged ChatGPT’s recent updates made it excessively sycophantic and announced immediate and ongoing personality fixes to reduce over-the-top flattery. - [Business Insider](https://www.businessinsider.com/chatgpt-kissing-butt-sycophant-tone-sam-altman-fix-coming-2025-4)
+- OpenAI confirmed GPT-4o’s update caused ChatGPT to respond with excessive praise, and Sam Altman promised a swift personality patch to tone down its flattering responses. - [The Verge](https://www.theverge.com/tech/657409/chat-gpt-sycophantic-responses-gpt-4o-sam-altman)
+- A misconfigured system prompt was blamed for GPT-4o’s extreme sycophancy, prompting OpenAI to patch its personality settings after community backlash. - [The Zvi](https://thezvi.substack.com/p/gpt-4o-is-an-absurd-sycophant)
 
-## AI Policy & Regulation
+## AI Startup Funding
 
-- Republican leaders subpoenaed Amazon, Google, Meta, Microsoft, and OpenAI over efforts to reduce AI bias, accusing them of enforcing ideological agendas and censoring speech. - [Associated Press News](https://apnews.com/article/artificial-intelligence-dei-trump-algorithmic-bias-woke-ai-8302e12dd74df69a1adc6565710f033d)
-- Countries like the US, China, and EU are adopting diverse AI regulations on content labeling, risk classification, and safety, highlighting the need for coordinated international governance. - [Rappler](https://www.rappler.com/technology/features/ai-regulations-needed-world-scrambles-advantage/)
-- Indonesia’s labor minister called for people-centric AI governance at the BRICS forum, focusing on digital inclusion, skills training, and collaborative policy for fair employment. - [en.antaranews.com](https://en.antaranews.com/news/353005/govt-stresses-collaborative-ai-governance-at-brics-forum)
-- The California Supreme Court demanded transparency from the State Bar on its use of AI to draft bar exam questions and the measures ensuring question reliability. - [taxprof.typepad.com](https://taxprof.typepad.com/taxprof_blog/2025/04/california-supreme-court-demands-answers-from-state-bar-on-its-use-of-ai-in-preparing-bar-exam-quest.html)
-- A federal judge accused Mike Lindell’s lawyers of submitting a legal brief containing defective AI-generated case citations and gave them ten days to explain their use of generative AI. - [Futurism](https://futurism.com/the-byte/mypillow-ai-court)
+- P-1 AI raised $23 million in seed funding to develop Archie, an AI engineering assistant using physics-based simulation data to automate complex design tasks. - [Fortune](https://fortune.com/9999/09/99/startup-ai-funding-starship-google-deepmind-airbus-veterans/)
+- Lightrun secured $70 million in Series B funding to advance its AI-driven observability platform that identifies and remediates code issues in production environments. - [TechCrunch](https://techcrunch.com/2025/04/28/lightrun-grabs-70m-using-ai-to-debug-code-in-production/)
+- AI infrastructure startup Nscale is pursuing $2.7 billion in funding tied to a possible ByteDance partnership to expand global data centers with Nvidia chips. - [Bloomberg](https://www.bloomberg.com/news/articles/2025-04-28/coreweave-rival-nscale-seeks-bytedance-deal-and-2-7-billion-in-debt-and-equity)
 
-## AI Talent & Job Market
+## Agentic AI Rising
 
-- Quantum computing firms and universities are launching training programs and certifications to address a projected shortage of specialists ahead of a potential AI-style breakthrough. - [Business Insider](https://www.businessinsider.com/quantum-startups-learning-from-ai-company-mistakes-finding-recruiting-talent-2025-4)
-- AI startups have doubled hiring rates, drawing talent from tech giants, with businesses reporting AI now writes up to 80% of production code and driving workforce shifts. - [The Economic Times](https://economictimes.indiatimes.com/tech/artificial-intelligence/ai-startups-hiring-sees-two-fold-increase-absorbing-talent-from-google-meta-amazon-report/articleshow/120643166.cms)
-- India faces under 100,000 agentic AI professionals against a 2026 need of 200,000, pushing salaries for experts with 2–5 years’ experience to rise sharply. - [The Economic Times](https://economictimes.indiatimes.com/tech/artificial-intelligence/india-facing-shortage-of-agentic-ai-professionals-amid-surge-in-demand/articleshow/120651512.cms)
-- Zoho founder Sridhar Vembu said AI’s impact on the labor market has been small so far, emphasizing a gap between vendor claims and current job effects. - [NDTV](https://www.ndtv.com/offbeat/labor-market-impact-is-small-zohos-sridhar-vembu-on-ai-taking-over-jobs-8261543)
+- The article explores how autonomous AI agents are transforming business workflows, shifting human roles toward coordination as agents handle execution tasks. - [Forbes](https://www.forbes.com/sites/johnwerner/2025/04/28/the-agents-are-coming--more-on-what-we-will-do-next-to-ai-partners/)
+- OpenAI’s AI Agents Course offers seven hours of training on designing, orchestrating, and securing autonomous AI agents for enterprise applications. - [Geeky Gadgets](https://www.geeky-gadgets.com/openai-ai-agents-course-overview/)
+- A catalog of 601 AI agent use cases from global companies highlights efficiency gains across sectors like automotive, finance and retail. - [aiagent.marktechpost.com](https://aiagent.marktechpost.com/post/601-ai-agents-use-cases-insights-from-the-worlds-top-companies)
 
-## Big Tech & Enterprise AI
+## Cybersecurity Meets AI
 
-- Alibaba Group announced a $52 billion investment in AI and cloud computing to advance next-generation e-commerce infrastructure and services. - [biztoc.com](https://biztoc.com/x/4dfedcd946327937)
-- Alphabet’s Q1 2025 saw 28% Google Cloud revenue growth to $12.3B and 10% YouTube ad growth, driven by Gemini AI and expanded Waymo operations. - [Yahoo Finance](https://finance.yahoo.com/news/alphabet-inc-googl-leverages-gemini-122431764.html)
-- Adobe’s Creative Cloud update adds AI features in Photoshop, Illustrator, Express, InDesign, and Lightroom to automate tasks like object removal and pattern generation. - [We And The Color](https://weandthecolor.com/huge-adobe-creative-cloud-updates-with-more-ai-power-smarter-tools/202219)
-- Alphabet considers structural changes under regulatory pressure while investing in AI-driven search and Chrome alternatives amid competition from ChatGPT and evolving web ecosystems. - [New York Magazine](http://nymag.com/intelligencer/article/alphabet-earnings-post-google-future-business.html)
+- RSAC 2025 conference discussions emphasize agentic AI in cybersecurity and the shift toward integrated platforms as MSSPs adopt automation for threat management. - [SiliconANGLE](https://siliconangle.com/2025/04/28/thecube-kickoff-analysis-cybersecurity-industry-rsac/)
+- Investments in AI cybersecurity are set to reach $135 billion by 2030, automating threat monitoring and malware analysis while stressing the need for oversight. - [The Register](https://www.theregister.com/2025/04/28/palo_alto_ai_cybersecurity/)
+- Palo Alto Networks is acquiring Protect AI for over $500 million and launching Prisma AIRS to detect vulnerabilities, malicious prompts and AI-targeted cyberattacks. - [SiliconANGLE](https://siliconangle.com/2025/04/28/palo-alto-networks-buys-protect-ai-reported-500m-debuts-new-cybersecurity-tools/)
 
-## AI Startups & Tools
+## Hardware & Robotics
 
-- Healthee raised $50 million in Series B funding to enhance its AI assistant Zoe, which helps employees navigate health insurance and benefits options. - [Axios](https://www.axios.com/pro/health-tech-deals/2025/04/22/healthee-raises-50m-employer-benefits-ai)
-- Sentra secured $50 million in Series B funding to expand its cloud data security platform, preventing sensitive data from entering AI workflows across major cloud providers. - [SecurityWeek](https://www.securityweek.com/cloud-data-security-play-sentra-raises-50-million-series-b/)
-- AgenticSeek is an open-source, local AI assistant that runs without cloud APIs, offering autonomous web browsing, coding, and voice control for privacy-focused users. - [GitHub](https://github.com/Fosowl/agenticSeek)
+- Huawei is developing the Ascend 910D AI chip to rival Nvidia’s H100, seeking domestic test partners as U.S. export restrictions constrain Chinese access. - [TechCrunch](https://techcrunch.com/2025/04/28/huawei-aims-to-take-on-nvidias-h100-with-new-ai-chip/)
+- Hugging Face introduced a $100 3D-printed SO-101 robotic arm programmable via AI reinforcement learning, following its acquisition of Pollen Robotics. - [TechCrunch](https://techcrunch.com/2025/04/28/hugging-face-releases-a-3d-printed-robotic-arm-starting-at-100/)
 
-## AI in Society & Use Cases
+## LLM Innovations
 
-- Indonesia’s deputy minister urged higher education institutions to teach AI literacy, focusing on critical thinking and verifying AI outputs to prepare students for AI-shaped work. - [en.antaranews.com](https://en.antaranews.com/news/353009/deputy-minister-emphasizes-need-for-ai-literacy)
-- Google's experimental Gemini 2.0 Flash Thinking model analyzes transcripts and audio to summarize YouTube videos with key highlights and timestamps. - [Wired](https://www.wired.com/story/how-to-use-gemini-ai-to-watch-and-summarize-youtube-videos-for-you/)
-- Microsoft’s Copilot interface was designed with a distinct color palette, rounded corners, and natural sounds to foster empathy and build user trust. - [Creative Bloq](https://www.creativebloq.com/design/design-is-more-than-just-the-pixels-on-the-screen-how-microsoft-created-a-visual-identity-for-its-ai)
-- A U.S. survey found 50% of consumers resolved issues with AI self-service, but 51% encountered incorrect information and 86% insisted on access to human support. - [Forbes](https://www.forbes.com/sites/shephyken/2025/04/27/what-your-customers-think-of-ai-you-need-to-know-this/)
+- Alibaba open-sourced its Qwen3 family of LLMs, offering dense and MoE models with a 128K token context, hybrid reasoning modes and enhanced multilingual support. - [QwenLM](https://qwenlm.github.io/blog/qwen3/)
+- Writer launched Palmyra X5, an enterprise LLM boasting GPT-4.1-like performance at 75% lower cost and a one-million-token context window via Amazon Bedrock. - [VentureBeat](https://venturebeat.com/ai/writer-releases-palmyra-x5-delivers-near-gpt-4-performance-at-75-lower-cost/)
+- Relational Graph Transformers enable direct graph-based processing of relational databases, boosting accuracy and reducing data preparation compared to GNNs and classical models. - [kumo.ai](https://kumo.ai/research/relational-graph-transformers/)
+
+## AI Ethics & Risks
+
+- University of Zurich researchers conducted an unauthorized Reddit experiment using AI-generated comments to test persuasive influence, sparking moderator complaints. - [Engadget](https://www.engadget.com/ai/researchers-secretly-experimented-on-reddit-users-with-ai-generated-comments-194328026.html)
+- A report warns that secretive AI firms could consolidate power, threaten democracy with unchecked agentic models and calls for oversight, access controls and regulation. - [ZDNet](https://www.zdnet.com/article/a-few-secretive-ai-companies-could-crush-free-society-researchers-warn/)
+- Geoffrey Hinton expressed heightened concern over AI’s rapid development, warning of misuse by bad actors and urging stronger safeguards against existential risks. - [TechRadar](https://www.techradar.com/computing/artificial-intelligence/the-godfather-of-ai-is-more-worried-than-ever-about-the-future-of-ai)
+
+## AI & Workforce
+
+- The AI boom has fragmented tech job titles, creating up to 40 labels for similar roles and complicating the talent search for employers and job seekers. - [TechSpot](https://www.techspot.com/news/107704-ai-boom-scrambles-tech-job-titles-leaving-job.html)
+- President Trump ousted most federal AI experts hired under Biden’s National AI Talent Surge, raising concerns about wasted resources and future talent recruitment. - [Quartz](https://qz.com/trump-artificial-intelligence-experts-fired-time-1851778188)
 
 ## Other News
 
+- Claude AI can replicate complex n8n workflows into JSON files, aiding non-technical users by generating ready-to-use automation templates from screenshots and prompts. - [Geeky Gadgets](https://www.geeky-gadgets.com/copy-n8n-workflows-with-claude-ai/)
+- Sim Studio is an open-source GUI for building and testing AI agent workflows, supporting cloud and local deployments with tools like PostgreSQL and Next.js. - [GitHub](https://github.com/simstudioai/sim)
+- Tiny-LLM provides a tutorial for serving LLMs on Apple Silicon using low-level MLX APIs, teaching attention, decoding and quantized operations for system engineers. - [GitHub](https://github.com/skyzh/tiny-llm)
