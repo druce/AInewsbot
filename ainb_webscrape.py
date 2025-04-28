@@ -7,7 +7,7 @@ import re
 import os
 from urllib.parse import urljoin, urlparse
 import random
-from concurrent.futures import ThreadPoolExecutor, as_completed
+# from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from playwright.async_api import async_playwright
 
@@ -95,34 +95,6 @@ def trimmed_href(link):
             return s
     else:
         return s
-
-
-# async def get_browser_context(firefox_profile_path=FIREFOX_PROFILE_PATH):
-#     """
-#     Initializes a Playwright browser context with the specified Firefox profile.
-
-#     Args:
-#         firefox_profile_path (str): The path to the Firefox profile.
-
-#     Returns:
-#         BrowserContext: The initialized Playwright browser context.
-
-#     """
-#     playwright = await async_playwright().start()
-#     browser_context = await playwright.firefox.launch_persistent_context(
-#         user_data_dir=firefox_profile_path,
-#         headless=False,
-#         viewport={"width": 1600, "height": 1600},
-#         # args=["--start-maximized"]
-#     )
-#     return browser_context
-
-
-# def quit_drivers(drivers):
-#     """close a list of selenium webdrivers"""
-#     log(f"quitting {len(drivers)} webdrivers", "quit_drivers")
-#     for driver in drivers:
-#         driver.quit()
 
 
 def sanitize_filename(filename):
@@ -223,7 +195,7 @@ async def fetch_queue(queue, concurrency):
         log("Launching browser")
         browser = await p.firefox.launch_persistent_context(
             user_data_dir=FIREFOX_PROFILE_PATH,
-            headless=False,  # run headless, hide splash window
+            headless=True,  # run headless, hide splash window
             viewport={"width": 1366, "height": 768},
             # removes Playwright’s default flag
             ignore_default_args=["--enable-automation"],
@@ -311,7 +283,7 @@ async def fetch_source_queue(queue, concurrency):
 
         browser = await p.firefox.launch_persistent_context(
             user_data_dir=FIREFOX_PROFILE_PATH,
-            headless=False,  # run headless, hide splash window
+            headless=True,  # run headless, hide splash window
             viewport={"width": 1366, "height": 768},
             # removes Playwright’s default flag
             ignore_default_args=["--enable-automation"],
@@ -438,7 +410,8 @@ def parse_file(source_dict):
 
 
 # map google news headlines to redirect
-
+# google would never show the real url, so we have to follow redirects
+# but then google eventually hard blocked scraping so this is not used
 # def get_google_news_redirects(orig_df):
 #     redirect_dict = {}
 #     for row in orig_df.itertuples():
@@ -466,129 +439,3 @@ def parse_file(source_dict):
 #         lambda url: redirect_dict.get(url, url))
 
 #     return orig_df
-
-
-# def process_source_queue_factory(q):
-#     """creates a queue processor function closure on the queue q
-#     This function expects a sourcedict in the queue
-#     Used to launch parallel selenium workers on the front pages in sources.yaml
-
-#     Args:
-#         q (Queue): Multiprocessing queue containing the source dictionaries to process.
-#     """
-#     def process_queue(driver=None):
-#         """
-#         Opens a browser using Selenium driver, processes the queue until it is empty,
-#         saves the file names, and then closes the browser.
-
-#         Returns:
-#             A list of tuples containing the sourcename and sourcefile for each processed item.
-#         """
-#         # launch browser via selenium driver
-#         if not driver:
-#             driver = get_browser_context()
-#         saved_pages = []
-#         while not q.empty():
-#             sourcedict = q.get()
-#             sourcename = sourcedict['sourcename']
-#             log(f'Processing {sourcename}')
-#             sourcefile = fetch_source(sourcedict, driver)
-#             saved_pages.append((sourcename, sourcefile))
-#         # Close the browser - don't quit, keep it open for more work
-#         # log("Quit webdriver")
-#         # driver.quit()
-#         return saved_pages
-#     return process_queue
-
-
-# async def get_driver_async():
-#     loop = asyncio.get_event_loop()
-#     return await loop.run_in_executor(None, get_browser_context)
-
-
-# async def get_browsers(n):
-#     global BROWSERS
-#     BROWSERS = await asyncio.gather(*[get_driver_async() for _ in range(n)])
-#     return BROWSERS
-
-
-# def process_url_queue_factory(q):
-#     """creates a queue processor function closure on the queue q
-
-#     Args:
-#         q (Queue): Multiprocessing queue containing the source dictionaries to process.
-#     """
-#     def process_queue(driver=None):
-#         """
-#         Opens a browser using Selenium driver, processes the queue until it is empty,
-#         saves the file names, and then closes the browser.
-
-#         Returns:
-#             A list of tuples containing the sourcename and sourcefile for each processed item.
-#         """
-#         # launch browser via selenium driver
-#         if not driver:
-#             driver = get_browser_context()
-#         saved_pages = []
-#         while not q.empty():
-#             i, url, title = q.get()
-#             log(f'Processing page {i}: {url}')
-#             savefile = fetch_url(url, title, driver)
-#             if savefile:
-#                 saved_pages.append((i, url, title, savefile))
-#             else:
-#                 log(f"Error processing {url}, continuing...")
-#         # Close the browser
-#         log("Quit webdriver")
-#         driver.quit()
-#         log(f"{len(saved_pages)} pages saved")
-
-#         return saved_pages
-#     return process_queue
-
-
-# def launch_drivers(n, callable):
-#     """
-#     Launches n threads of callable (browser scrapers) and returns the collected results.
-
-#     Parameters:
-#     callable (function): The function to be executed by each thread.
-#     n (int): The number of threads to launch.
-
-#     Returns:
-#     list: A list of results collected from each thread.
-
-#     """
-#     with ThreadPoolExecutor(max_workers=n) as executor:
-#         # Create a list of future objects
-#         futures = [executor.submit(callable) for _ in range(n)]
-
-#         # Collect the results (web drivers) as they complete
-#         retarray = [future.result() for future in as_completed(futures)]
-
-#     # flatten results
-#     retlist = [item for retarray in retarray for item in retarray]
-#     log(f"returned {len(retlist)}")
-
-#     return retlist
-
-# this should work with multiprocessing.Pool and be simpler but gives an error
-# might not like returning a webdriver object
-# def simple_parallel_download(sources):
-#     num_drivers = min(3, cpu_count())  # Use 3 or the number of CPUs available, whichever is less
-
-#     with Pool(num_drivers) as pool:
-#         # Initialize drivers in parallel
-#         drivers = pool.map(get_driver, range(num_drivers))
-
-#         # Create argument list for starmap, distributing sources over drivers
-#         args = [(source, drivers[i % num_drivers]) for i, source in enumerate(sources)]
-
-#         # Download files in parallel
-#         result = pool.starmap(get_file, args)
-
-#         # Quit drivers
-#         for driver in drivers:
-#             driver.quit()
-
-#     return result

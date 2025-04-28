@@ -3,9 +3,6 @@ import os
 import dotenv
 dotenv.load_dotenv()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-
 REQUEST_TIMEOUT = 120
 
 DOWNLOAD_DIR = "htmldata"
@@ -23,28 +20,28 @@ if not os.path.exists(SCREENSHOT_DIR):
 # FIREFOX_APP_PATH = '/Applications/Firefox.app'
 # Path to profile
 FIREFOX_PROFILE_PATH = '/Users/drucev/Library/Application Support/Firefox/Profiles/k8k0lcjj.default-release'
-CHROME_PROFILE_PATH = '/Users/drucev/Library/Application Support/Google/Chrome'
-CHROME_PROFILE = 'Profile 7'
-CHROME_DRIVER_PATH = '/Users/drucev/Library/Application Support/undetected_chromedriver/undetected_chromedriver'
+# CHROME_PROFILE_PATH = '/Users/drucev/Library/Application Support/Google/Chrome'
+# CHROME_PROFILE = 'Profile 7'
+# CHROME_DRIVER_PATH = '/Users/drucev/Library/Application Support/undetected_chromedriver/undetected_chromedriver'
 SLEEP_TIME = 10
-NUM_BROWSERS = 4
-BROWSERS = []
+# NUM_BROWSERS = 4
+# BROWSERS = []
 
 SQLITE_DB = 'articles.db'
 
 # note that token count may not be accurate for eg google, anthropic
 
 MAX_INPUT_TOKENS = 8192     # includes text of all headlines
-MAX_OUTPUT_TOKENS = 4096    # max in current model
+# MAX_OUTPUT_TOKENS = 4096    # max in current model
 TENACITY_RETRY = 5  # Maximum 5 attempts
 
-TEMPERATURE = 0
+# TEMPERATURE = 0
 
 SOURCECONFIG = "sources.yaml"
 SOURCES_EXPECTED = 16
 MIN_TITLE_LEN = 28
 
-MAXPAGELEN = 50
+# MAXPAGELEN = 50
 
 HOSTNAME_SKIPLIST = ['finbold.com']
 SITE_NAME_SKIPLIST = ['finbold']
@@ -75,65 +72,6 @@ AI-related if the title mentions (explicitly or implicitly):
 Non-AI examples: crypto, ordinary software, non-AI gadgets and medical devices, and anything else.
 """
 
-# pre 4.1 prompt
-# (4.1 doesn't need json schema and examples, desired metadata schema as a param is sufficient)
-# FILTER_PROMPT = """
-# You will act as a specialized content analyst focused on artificial intelligence news classification.
-# Your task is to evaluate news headlines and determine their relevance to artificial intelligence
-# and related technologies. Please analyze the provided JSON dataset of news headlines according
-# to the following detailed criteria.
-
-# Classification Framework
-
-# Classify as AI-related if headlines mention the following topics:
-# Core AI technologies (machine learning, neural networks, deep learning)
-# AI applications (computer vision, natural language processing, robotics)
-# AI models and platforms (large language models, foundation models)
-# AI companies and their products (OpenAI, DeepMind, Anthropic)
-# AI-specific products (ChatGPT, Claude, Gemini, DALL-E)
-# Key AI industry figures (Sam Altman, Demis Hassabis, etc.)
-# AI policy, regulation, and ethics
-# AI research, including papers and announcements of innovations
-# AI market and business developments
-# AI integration into existing products/services
-# AI impact on industries/society
-# AI infrastructure (chips, computing resources)
-# AI investments and funding
-# AI partnerships, joint ventures and project launches
-# Any other topics with a large AI component
-
-# Input Specification:
-# You will receive a JSON array of news story objects, each containing:
-# "id": A unique numerical identifier
-# "title": The news headline text
-
-# Input Example:
-# [{{'id': 97, 'title': 'AI to predict dementia, detect cancer'}},
-#  {{'id': 103,'title': 'Figure robot learns to make coffee by watching humans for 10 hours'}},
-#  {{'id': 103,'title': 'Baby trapped in refrigerator eats own foot'}},
-#  {{'id': 210,'title': 'ChatGPT removes, then reinstates a summarization assistant without explanation.'}},
-#  {{'id': 298,'title': 'The 5 most interesting PC monitors from CES 2024'}},
-#  ]
-
-# Output Requirements:
-# Generate a JSON object containing "items", an array of objects containing:
-# "id": The original article identifier
-# "isAI": Boolean value (true if AI-related, false if not)
-# The output must maintain strict JSON formatting and match each input ID with its corresponding classification.
-
-# Example output:
-# {{items:
-# [{{'id': 97, 'isAI': true}},
-#  {{'id': 103, 'isAI': true}},
-#  {{'id': 103, 'isAI': false}},
-#  {{'id': 210, 'isAI': true}},
-#  {{'id': 298, 'isAI': false}}]
-# }}
-
-# Please analyze the following dataset according to these criteria:
-
-# """
-
 TOPIC_SYSTEM_PROMPT = """
 You are a news-analysis assistant.
 You will receive a list of news summaries in JSON format.
@@ -150,85 +88,6 @@ Guidelines
 • Avoid duplicates and generic terms (“technology”, “news”).
 • Each topic should be simple, concise and represent 1 concept, like "LLM updates", "xAI", "Grok"
 """
-
-# pre 4.1 prompt
-# TOPIC_PROMPT = """
-# As a specialized research assistant, your task is to perform detailed topic analysis
-# of news item summaries. You will process news items summaries provided as a JSON object according to
-# the input specification below. You will extract topics of the news item summaries according to the
-# output specification below and return a raw JSON object without any additional formatting or markdown syntax.
-
-# Input Specification:
-# You will receive an array of JSON objects representing news summaries.
-# Each headline object contains exactly two fields:
-# 'id': A unique numeric identifier
-# 'summary': The news summmary item
-
-# Example input:
-# [
-#  {{
-#     "id": 29,
-#     "summary": "• Elon Musk's xAI launched Grok 3, a new family of AI models trained using 100,000 Nvidia H100 GPUs at the Colossus Supercluster; benchmarks show it outperforms competitors like GPT-4o and Claude 3.5 Sonnet in areas such as math, science, and coding.
-# • Grok 3 includes advanced features like reasoning models for step-by-step logical problem-solving and a DeepSearch function that synthesizes internet-sourced information into single answers; it is initially available to X Premium+ subscribers, with advanced features under a paid "SuperGrok" plan.
-# • Former Tesla AI director Andrej Karpathy and others have confirmed Grok 3's strong performance, with Karpathy noting it is comparable to and slightly better than leading AI models from OpenAI and other competitors."
-#   }},
-# {{
-#     "id": 34,
-#     "summary": "• Google Gemini has received a memory upgrade that allows it to recall past conversations and summarize previous chats, enhancing its ability to remember user preferences such as interests and professional details. This feature is currently available only to Google One AI Premium subscribers in English, with broader language support expected soon.
-# • Users retain control over their data with options to delete past conversations, prevent chats from being saved, or set them to auto-delete, although discussions can still be used for AI training unless deleted
-# • Similar to OpenAI's ChatGPT persistent memory feature, Gemini's upgrade aims to make chats more practical, though users are advised not to input sensitive information as conversations may be reviewed for quality control."
-#   }},
-#  {{
-#     "id": 47,
-#     "summary": "• Major tech companies like OpenAI, Google, and Meta are competing to dominate generative AI, though the path to profitability remains uncertain.
-# • Chinese start-up DeepSeek has introduced a cost-effective way to build powerful AI, disrupting the market and pressuring established players.
-# • OpenAI aims to reach 1 billion users, while Meta continues to invest heavily in AI despite market disruptions caused by DeepSeek."
-#   }},
-# {{
-#     "id": 56,
-#     "summary": "- OpenAI is exploring new measures to protect itself from a potential hostile takeover by Elon Musk.
-# - The company is in discussions to empower its non-profit board to maintain control as it transitions into a for-profit business model."
-#   }},
-#  {{
-#     "id": 63,
-#     "summary": "- The New York Times has approved the use of select AI tools, such as GitHub Copilot, Google Vertex AI, and their in-house summarization tool Echo, to assist with tasks like content summarization, editing, and enhancing product development, while reinforcing the tools as aids rather than replacements for journalistic work.
-# - Strict guidelines and safeguards have been implemented, including prohibitions on using AI to draft full articles, revise them significantly, or generate images and videos, with a mandatory training video to prevent misuse and protect journalistic integrity.
-# - Some staff members have expressed concerns about AI potentially compromising creativity and accuracy, leading to skepticism about universal adoption, although the guidelines align with standard industry practices."
-#   }},
-# ]
-
-# Output Specification:
-# Return a raw JSON object containing 'items', a list of JSON objects, each containing:
-# 'id': Matching the input item's id field.
-# 'extracted_topics': An array of relevant topic strings
-# Topics should capture:
-# - The main subject matter
-# - Key entities (companies, people, products)
-# - Technical domains, industry sectors, event types
-
-# Output Example:
-# {{items:
-#  [{{"id": 29, "extracted_topics": ['AI model development', 'xAI Grok capabilities', 'AI advancements']}},
-#   {{"id": 34, "extracted_topics": [
-#       'Google Gemini', 'Interactive AI advancements', 'Digital assistants']}},
-#   {{"id": 47, "extracted_topics": ['OpenAI', 'Google', 'Meta', 'DeepSeek']}},
-#   {{"id": 56, "extracted_topics": [
-#       'OpenAI', 'non-profit oversight', 'anti-takeover strategies', 'Elon Musk']}},
-#   {{"id": 63, "extracted_topics": [
-#       'New York Times', 'AI in journalism', 'GitHub Copilot', 'Google Vertex AI']}},
-#  ]
-# }}
-
-# Detailed Guidelines:
-# The output must strictly adhere to the output specification.
-# Do not return markdown, return a raw JSON string.
-# For each input item, output a valid JSON object for each news item in the exact schema provided.
-# Extract 3-5 relevant topics per news item.
-# Do not extract more than 5 topics per news item.
-# Avoid duplicate or redundant topics.
-# Use topics which are as specific as possible.
-# Please analyze the following news items and provide topic classifications according to these specifications:
-# """
 
 CANONICAL_SYSTEM_PROMPT = """
 You are a news-analysis assistant.
@@ -247,39 +106,6 @@ Classify each story below:
 • Otherwise `relevant` = false.
 
 """
-
-# CANONICAL_TOPIC_PROMPT = """
-# You will act as a specialized content analyst focused on news classification.
-# Your task is to evaluate news summaries and determine if they are about {topic}.
-# Please analyze the JSON dataset of news summaries provided below, according
-# to the following detailed criteria:
-
-# Input Specification:
-# You will receive a JSON array of news story objects, each containing:
-# "id": A unique numerical identifier
-# "summary": The news summary in markdown format
-
-# Output Requirements:
-# Generate a JSON object contaning 'items', a JSON array of objects containing:
-# "id": The original article identifier
-# "relevant": Boolean value (true if about {topic}, false if not )
-# The output must maintain strict JSON formatting and match each input ID with its corresponding classification.
-
-# Example output:
-# {{items:
-# [{{'id': 97, 'relevant': true}},
-#  {{'id': 103, 'relevant': true}},
-#  {{'id': 103, 'relevant': false}},
-#  {{'id': 210, 'relevant': true}},
-#  {{'id': 298, 'relevant': false}}]
-# }}
-
-# Consider a news summary to be about {topic} if it contains any of the following:
-# Direct mentions and references to {topic}
-# Direct mentions of people, products, research, projects, companies or entities closely associated with {topic}
-
-# Please analyze the following dataset according to these criteria:
-# """
 
 SUMMARIZE_SYSTEM_PROMPT = """
 You are a news-summarization assistant.
@@ -614,133 +440,6 @@ Follow the workflow below **in order**:
 
 """
 
-xFINAL_SUMMARY_SYSTEM_PROMPT = """
-You are “The Newsroom Chief,” a meticulous yet witty editorial AI.
-You are able to categorize information, and identify the important themes
-from large volumes of news to write a compelling daily news summary.
-
-Your goals today:
-
-1. Read exactly the news items provided by the user.
-   • Each item arrives in Markdown as
-
-[Title - source](url)
-
-Topics: topic1, topic2, topic3
-
-Rating: 0-10
-
-     • Bullet point 1
-     • Bullet point 2
-
-2. Produce a polished daily newsletter in Markdown that:
-   • Contains 5-10 sections (no more, no fewer).
-   • Gives each section its own punchy, humorous title (≤ 6 words).
-   • Shows 2-5 story bullets per section.
-   • Uses **one single-sentence bullet** per story, neutral tone, includes an inline Markdown link.
-   • Selects the *highest-rated* story when several in a section are near-duplicates.
-   • Never duplicates URLs across sections.
-   • Leaves out any story that fits no section
-
-Formatting rules:
-- Newsletter title: `# Headline Goes Here`
-- Section header: `## Section Title`
-- Bullets: `- Sentence summary [Source](URL)`
-- Do **not** print story topics, raw ratings, or extra prose.
-
-Example section template:
-# Engaging-section-title-1
-
-- news-item-bullet-1a - [source-name-1a](news-item-url-1a)
-- news-item-bullet-1b - [source-name-1b](news-item-url-1b)
-- news-item-bullet-1c - [source-name-1c](news-item-url-1c)
-
-Stay concise, factual, lively.
-"""
-
-xFINAL_SUMMARY_USER_PROMPT = """
-### TASK INSTRUCTIONS
-Follow the workflow below **in order**:
-
-**Step 1 - Surface Today’s Themes**
-▪ Read suggested topics below.
-▪ Read all stories below.
-▪ Identify the 5-8 most salient themes (e.g., “Gen-AI Tools,” “Robotaxis,” “AI Regulation”).
-▪ Return them as a numbered list.
-
-**Step 2 - Bucket Assignment**
-▪ Loop through each story once.
-▪ Assign it to exactly ONE theme number from Step 1, or “NONE” if irrelevant/no strong fit.
-▪ If multiple near-duplicate stories map to the same theme, mark them alike.
-
-**Step 3 - Section Drafting**
-For each theme (5-8):
-▪ Gather the stories assigned to it.
-▪ If > 5 stories, keep only the top 5 by `Rating` score (highest first).
-▪ For any near-duplicates inside that set, keep the single best-scored one.
-▪ Convert each remaining story into **one neutral sentence** that captures its key fact; embed the link.
-
-**Step 4 - Punchy Section Titles**
-▪ Invent a short, witty, on-topic section header (≤ 6 words) for each theme.
- *Examples:* “Pixel-Perfect AI”, “Bots in the Wild”, “Regulators Gonna Regulate”.
-
-**Step 5 - Grand Newsletter Assembly**
-▪ Pick/compose a bold, clever daily headline that sums up the overall vibe (≤ 12 words).
-▪ Output the newsletter in this exact scaffold:
-
-# {{Daily Headline}}
-
-## {{Section 1 Title}}
-- Bullet 1 with [link](URL)
-- Bullet …
-
-## {{Section 2 Title}}
-- …
-
-…and so on (5-8 sections total).
-
----
-
-### SUGGESTED TOPICS
-{cat_str}
-
-### RAW STORIES
-{bullet_str}
-"""
-
-# # pre 4.1 prompt
-# REWRITE_PROMPT = """You will act as a professional editor with a strong background in technology journalism.
-# You have a deep understanding of current and emerging AI trends, and the ability to
-# produce, edit, and curate high-quality content that engages and informs readers. You are
-# especially skilled at reviewing and enhancing tech writing, helping improve clarity, conciseness,
-# and coherence, and ensuring its accuracy and relevance.
-
-# Objective: The markdown newsletter provided below contains several sections consisting of bullet points.
-# Carefully review each section of the newsletter. Edit the newsletter for issues according
-# to the detailed instructions below, and respond with the updated newsletter or 'OK' if no changes
-# are needed.
-
-# Instructions:
-# Do not include ```markdown. Output raw markdown.
-# Remove any text which is not news content, such as instructions, comments, informational alerts about processing.
-# Remove stories that are not relevant to the newsletter's focus on AI.
-# Remove stories that are clickbait spam, using superlatives and exaggerated claims without news substance.
-# Remove stories that are speculative opinions without factual basis, like "Grok AI predicts top memecoin for huge returns", "2 magnificent AI stocks to hold forever".
-# For each bullet point, make it as concise as possible, sticking to facts without editorial comment.
-# For each section, combine any bullet points which are highly duplicative into a summary bullet point with multiple hyperlinks.
-# You may remove bullet points but you may not modify URLs.
-# For each section, review and edit the section title.
-# The section title should be snappy, punchy, clever, possibly alliterative or punny.
-# The section title must be short, engaging, and as consistent with the bullets in the section as possible.
-# Remove sections which are devoid of news content.
-# Check carefully to ensure there are no comments on the content or composition of the newsletter.
-# At the top of the newsletter ensure there is an overall title synthesizing the day's top news themes.
-# Respond with the updated newsletter only in markdown format, or the word 'OK' if no changes are needed.
-
-# Newsletter to edit:
-# {summary}
-
-# """
 
 REWRITE_SYSTEM_PROMPT = """
 You are “The Copy Chief,” a veteran technology-news editor with deep domain expertise in AI and emerging tech.
@@ -1214,76 +913,76 @@ SOURCE_REPUTATION = {
 }
 
 
-NEWSCATCHER_SOURCES = ['247wallst.com',
-                       '9to5mac.com',
-                       'androidauthority.com',
-                       'androidcentral.com',
-                       'androidheadlines.com',
-                       'appleinsider.com',
-                       'benzinga.com',
-                       'cnet.com',
-                       'cnn.com',
-                       'digitaltrends.com',
-                       'engadget.com',
-                       'fastcompany.com',
-                       'finextra.com',
-                       'fintechnews.sg',
-                       'fonearena.com',
-                       'ft.com',
-                       'gadgets360.com',
-                       'geekwire.com',
-                       'gizchina.com',
-                       'gizmochina.com',
-                       'gizmodo.com',
-                       'gsmarena.com',
-                       'hackernoon.com',
-                       'howtogeek.com',
-                       'ibtimes.co.uk',
-                       'itwire.com',
-                       'lifehacker.com',
-                       'macrumors.com',
-                       'mashable.com',
-                       #  'medium.com',
-                       'mobileworldlive.com',
-                       'msn.com',
-                       'nypost.com',
-                       'phonearena.com',
-                       'phys.org',
-                       'popsci.com',
-                       'scmp.com',
-                       'sify.com',
-                       'siliconangle.com',
-                       'siliconera.com',
-                       'siliconrepublic.com',
-                       'slashdot.org',
-                       'slashgear.com',
-                       'statnews.com',
-                       'tech.co',
-                       'techcrunch.com',
-                       'techdirt.com',
-                       'technode.com',
-                       'technologyreview.com',
-                       'techopedia.com',
-                       'techradar.com',
-                       'techraptor.net',
-                       'techtimes.com',
-                       'techxplore.com',
-                       'telecomtalk.info',
-                       'thecut.com',
-                       'thedrum.com',
-                       'thehill.com',
-                       'theregister.com',
-                       'theverge.com',
-                       'thurrott.com',
-                       'tipranks.com',
-                       'tweaktown.com',
-                       'videocardz.com',
-                       'washingtonpost.com',
-                       'wccftech.com',
-                       'wired.com',
-                       'xda-developers.com',
-                       'yahoo.com',
-                       'zdnet.com']
+# NEWSCATCHER_SOURCES = ['247wallst.com',
+#                        '9to5mac.com',
+#                        'androidauthority.com',
+#                        'androidcentral.com',
+#                        'androidheadlines.com',
+#                        'appleinsider.com',
+#                        'benzinga.com',
+#                        'cnet.com',
+#                        'cnn.com',
+#                        'digitaltrends.com',
+#                        'engadget.com',
+#                        'fastcompany.com',
+#                        'finextra.com',
+#                        'fintechnews.sg',
+#                        'fonearena.com',
+#                        'ft.com',
+#                        'gadgets360.com',
+#                        'geekwire.com',
+#                        'gizchina.com',
+#                        'gizmochina.com',
+#                        'gizmodo.com',
+#                        'gsmarena.com',
+#                        'hackernoon.com',
+#                        'howtogeek.com',
+#                        'ibtimes.co.uk',
+#                        'itwire.com',
+#                        'lifehacker.com',
+#                        'macrumors.com',
+#                        'mashable.com',
+#                        #  'medium.com',
+#                        'mobileworldlive.com',
+#                        'msn.com',
+#                        'nypost.com',
+#                        'phonearena.com',
+#                        'phys.org',
+#                        'popsci.com',
+#                        'scmp.com',
+#                        'sify.com',
+#                        'siliconangle.com',
+#                        'siliconera.com',
+#                        'siliconrepublic.com',
+#                        'slashdot.org',
+#                        'slashgear.com',
+#                        'statnews.com',
+#                        'tech.co',
+#                        'techcrunch.com',
+#                        'techdirt.com',
+#                        'technode.com',
+#                        'technologyreview.com',
+#                        'techopedia.com',
+#                        'techradar.com',
+#                        'techraptor.net',
+#                        'techtimes.com',
+#                        'techxplore.com',
+#                        'telecomtalk.info',
+#                        'thecut.com',
+#                        'thedrum.com',
+#                        'thehill.com',
+#                        'theregister.com',
+#                        'theverge.com',
+#                        'thurrott.com',
+#                        'tipranks.com',
+#                        'tweaktown.com',
+#                        'videocardz.com',
+#                        'washingtonpost.com',
+#                        'wccftech.com',
+#                        'wired.com',
+#                        'xda-developers.com',
+#                        'yahoo.com',
+#                        'zdnet.com']
 
 
 MODEL_FAMILY = {'gpt-4o-2024-11-20': 'openai',

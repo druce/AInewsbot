@@ -50,7 +50,7 @@ from ainb_state import (AgentState,
                         fn_download_sources,
                         fn_extract_urls,
                         fn_verify_download,
-                        fn_extract_newscatcher,
+                        # fn_extract_newscatcher,
                         fn_extract_newsapi,
                         fn_filter_urls,
                         fn_topic_analysis,
@@ -124,7 +124,6 @@ class Agent:
         self.model_low = get_model(state["model_low"])
         self.model_medium = get_model(state["model_medium"])
         self.model_high = get_model(state["model_high"])
-        self.BROWSERS = []
 
         graph_builder = StateGraph(AgentState)
         graph_builder.add_node("initialize", self.initialize_config)
@@ -199,13 +198,13 @@ class Agent:
         self.state = fn_verify_download(state)
         return self.state
 
-    def extract_newscatcher_urls(self, state: AgentState) -> AgentState:
-        """extract newscatcher urls"""
-        try:
-            self.state = fn_extract_newscatcher(state)
-        except KeyError:
-            log("Newscatcher download failed")
-        return self.state
+    # def extract_newscatcher_urls(self, state: AgentState) -> AgentState:
+    #     """extract newscatcher urls"""
+    #     try:
+    #         self.state = fn_extract_newscatcher(state)
+    #     except KeyError:
+    #         log("Newscatcher download failed")
+    #     return self.state
 
     def extract_newsapi_urls(self, state: AgentState) -> AgentState:
         """extract newsapi urls"""

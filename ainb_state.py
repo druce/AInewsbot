@@ -73,7 +73,7 @@ from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, SOURCECONFIG, SOURCES_EXPECTED,
                         TOP_CATEGORIES_PROMPT, TOPIC_REWRITE_PROMPT,
                         SITE_NAME_PROMPT, SQLITE_DB,
                         HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST, SOURCE_REPUTATION,
-                        SCREENSHOT_DIR, NEWSCATCHER_SOURCES)
+                        SCREENSHOT_DIR)
 
 
 class AgentState(TypedDict):
@@ -362,108 +362,108 @@ def fn_verify_download(state: AgentState) -> AgentState:
     return state
 
 
-def fn_extract_newscatcher(state: AgentState) -> AgentState:
-    """get AI news via newscatcher API
-    https://docs.newscatcherapi.com/api-docs/endpoints/search-news
-    """
+# def fn_extract_newscatcher(state: AgentState) -> AgentState:
+#     """get AI news via newscatcher API
+#     https://docs.newscatcherapi.com/api-docs/endpoints/search-news
+#     """
 
-    q = 'Artificial Intelligence'
-    page_size = 100
-    log(f"Fetching top {page_size} stories matching {q} from Newscatcher")
-    base_url = "https://api.newscatcherapi.com/v2/search"
-    time_24h_ago = datetime.now() - timedelta(hours=24)
+#     q = 'Artificial Intelligence'
+#     page_size = 100
+#     log(f"Fetching top {page_size} stories matching {q} from Newscatcher")
+#     base_url = "https://api.newscatcherapi.com/v2/search"
+#     time_24h_ago = datetime.now() - timedelta(hours=24)
 
-    # Put API key in headers
-    headers = {'x-api-key': os.getenv('NEWSCATCHER_API_KEY')}
+#     # Put API key in headers
+#     headers = {'x-api-key': os.getenv('NEWSCATCHER_API_KEY')}
 
-    # Define search parameters
-    params = {
-        'q': q,
-        'lang': 'en',
-        'sources': ','.join(NEWSCATCHER_SOURCES),
-        'from': time_24h_ago.strftime('%Y-%m-%d %H:%M:%S'),
-        'to': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'page_size': page_size,  # by default should be most highly relevant to the search
-        'page': 1
-    }
+#     # Define search parameters
+#     params = {
+#         'q': q,
+#         'lang': 'en',
+#         'sources': ','.join(NEWSCATCHER_SOURCES),
+#         'from': time_24h_ago.strftime('%Y-%m-%d %H:%M:%S'),
+#         'to': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+#         'page_size': page_size,  # by default should be most highly relevant to the search
+#         'page': 1
+#     }
 
-    # Make API call with headers and params
-    response = requests.get(base_url, headers=headers,
-                            params=params, timeout=60)
+#     # Make API call with headers and params
+#     response = requests.get(base_url, headers=headers,
+#                             params=params, timeout=60)
 
-    # Encode received results
-    results = json.loads(response.text.encode())
-    if response.status_code != 200:
-        print('ERROR: API call failed.')
-        print(results)
+#     # Encode received results
+#     results = json.loads(response.text.encode())
+#     if response.status_code != 200:
+#         print('ERROR: API call failed.')
+#         print(results)
 
-    # merge into existing df
-    newscatcher_df = pd.DataFrame(results['articles'])[['title', 'link']]
-    newscatcher_df['src'] = 'Newscatcher'
-    newscatcher_df = newscatcher_df.rename(columns={'link': 'url'})
-#     display(newscatcher_df.head())
-    aidf = pd.DataFrame(state['AIdf'])
-#     display(AIdf.head())
+#     # merge into existing df
+#     newscatcher_df = pd.DataFrame(results['articles'])[['title', 'link']]
+#     newscatcher_df['src'] = 'Newscatcher'
+#     newscatcher_df = newscatcher_df.rename(columns={'link': 'url'})
+# #     display(newscatcher_df.head())
+#     aidf = pd.DataFrame(state['AIdf'])
+# #     display(AIdf.head())
 
-    max_id = aidf['id'].max()
-    # add id column to newscatcher_df
-    newscatcher_df['id'] = range(max_id + 1, max_id + 1 + len(newscatcher_df))
-    aidf = pd.concat([aidf, newscatcher_df], ignore_index=True)
-    state['AIdf'] = aidf.to_dict(orient='records')
-    return state
+#     max_id = aidf['id'].max()
+#     # add id column to newscatcher_df
+#     newscatcher_df['id'] = range(max_id + 1, max_id + 1 + len(newscatcher_df))
+#     aidf = pd.concat([aidf, newscatcher_df], ignore_index=True)
+#     state['AIdf'] = aidf.to_dict(orient='records')
+#     return state
 
 
-def fn_extract_gnews(state: AgentState) -> AgentState:
-    """get AI news via GNews API
-    https://gnews.io/docs/v4#search-endpoint-query-parameters
-    100 stories is 50 euros per month , not implemented
-    """
+# def fn_extract_gnews(state: AgentState) -> AgentState:
+#     """get AI news via GNews API
+#     https://gnews.io/docs/v4#search-endpoint-query-parameters
+#     100 stories is 50 euros per month , not implemented
+#     """
 
-    base_url = 'https://gnews.io/api/v4/search'
-    q = 'Artificial Intelligence'
-    lang = 'en'
-    country = 'us'
-    maxlinks = 25  # max for lowest subscription tier
-    apikey = os.getenv('GNEWS_API_KEY')
-    time_12h_ago = datetime.now() - timedelta(hours=12)
-    fromtime = time_12h_ago.strftime('%Y-%m-%dT%H:%M:%S')
-    sortby = 'relevance'
+#     base_url = 'https://gnews.io/api/v4/search'
+#     q = 'Artificial Intelligence'
+#     lang = 'en'
+#     country = 'us'
+#     maxlinks = 25  # max for lowest subscription tier
+#     apikey = os.getenv('GNEWS_API_KEY')
+#     time_12h_ago = datetime.now() - timedelta(hours=12)
+#     fromtime = time_12h_ago.strftime('%Y-%m-%dT%H:%M:%S')
+#     sortby = 'relevance'
 
-    log(f"Fetching top {maxlinks} stories matching {q} since {fromtime} from GNews")
+#     log(f"Fetching top {maxlinks} stories matching {q} since {fromtime} from GNews")
 
-    # Define search parameters
-    params = {
-        'q': q,
-        'lang': lang,
-        'country': country,
-        'from': fromtime,
-        'max': maxlinks,
-        'apikey': apikey,
-        'sortby': sortby
-    }
+#     # Define search parameters
+#     params = {
+#         'q': q,
+#         'lang': lang,
+#         'country': country,
+#         'from': fromtime,
+#         'max': maxlinks,
+#         'apikey': apikey,
+#         'sortby': sortby
+#     }
 
-    # Make API call with headers and params
-    response = requests.get(base_url, params=params, timeout=60)
-    # need to do 4 times with 4 pages of 25 each, concatenate 4 dfs or merge 4 times
-    # # Encode received results
-    if response.status_code != 200:
-        print('ERROR: API call failed.')
-        print(response)
-    results = json.loads(response.text.encode())
+#     # Make API call with headers and params
+#     response = requests.get(base_url, params=params, timeout=60)
+#     # need to do 4 times with 4 pages of 25 each, concatenate 4 dfs or merge 4 times
+#     # # Encode received results
+#     if response.status_code != 200:
+#         print('ERROR: API call failed.')
+#         print(response)
+#     results = json.loads(response.text.encode())
 
-    # # merge into existing df
-    gnews_df = pd.DataFrame(results['articles'])[['title', 'link']]
-    gnews_df['src'] = 'GNews'
-    gnews_df = gnews_df.rename(columns={'link': 'url'})
-    #     display(newscatcher_df.head())
-    aidf = pd.DataFrame(state['AIdf'])
-    #     display(AIdf.head())
+#     # # merge into existing df
+#     gnews_df = pd.DataFrame(results['articles'])[['title', 'link']]
+#     gnews_df['src'] = 'GNews'
+#     gnews_df = gnews_df.rename(columns={'link': 'url'})
+#     #     display(newscatcher_df.head())
+#     aidf = pd.DataFrame(state['AIdf'])
+#     #     display(AIdf.head())
 
-    max_id = aidf['id'].max()
-    # add id column to gnews_df
-    gnews_df['id'] = range(max_id + 1, max_id + 1 + len(gnews_df))
-    aidf = pd.concat([aidf, gnews_df], ignore_index=True)
-    state['AIdf'] = aidf.to_dict(orient='records')
+#     max_id = aidf['id'].max()
+#     # add id column to gnews_df
+#     gnews_df['id'] = range(max_id + 1, max_id + 1 + len(gnews_df))
+#     aidf = pd.concat([aidf, gnews_df], ignore_index=True)
+#     state['AIdf'] = aidf.to_dict(orient='records')
 
 
 def fn_extract_newsapi(state: AgentState) -> AgentState:

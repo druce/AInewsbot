@@ -39,7 +39,7 @@ from langchain_core.prompts import (ChatPromptTemplate,)
 # SystemMessagePromptTemplate, HumanMessagePromptTemplate)
 
 from ainb_utilities import log
-from ainb_const import (MAX_INPUT_TOKENS, TENACITY_RETRY,
+from ainb_const import (TENACITY_RETRY, MAX_INPUT_TOKENS,
                         CANONICAL_SYSTEM_PROMPT, CANONICAL_USER_PROMPT,
                         SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT)
 
@@ -160,21 +160,21 @@ class Newsletter(BaseModel):
 ##############################################################################
 
 
-def count_tokens(s):
-    """
-    Counts the number of tokens in a given string.
+# def count_tokens(s):
+#     """
+#     Counts the number of tokens in a given string.
 
-    Args:
-        s (str): The input string.
+#     Args:
+#         s (str): The input string.
 
-    Returns:
-        int: The number of tokens in the input string.
-    """
-    # no tokeniser returned yet for gpt-4o-2024-05-13
-    enc = tiktoken.encoding_for_model('gpt-4o')
-    # enc = tiktoken.get_encoding('o200k_base')
-    assert enc.decode(enc.encode("hello world")) == "hello world"
-    return len(enc.encode(s))
+#     Returns:
+#         int: The number of tokens in the input string.
+#     """
+#     # no tokeniser returned yet for gpt-4o-2024-05-13
+#     enc = tiktoken.encoding_for_model('gpt-4o')
+#     # enc = tiktoken.get_encoding('o200k_base')
+#     assert enc.decode(enc.encode("hello world")) == "hello world"
+#     return len(enc.encode(s))
 
 
 def trunc_tokens(long_prompt, model='gpt-4o', maxtokens=MAX_INPUT_TOKENS):
@@ -271,36 +271,6 @@ async def async_langchain(chain, input_dict, tag="", verbose=False):
 ##############################################################################
 # functions to process dataframes
 ##############################################################################
-
-def filter_page(input_df: pd.DataFrame,
-                input_prompt: str,
-                output_class: Type[T],
-                model: ChatOpenAI,
-                input_vars: Dict[str, Any] = None
-                ) -> T:
-    """
-    Process a single dataframe synchronously.
-    apply input_prompt to input_df converted to JSON per output_class type schema,
-    supplying additional input_vars, and returning output_class
-    """
-    prompt_template = ChatPromptTemplate.from_messages([
-        ("system", input_prompt),
-        ("user", "{input_text}")
-    ])
-
-    # Create the chain
-    chain = prompt_template | model.with_structured_output(output_class)
-
-    # Run the chain
-    input_text = input_df.to_json(orient='records', indent=2)
-    input_dict = {"input_text": input_text}
-    if input_vars is not None:
-        input_dict.update(input_vars)
-    # unpack input_dict to kwargs
-    response = chain.invoke(input_dict)
-
-    return response
-
 
 @retry(
     stop=stop_after_attempt(TENACITY_RETRY),  # Maximum 8 attempts

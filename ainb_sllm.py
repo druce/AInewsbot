@@ -50,6 +50,36 @@ from ainb_const import (MAX_INPUT_TOKENS, TENACITY_RETRY,
 T = TypeVar('T')
 
 
+def filter_page(input_df: pd.DataFrame,
+                input_prompt: str,
+                output_class: Type[T],
+                model: ChatOpenAI,
+                input_vars: Dict[str, Any] = None
+                ) -> T:
+    """
+    Process a single dataframe synchronously.
+    apply input_prompt to input_df converted to JSON per output_class type schema,
+    supplying additional input_vars, and returning output_class
+    """
+    prompt_template = ChatPromptTemplate.from_messages([
+        ("system", input_prompt),
+        ("user", "{input_text}")
+    ])
+
+    # Create the chain
+    chain = prompt_template | model.with_structured_output(output_class)
+
+    # Run the chain
+    input_text = input_df.to_json(orient='records', indent=2)
+    input_dict = {"input_text": input_text}
+    if input_vars is not None:
+        input_dict.update(input_vars)
+    # unpack input_dict to kwargs
+    response = chain.invoke(input_dict)
+
+    return response
+
+
 def sfilter_page_async(
     input_df: pd.DataFrame,
     system_prompt: str,
