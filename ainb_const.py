@@ -46,6 +46,23 @@ MIN_TITLE_LEN = 28
 HOSTNAME_SKIPLIST = ['finbold.com']
 SITE_NAME_SKIPLIST = ['finbold']
 
+
+MODEL_FAMILY = {'gpt-4o-2024-11-20': 'openai',
+                'gpt-4o-mini': 'openai',
+                'o4-mini': 'openai',
+                'o3-mini': 'openai',
+                'gpt-4.5-preview': 'openai',
+                'gpt-4.1': 'openai',
+                'gpt-4.1-mini': 'openai',
+                'models/gemini-2.0-flash-thinking-exp': 'google',
+                'models/gemini-2.0-pro-exp': 'google',
+                'models/gemini-2.0-flash': 'google',
+                'models/gemini-1.5-pro-latest': 'google',
+                'models/gemini-1.5-pro': 'google',
+                }
+
+######################################################################
+
 FILTER_SYSTEM_PROMPT = """
 You are a content-classification assistant that labels news headlines as AI-related or not.
 Return **only** a JSON object that satisfies the provided schema.
@@ -72,6 +89,8 @@ AI-related if the title mentions (explicitly or implicitly):
 Non-AI examples: crypto, ordinary software, non-AI gadgets and medical devices, and anything else.
 """
 
+######################################################################
+
 TOPIC_SYSTEM_PROMPT = """
 You are a news-analysis assistant.
 You will receive a list of news summaries in JSON format.
@@ -88,6 +107,8 @@ Guidelines
 • Avoid duplicates and generic terms (“technology”, “news”).
 • Each topic should be simple, concise and represent 1 concept, like "LLM updates", "xAI", "Grok"
 """
+
+######################################################################
 
 CANONICAL_SYSTEM_PROMPT = """
 You are a news-analysis assistant.
@@ -106,6 +127,8 @@ Classify each story below:
 • Otherwise `relevant` = false.
 
 """
+
+######################################################################
 
 SUMMARIZE_SYSTEM_PROMPT = """
 You are a news-summarization assistant.
@@ -135,6 +158,8 @@ SUMMARIZE_USER_PROMPT = """Summarize the article below.
 ### <<<END>>>
 """
 
+######################################################################
+
 TOPIC_WRITER_SYSTEM_PROMPT = """
 You are a headline-cluster naming assistant.
 
@@ -157,6 +182,8 @@ Create a unifying title for these headlines.
 ### <<<END>>>
 """
 
+######################################################################
+
 LOW_QUALITY_SYSTEM_PROMPT = """
 You are a news-quality classifier. You will receive a list of news summaries in JSON format with a numeric ID and a summary in markdown format containing a url.
 
@@ -178,6 +205,8 @@ LOW_QUALITY_USER_PROMPT = """Classify each story below.
 {input_text}
 ### <<<END>>>
 """
+
+######################################################################
 
 ON_TOPIC_SYSTEM_PROMPT = """You are an AI-news relevance classifier.
 
@@ -206,6 +235,7 @@ ON_TOPIC_USER_PROMPT = """Rate each news story below as to whether the news stor
 ### <<<END>>>
 """
 
+######################################################################
 
 IMPORTANCE_SYSTEM_PROMPT = """You are an AI-news importance classifier.
 
@@ -234,101 +264,86 @@ IMPORTANCE_USER_PROMPT = """Rate each news story below as to whether the news st
 ### <<<END>>>
 """
 
-TOP_CATEGORIES_PROMPT = """You are a specialized news analysis assistant focused on identifying and
-categorizing the day's top news stories and trends. Your task is to analyze provided
-news items that include news article links and headlines, topic tags associated with each article and
-detailed bullet-point summaries of the content. You will respond with a list of the most popular and significant
-10-20 topics discussed.
+######################################################################
 
+TOP_CATEGORIES_SYSTEM_PROMPT = """
+# Role & Objective
+You are **“The News Pulse Analyst.”**
+Your task: read a daily batch of AI-related news items and surface **10-30** short, high-impact topic titles for an executive summary.
+You will receive today's AI-related news items in markdown format.
+Each item will have headline, URL, topics, a rating, and bullet-point summary.
+Return **10-30** distinct, high-impact topics in the supplied JSON format.
 
-Example Input item:
+# Input Format
+```markdown
+[Headline - URL](URL)
+Topics: topic1, topic2, ...
+Rating: 0-10
+- Bullet 1
+- Bullet 2
+...
+```
+"""
 
-[ASTRA: HackerRank's coding benchmark for LLMs - www.hackerrank.com](https: // www.hackerrank.com/ai/astra-reports)
+TOP_CATEGORIES_USER_PROMPT = """
 
-AI Model Evaluation, Astra Benchmark, Code Assistants, Coding Tasks, Front-End Development, Gen AI, Hackerrank, Language Models, Model Performance, Science, Testing
+# Response Rules
 
-- **Overview of ASTRA Benchmark: ** HackerRank's ASTRA benchmark evaluates AI model capabilities on multi-file, project-based coding tasks, focusing on real-world applications such as frontend development with frameworks like Node.js, React.js, and Angular.js. Metrics used include average score, pass @ 1, and consistency(median standard deviation).
+- Scope: use only the supplied bullets—no external facts.
+- Title length: ≤ 5 words, Title Case.
+- Count: 10 ≤ topics ≤ 30; if fewer qualify, return all.
+- Priority: rank by (impact × frequency); break ties by higher Rating, then alphabetical.
+- Redundancy: merge or drop overlapping stories.
+- Tone: concise, neutral; no extra prose.
+- Privacy: never reveal chain-of-thought.
+- Output: one valid JSON object matching the schema supplied (double quotes only)
 
-- **Key Findings: ** Models o1, o1-preview, and Claude-3.5-Sonnet-1022 were the top performers in front-end development tasks, with Claude-3.5-Sonnet-1022 showing the highest consistency. However, performance differences among models were often not statistically significant.
+Scoring Heuristics  (internal - do not output scores)
+1. Repeated entity or theme
+2. Major technological breakthrough
+3. Significant biz deal / funding
+4. Key product launch or update
+5. Important benchmark or research finding
+6. Major policy or regulatory action
+7. Significant statement by influential figure
 
-- **Challenges and Observations: ** Common errors among models included logical mistakes, improper route integration, and variability in handling JSON/escaping tasks. Longer output lengths were moderately linked with lower performance. The study highlighted limitations such as narrow skill coverage and lack of iterative feedback mechanisms. Future iterations aim to address these issues and expand model comparisons.
+Reasoning Steps  (think silently)
+1. Parse each item; extract entities/themes.
+2. Count their recurrence.
+3. Weigh impact via the heuristics.
+4. Select top 10-30 non-overlapping topics.
+5. Draft ≤ 5-word titles.
+6. Emit a JSON object with a list of strings using the supplied schema. *(Expose only Step 6.)*
 
-Follow these steps:
+### <<<STORIES>>>
+{input_text}
+### <<<END>>>
 
-1. Analyze provided news content. Identify and extract:
-
-Major technological breakthroughs or advancements
-Significant business developments(investments, deals, acquisitions, joint ventures, funding rounds)
-Key product launches or updates
-Important research findings or benchmarks
-Notable policy or regulatory decisions and statements
-Industry-wide trends and patterns
-Prominent companies, organizations, or individuals mentioned repeatedly
-Any other frequently discussed events and notable themes
-
-2. Create a curated list that:
-
-Contains between 10-20 distinct topics/stories
-Presents each topic with a concise, clear title(maximum 7 words)
-Focuses on the most impactful and frequently mentioned items
-Prioritizes major AI, tech, and policy trends
-Prioritizes items from major credible media like nytimes.com, wsj.com, bloomberg.com
-Captures the essential narrative of each development
-Avoids redundancy and overlapping topics
-
-Instructions:
-Read the summary bullet points closely and use only information provided in them.
-Focus on the most common elements.
-Titles of top stories and topics must be as short and simple as possible.
-You must include at least 10 and no more than 20 topics in the summary.
-Please analyze the provided bullet points and return your findings as a JSON object with a single key 'items' containing an array of topic titles.
-
-Format your response exactly as:
-{{'items': ["Topic 1", "Topic 2", "Topic 3", ...]}}
-
-Example Output Format:
-{{'items': [
-  "Sentient funding",
-  "ChatGPT cybersecurity incident",
-  "ElevenLabs product release",
-  "Microsoft text-to-speech model"
-  "Nvidia reguatory issues",
-  "AI healthcare successes"
-  ]
-}}
-
-Bullet Points to Analyze:
+Now think step by step, then output the JSON using the supplied schema.
 
 """
 
-TOPIC_REWRITE_PROMPT = """
-You are a professional content optimization specialist tasked with restructuring and
-refining technology-focused topics. Your objective is to transform verbose or unclear
-topic descriptions into precise, clear, concise entries while maintaining their
-essential meaning. Please apply the following comprehensive guidelines:
+######################################################################
+TOPIC_REWRITE_SYSTEM_PROMPT = """
+# Role & Objective
+You are **“The Topic Optimizer.”**
+Goal: Polish a set of proposed technology-focused topic lines into **10-30** unique, concise, title-case entries (≤ 5 words each) and return a JSON object using the supplied schema.
 
-RULES:
- 1. Combine Similar Topics: Merge entries that refer to similar concepts or events.
- 2. Split Multi-Concept Topics: Break down entries that cover multiple ideas into individual, distinct topics.
- 3. Eliminate Redundant and Generic Terms: Remove vague descriptors(e.g., “new, ” “innovative”) and repetitive words to keep the topics sharp.
- 4. Prioritize Specifics: Focus on concrete products, companies, or events.
- 5. Standardize References: Use consistent naming for products and companies.
- 6. Simplify and Clarify: Make each topic short and direct, clearly conveying the core message.
-
-FORMATTING:
- • Return a JSON list of strings
- • One topic per headline
- • Use title case
- • Keep topics clear, simple and concise(max 7 words)
- • Remove redundant "AI" mentions
- • No bullet points, numbering, or additional formatting.
+# Rewrite Rules
+1. **Merge Similar**: combine lines that describe the same concept or event.
+2. **Split Multi-Concept**: separate any line that mixes multiple distinct ideas.
+3. **Remove Fluff**: delete vague words (“new”, “innovative”, “AI” if obvious, etc.).
+4. **Be Specific**: prefer concrete products, companies, events.
+5. **Standardize Names**: use official product / company names.
+6. **Deduplicate**: no repeated items in final list.
+7. **Clarity & Brevity**: ≤ 5 words, Title Case.
 
 STYLE GUIDE:
-Product launches: [Company Name][Product Name]
-Other Company updates: [Company Name][Action]
-Industry trends: [Sector][Development]
-Research findings: [Institution][Key Finding]
-Official statements: [Authority][Decision or Statement]
+Product launches: [Company Name] [Product Name]
+Other Company updates: [Company Name] [Action]
+Industry trends: [Sector] [Development]
+Research findings: [Institution] [Key Finding]
+Official statements: [Authority] [Decision or Statement]
 
 STYLE EXAMPLES:
 ✗ "AI Integration in Microsoft Notepad"
@@ -361,8 +376,32 @@ STYLE EXAMPLES:
 ✗ "Apple iOS 18.2 AI features"
 ✓ "Apple iOS 18.2"
 
-TRANSFORM THIS LIST:
+FORMATTING:
+ • Return a JSON object containing a list of strings using the provided JSON schema
+ • One topic per headline
+ • Use title case
 """
+
+TOPIC_REWRITE_USER_PROMPT = """
+Edit this list of technology-focused topics.
+
+Reasoning Steps  (think silently)
+1. Parse input lines.
+2. Apply merge / split logic.
+3. Simplify and clarify, apply style guide.
+4. Finalize ≤ 5-word titles.
+5. Build JSON array (unique, title-case).
+6. Output exactly the JSON schema—nothing else.
+
+### START_TOPICS
+{input_text}
+### END_TOPICS
+
+Now think step by step, then output the JSON using the supplied schema.
+
+"""
+
+######################################################################
 
 FINAL_SUMMARY_SYSTEM_PROMPT = """
 You are “The Newsroom Chief,” an expert AI editor, who
@@ -440,6 +479,7 @@ Follow the workflow below **in order**:
 
 """
 
+######################################################################
 
 REWRITE_SYSTEM_PROMPT = """
 You are “The Copy Chief,” a veteran technology-news editor with deep domain expertise in AI and emerging tech.
@@ -505,6 +545,8 @@ RULES  (follow in order – no exceptions)
 {summary}
 """
 
+######################################################################
+
 SITE_NAME_PROMPT = """
 You are a specialized content analyst tasked with identifying the site name of a given website URL.
 For example, if the URL is 'https://www.washingtonpost.com', the site name would be 'Washington Post'.
@@ -539,6 +581,8 @@ Output Example:
 Please analyze the following urls according to these criteria:
 
 """
+
+######################################################################
 
 # use below as asyncio.run(process_dataframes([pd.DataFrame(['https://ft.com', 'https://siliconangle.com/'], columns=['url'])], SITE_NAME_PROMPT, Sites))
 
@@ -714,6 +758,8 @@ CANONICAL_TOPICS = [
     'Korea',
     'Taiwan',
 ]
+
+######################################################################
 
 SOURCE_REPUTATION = {
     'Reddit': 0,
@@ -912,6 +958,7 @@ SOURCE_REPUTATION = {
     'www.wsj.com': 3,
 }
 
+######################################################################
 
 # NEWSCATCHER_SOURCES = ['247wallst.com',
 #                        '9to5mac.com',
@@ -984,17 +1031,4 @@ SOURCE_REPUTATION = {
 #                        'yahoo.com',
 #                        'zdnet.com']
 
-
-MODEL_FAMILY = {'gpt-4o-2024-11-20': 'openai',
-                'gpt-4o-mini': 'openai',
-                'o4-mini': 'openai',
-                'o3-mini': 'openai',
-                'gpt-4.5-preview': 'openai',
-                'gpt-4.1': 'openai',
-                'gpt-4.1-mini': 'openai',
-                'models/gemini-2.0-flash-thinking-exp': 'google',
-                'models/gemini-2.0-pro-exp': 'google',
-                'models/gemini-2.0-flash': 'google',
-                'models/gemini-1.5-pro-latest': 'google',
-                'models/gemini-1.5-pro': 'google',
-                }
+######################################################################

@@ -411,7 +411,7 @@ async def process_dataframes(dataframes: List[pd.DataFrame],
     """
     Process multiple dataframes asynchronously.
     if item_list_field is provided, flatten the results
-    if item_id_field is proided, check returned ids match sent ids
+    if item_id_field is provided, check returned ids match sent ids
 
     Args:
         dataframes: List of dataframes to process
@@ -427,7 +427,7 @@ async def process_dataframes(dataframes: List[pd.DataFrame],
     we paginate so we don't have to retry 200 if one fails
     this may run into tokens per minute rate limits, will error and retry
     could be smarter and check rate limits first, not easily available in langchain
-    like, ideally if it fails on rate limit, check when it resets and wait til then
+    ideally if it fails on rate limit, check when it resets and wait til then
     """
     if item_id_field:
         tasks = [
@@ -466,7 +466,7 @@ async def process_dataframes(dataframes: List[pd.DataFrame],
         log(f"no {item_list_field} in result, returning raw results")
 
 
-def clean_html(path: Path | str) -> str:
+def normalize_html(path: Path | str) -> str:
     """
     Clean and extract text content from an HTML file, including titles and social media metadata.
 
@@ -566,7 +566,7 @@ async def fetch_all_summaries(aidf, model):
     TODO: can make a more generic version
     pass in prompt, model, output class
     pass in df with id and value(s)
-    pass in optional function dict to call on each column
+    pass in optional function dict to call on each column, eg map path to normalized text
     get the column names, apply function if provided, apply template using those names
 
     """
@@ -576,25 +576,34 @@ async def fetch_all_summaries(aidf, model):
 
     prompt_template = ChatPromptTemplate.from_messages(
         [("system", SUMMARIZE_SYSTEM_PROMPT),
-         ("user", SUMMARIZE_USER_PROMPT)]
+            ("user", SUMMARIZE_USER_PROMPT)]
     )
-
     parser = StrOutputParser()
     chain = prompt_template | model | parser
-
     for row in aidf.itertuples():
         path, rowid = row.path, row.id
-        article_str = clean_html(path)
-        log(f"Queuing {rowid}: {article_str[:50]}...")
-        task = asyncio.create_task(async_langchain(
-            chain, {"article": article_str}, tag=rowid))
-        tasks.append(task)
+        article_str = ""
+        print(path)
+        if path:
+            article_str = normalize_html(path)
+            if article_str.startswith("no content"):
+                article_str = ""
+        else:
+            log(f"No path for {rowid}")
+        if article_str:
+            log(f"Queuing {rowid}: {article_str[:50]}...")
+            task = asyncio.create_task(async_langchain(
+                chain, {"article": article_str}, tag=rowid, verbose=True))
+            tasks.append(task)
+        else:
+            log(f"No article_str for {rowid}")
 
     try:
         responses = await asyncio.gather(*tasks)
+        log(f"Received {len(responses)} summaries")
     except Exception as e:
         log(f"Error fetching summary: {str(e)}")
-        log(f"Received {len(responses)} summaries")
+
     for summary, rowid, article_len in responses:
         log(f"Summary for {rowid} (length {article_len}): {summary}")
     return responses

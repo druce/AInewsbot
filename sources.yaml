@@ -73,6 +73,7 @@ New York Times:
   - ^https://www.nytimes.com/(\d+)/(\d+)/(\d+)/
   title: New_York_Times
   url: https://www.nytimes.com/section/technology
+  initial_sleep: 30
 Reddit:
   exclude:
   - ^https://chat.reddit.com/

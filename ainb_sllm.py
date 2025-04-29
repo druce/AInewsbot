@@ -3,7 +3,7 @@ for debugging, some synchronous versions of ainb_llm functions
 can call these from top level with pdb.set_trace, and step through
 unlike async versions which will spawn many threads and not allow pdb to work
 """
-from ainb_llm import clean_html, async_langchain
+from ainb_llm import normalize_html, async_langchain
 
 import pdb
 
@@ -313,7 +313,7 @@ def sfetch_all_summaries(aidf, model):
     pdb.set_trace()
     for row in aidf.itertuples():
         path, rowid = row.path, row.id
-        article_str = clean_html(path)
+        article_str = normalize_html(path)
         log(f"Queuing {rowid}: {article_str[:50]}...")
         # task = asyncio.create_task(async_langchain(
         #     chain, {"article": article_str}, tag=rowid))

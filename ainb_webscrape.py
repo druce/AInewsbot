@@ -120,6 +120,207 @@ def sanitize_filename(filename):
     return filename
 
 
+async def get_browser(p):
+    """
+    Initializes a Playwright browser instance with stealth settings.
+
+    Args:
+        p (async_playwright.Playwright): The Playwright instance.
+
+    Returns:
+        Browser: The initialized browser instance.
+    """
+    viewport = random.choice([
+        {"width": 1920, "height": 1080},
+        {"width": 1366, "height": 768},
+        {"width": 1440, "height": 900},
+        {"width": 1536, "height": 864},
+        {"width": 1280, "height": 720}
+    ])
+
+    # random device-scale-factor for additional randomization
+    device_scale_factor = random.choice([1, 1.25, 1.5, 1.75, 2])
+
+    # Random color scheme and timezone
+    color_scheme = random.choice(['light', 'dark', 'no-preference'])
+    timezone_id = random.choice([
+        'America/New_York', 'Europe/London', 'Europe/Paris',
+        'Asia/Tokyo', 'Australia/Sydney', 'America/Los_Angeles'
+    ])
+    locale = random.choice([
+        'en-US', 'en-GB'
+    ])
+    extra_http_headers = {
+        "Accept-Language": f"{locale.split('-')[0]},{locale};q=0.9",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Sec-Fetch-User": "?1",
+        "DNT": "1" if random.choice([True, False]) else "0"
+    }
+
+    b = await p.firefox.launch_persistent_context(
+        user_data_dir=FIREFOX_PROFILE_PATH,
+        headless=True,  # run headless, hide splash window
+        viewport=viewport,
+        device_scale_factor=device_scale_factor,
+        timezone_id=timezone_id,
+        color_scheme=color_scheme,
+        extra_http_headers=extra_http_headers,
+        # removes Playwright’s default flag
+        ignore_default_args=["--enable-automation"],
+        args=[
+            # "--disable-blink-features=AutomationControlled",  # Chrome/Blink flag analogue
+            "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage"
+        ],
+        # provide a valid realistic User-Agent string for the latest Firefox on Apple Silicon
+        # match OS / browser build
+        user_agent="Mozilla/5.0 (Macintosh; ARM Mac OS X 14.4; rv:125.0) Gecko/20100101 Firefox/125.0",
+        accept_downloads=True,
+    )
+    await apply_stealth_script(b)
+    return b
+
+
+async def apply_stealth_script(context):
+    """Apply various evasion scripts to make the browser less detectable."""
+    # Create a new page for executing scripts
+    page = await context.new_page()
+
+    # Mask WebDriver
+    await page.evaluate("""() => {
+        // Overwrite navigator.webdriver
+        Object.defineProperty(navigator, 'webdriver', {
+            get: () => false,
+        });
+
+        // Remove automation-related properties
+        if (navigator.plugins) {
+            // Add some fake plugins
+            Object.defineProperty(navigator, 'plugins', {
+                get: () => {
+                    return {
+                        length: Math.floor(Math.random() * 5) + 1
+                    };
+                },
+            });
+        }
+
+        // Add randomness to canvas fingerprinting
+        const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
+        HTMLCanvasElement.prototype.toDataURL = function(type) {
+            if (type === 'image/png' && this.width === 220 && this.height === 30) {
+                // This might be a fingerprinting attempt
+                const dataURL = originalToDataURL.apply(this, arguments);
+                const noise = Math.random().toString(36).substring(2, 7);
+                return dataURL.substring(0, dataURL.length - noise.length) + noise;
+            }
+            return originalToDataURL.apply(this, arguments);
+        }
+
+        // Randomize client rects slightly
+        const originalGetClientRects = Element.prototype.getClientRects;
+        Element.prototype.getClientRects = function() {
+            const rects = originalGetClientRects.apply(this, arguments);
+            for (let rect of rects) {
+                rect.x += Math.random() * 0.001;
+                rect.y += Math.random() * 0.001;
+                rect.width += Math.random() * 0.001;
+                rect.height += Math.random() * 0.001;
+            }
+            return rects;
+        }
+    }""")
+
+    # Close the temporary page
+    await page.close()
+
+
+async def perform_human_like_actions(page):
+    """Perform random human-like actions on the page to mimic real user behavior."""
+    # Random mouse movements
+    for _ in range(random.randint(3, 8)):
+        # Move mouse with multiple steps to simulate human-like movement
+        x = random.randint(100, 1200)
+        y = random.randint(100, 700)
+        steps = random.randint(5, 10)
+
+        # Get current mouse position
+        mouse_position = await page.evaluate("""() => {
+            return {x: 0, y: 0}; // Default starting position
+        }""")
+
+        current_x = mouse_position.get('x', 0)
+        current_y = mouse_position.get('y', 0)
+
+        # Calculate increments for smooth movement
+        for step in range(1, steps + 1):
+            next_x = current_x + (x - current_x) * step / steps
+            next_y = current_y + (y - current_y) * step / steps
+
+            # Add slight randomness to path
+            jitter_x = random.uniform(-5, 5)
+            jitter_y = random.uniform(-5, 5)
+
+            await page.mouse.move(next_x + jitter_x, next_y + jitter_y)
+            await asyncio.sleep(random.uniform(0.01, 0.05))
+
+    # Random scrolling behavior
+    scroll_amount = random.randint(300, 700)
+    await page.evaluate(f"window.scrollBy(0, {scroll_amount})")
+    await asyncio.sleep(random.uniform(0.5, 2))
+
+    # Sometimes scroll back up a bit
+    if random.random() > 0.7:
+        await page.evaluate(f"window.scrollBy(0, -{random.randint(100, 300)})")
+        await asyncio.sleep(random.uniform(0.3, 1))
+
+
+async def fetch_queue(queue, concurrency):
+    """
+    Processes a queue of URLs concurrently using a specified number of workers.
+
+    Args:
+        queue (asyncio.Queue): The queue containing tuples of (index, url, title) to process.
+        concurrency (int): The number of concurrent workers to use.
+
+    Returns:
+        list: A list of tuples containing (index, url, title, result) for each processed URL.
+    """
+    async with async_playwright() as p:
+        log("Launching browser")
+        browser = await get_browser(p)
+
+        async def worker(queue, browser, results):
+            log("Launching worker")
+            while True:
+                try:
+                    idx, url, title = await queue.get()
+                    log(f"from queue: {idx}, {url}, {title}")
+                except asyncio.QueueEmpty:
+                    return
+                try:
+                    results.append((idx, url, title, await fetch_url(url, title, browser, destination=PAGES_DIR)))
+                finally:
+                    queue.task_done()
+
+        results = []
+        log("Launching workers")
+        tasks = [asyncio.create_task(worker(queue, browser, results))
+                 for _ in range(concurrency)]
+        log("Finishing and closing browser")
+        await queue.join()
+        for t in tasks:
+            t.cancel()
+        await browser.close()
+
+    return results
+
+
 async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=0, initial_sleep=SLEEP_TIME, destination=DOWNLOAD_DIR):
     """
     Fetches a URL using a Playwright browser context.
@@ -155,7 +356,8 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
 
         page = await browser_context.new_page()
         await page.goto(url, timeout=60000)
-        # Stealth delay
+        await asyncio.sleep(initial_sleep+random.uniform(2, 5))
+        await perform_human_like_actions(page)
         if click_xpath:
             await asyncio.sleep(initial_sleep+random.uniform(2, 5))
             log(f"Attempting to click on {click_xpath}")
@@ -178,61 +380,6 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
     except Exception as exc:
         log(f"Error fetching {url}: {exc}")
         return None
-
-
-async def fetch_queue(queue, concurrency):
-    """
-    Processes a queue of URLs concurrently using a specified number of workers.
-
-    Args:
-        queue (asyncio.Queue): The queue containing tuples of (index, url, title) to process.
-        concurrency (int): The number of concurrent workers to use.
-
-    Returns:
-        list: A list of tuples containing (index, url, title, result) for each processed URL.
-    """
-    async with async_playwright() as p:
-        log("Launching browser")
-        browser = await p.firefox.launch_persistent_context(
-            user_data_dir=FIREFOX_PROFILE_PATH,
-            headless=True,  # run headless, hide splash window
-            viewport={"width": 1366, "height": 768},
-            # removes Playwright’s default flag
-            ignore_default_args=["--enable-automation"],
-            args=[
-                # "--disable-blink-features=AutomationControlled",  # Chrome/Blink flag analogue
-                "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage"
-            ],
-            # provide a valid realistic User-Agent string for the latest Firefox on Apple Silicon
-            # match OS / browser build
-            user_agent="Mozilla/5.0 (Macintosh; ARM Mac OS X 14.4; rv:125.0) Gecko/20100101 Firefox/125.0",
-            accept_downloads=True,
-        )
-
-        async def worker(queue, browser, results):
-            log("Launching worker")
-            while True:
-                try:
-                    idx, url, title = await queue.get()
-                    log(f"from queue: {idx}, {url}, {title}")
-                except asyncio.QueueEmpty:
-                    return
-                try:
-                    results.append((idx, url, title, await fetch_url(url, title, browser, destination=PAGES_DIR)))
-                finally:
-                    queue.task_done()
-
-        results = []
-        log("Launching workers")
-        tasks = [asyncio.create_task(worker(queue, browser, results))
-                 for _ in range(concurrency)]
-        log("Finishing and closing browser")
-        await queue.join()
-        for t in tasks:
-            t.cancel()
-        await browser.close()
-
-    return results
 
 
 async def fetch_source(source_dict, browser_context=None):
