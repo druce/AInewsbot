@@ -74,8 +74,8 @@ Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AI
 - `AInewsbot_langgraph.py`: Top-level orchestrator. Follows the workflow in the image below.
   - Fetch source pages specified in `sources.yaml` (and NewsAPI) → Extract & dedupe URLs → - Classify headlines as AI or not AI, filter previously seen
   - Scrape indivdual stories & summarize →  Embed & cluster topics, order by topic
-  - Prompt LLM for newsletter → Optional re-edit → Send email (via `smtplib`)
-- `AInewsbot.sh`: Shell wrapper to activate the Conda env and launch the pipeline on a schedule
+  - Prompt LLM for newsletter → Polish / re-edit → Send email
+- `AInewsbot.sh`: Shell wrapper so you can activate the Conda env and run the pipeline on a schedule
 
 ### Configuration & Prompts
 - `sources.yaml`: List of news sources (URL, include/exclude regex, scrolling instructions, etc.).
