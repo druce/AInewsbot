@@ -3,21 +3,23 @@ Web scraping utilities.
 
 This module contains functions used for web scraping from web sites in sources.yaml and individual news stories.
 """
+import asyncio
+from ainb_utilities import log
+from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, SCREENSHOT_DIR, FIREFOX_PROFILE_PATH,
+                        MIN_TITLE_LEN, SLEEP_TIME)
+import requests
+from bs4 import BeautifulSoup
+from playwright.async_api import async_playwright
 import re
 import os
 from urllib.parse import urljoin, urlparse
 import random
-# from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
-from playwright.async_api import async_playwright
-
-from bs4 import BeautifulSoup
-import requests
-
-from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, SCREENSHOT_DIR, FIREFOX_PROFILE_PATH,
-                        MIN_TITLE_LEN, SLEEP_TIME)
-from ainb_utilities import log
-import asyncio
+# Global state for per-domain rate limiting
+_domain_locks = {}
+_domain_last_access = {}
+_RATE_LIMIT_SECONDS = 30
 
 
 def get_og_tags(url):
@@ -312,13 +314,20 @@ async def fetch_queue(queue, concurrency):
         log("Launching workers")
         tasks = [asyncio.create_task(worker(queue, browser, results))
                  for _ in range(concurrency)]
-        log("Finishing and closing browser")
         await queue.join()
+        log("Finishing and closing browser")
         for t in tasks:
             t.cancel()
         await browser.close()
 
     return results
+
+# potentially switch to chromium, didn't do in the past due to chromedriver version issues but not an issue with playwright
+# 1. test running a chrome.py with playwright and playwright-stealth and chromium, make a new profile, figure out what it uses
+# 2. headless, add stealth options, log in to eg feedly using the profile, see that it works, where profile is
+# 3. get your organic chrome user agent string and paste
+# 4. migrate existing profile settings and test. now we have a good profile.
+# 5. update get_browser below to use chrome and new profile. potentially ask o3 to look at your code and suggest a good stealth calling template.
 
 
 async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=0, initial_sleep=SLEEP_TIME, destination=DOWNLOAD_DIR):
@@ -343,16 +352,28 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
         # make output directories
         if not os.path.exists(destination):
             os.makedirs(destination)
-        # make output filename
+
         title = sanitize_filename(title)
         html_path = os.path.join(destination, f'{title}.html')
         # check if file already exists, don't re-download
         if os.path.exists(html_path):
             log(f"File already exists: {html_path}")
             return html_path
+
         # if file does not exist, download
-        # delay for when you hit same site, try not to do it at same time
-        await asyncio.sleep(random.uniform(0, 5))
+        # rate limit per domain
+        domain = urlparse(url).netloc   # get domain name
+        # Get or create a lock for this domain
+        lock = _domain_locks.setdefault(domain, asyncio.Lock())
+        async with lock:
+            now = time.monotonic()
+            last = _domain_last_access.get(domain, 0)
+            wait = _RATE_LIMIT_SECONDS - (now - last) + random.uniform(0, 20)
+            if wait > 0:
+                log(f"Waiting {wait} seconds to rate limit {domain} {now - last}")
+                await asyncio.sleep(wait)
+            # Update last access time
+            _domain_last_access[domain] = time.monotonic()
 
         page = await browser_context.new_page()
         await page.goto(url, timeout=60000)
@@ -373,7 +394,7 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
         with open(html_path, 'w', encoding='utf-8') as file:
             file.write(html_source)
         await page.close()
-        # Save screenshot
+        # Save screenshot for video
         # screenshot_path = f"{SCREENSHOT_DIR}/{title}.png"
         # await page.screenshot(path=screenshot_path)
         return html_path

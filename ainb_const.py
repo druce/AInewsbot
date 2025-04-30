@@ -19,7 +19,8 @@ if not os.path.exists(SCREENSHOT_DIR):
 # Path to browser app
 # FIREFOX_APP_PATH = '/Applications/Firefox.app'
 # Path to profile
-FIREFOX_PROFILE_PATH = '/Users/drucev/Library/Application Support/Firefox/Profiles/k8k0lcjj.default-release'
+# FIREFOX_PROFILE_PATH = '/Users/drucev/Library/Application Support/Firefox/Profiles/k8k0lcjj.default-release'
+FIREFOX_PROFILE_PATH = '/Users/drucev/Library/Application Support/Firefox/Profiles/j6cl7lzz.playwright'
 # CHROME_PROFILE_PATH = '/Users/drucev/Library/Application Support/Google/Chrome'
 # CHROME_PROFILE = 'Profile 7'
 # CHROME_DRIVER_PATH = '/Users/drucev/Library/Application Support/undetected_chromedriver/undetected_chromedriver'
@@ -123,7 +124,7 @@ CANONICAL_USER_PROMPT = """
 Topic of interest → **{topic}**
 
 Classify each story below:
-• `relevant` = true if the summary is about {topic} or refers directly to people, products, research, companies, projects, or concepts strongly associated with {topic}.
+• `relevant` = true if the summary is directly related to {topic}.
 • Otherwise `relevant` = false.
 
 """

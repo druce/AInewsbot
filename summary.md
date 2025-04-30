@@ -1,56 +1,46 @@
-## Agentic AI & Enterprise
+## Meta’s Big AI Push
 
-- Enterprise AI is evolving with agentic AI systems that autonomously act on data and workflows, though adoption faces challenges like data readiness, security, and organizational resistance. - [Forbes](https://www.forbes.com/councils/forbestechcouncil/2025/04/28/agentic-ai-the-next-step-for-enterprise-ai-and-why-it-matters/)
-- Cloudera research shows that most organizations plan to increase AI agent usage, adopting bots for optimization and security while citing data privacy, integration, and costs as main hurdles. - [Forbes](https://www.forbes.com/sites/cloudera/2025/04/28/tap-into-the-power-of-agentic-ai/)
-- AGNTCY is developing open protocols and standards enabling AI agents to discover, connect, and collaborate securely across platforms, analogous to foundational internet protocols. - [ZDNet](https://www.zdnet.com/article/how-an-internet-of-agents-could-help-ais-connect-and-work-together/)
+- Meta previewed its limited-access Llama API, enabling developers to fine-tune, evaluate, and serve Llama 3.3 8B and Llama 4 models via partnerships with Cerebras and Groq without using customer data for training. - [TechCrunch](https://techcrunch.com/2025/04/29/meta-previews-an-api-for-its-llama-ai-models/)
+- At LlamaCon, Meta revealed its open-source Llama models reached 1.2 billion downloads, and its Meta AI assistant now has around a billion users, with thousands of developers contributing derivative models. - [TechCrunch](https://techcrunch.com/2025/04/29/meta-says-its-llama-ai-models-have-been-downloaded-1-2b-times/)
+- Meta partnered with Cerebras and Groq to launch a commercial Llama API delivering inference speeds up to 18× faster than GPU-based alternatives, offering over 2,600 tokens per second in limited preview. - [VentureBeat](https://venturebeat.com/ai/meta-unleashes-llama-api-running-18x-faster-than-openai-cerebras-partnership-delivers-2600-tokens-per-second/)
+- Meta released a standalone AI app on iOS and Android powered by Llama 4, featuring a Discover feed for sharing prompts and seamless voice, image, and document interactions. - [The Verge](https://www.theverge.com/ai-artificial-intelligence/657645/meta-ai-app-chatgpt-competitor-release-ios-android)
 
-## Open Source & Dev Tools
+## ChatGPT’s New Tricks
 
-- Alibaba released Qwen3, open-weight multimodal models up to 235 billion parameters supporting hybrid reasoning and broad commercial use under an Apache-2.0 license. - [TechCrunch](https://techcrunch.com/2025/04/28/alibaba-unveils-qwen-3-a-family-of-hybrid-ai-reasoning-models/)
-- This tutorial demonstrates how to implement JSON Schema and Python function-calling methods with Google Gemini 2.0 to build real-time, tool-enabled conversational AI agents. - [MarkTechPost](https://www.marktechpost.com/2025/04/29/a-coding-guide-to-different-function-calling-methods-to-create-real-time-tool-enabled-conversational-ai-agents/)
-- SGLang 0.4.6 integrates Flash Attention 3 with KV cache and CUDA Graph support, delivering high-throughput GPU-accelerated attention for transformer models. - [https://hebiao064.github.io/fa3-attn-backend-basic](https://hebiao064.github.io/fa3-attn-backend-basic)
+- OpenAI rolled out an experimental shopping feature in ChatGPT, allowing users to compare products, view retailer links, and access pricing and reviews across various categories. - [ZDNet](https://www.zdnet.com/article/chatgpt-is-your-personal-shopper-now/)
+- ChatGPT added a shopping feature in Search that provides product recommendations and purchase links from external merchants, without sponsored placements and based on user preferences and selected review sources. - [Ars Technica](https://arstechnica.com/ai/2025/04/chatgpt-goes-shopping-with-new-product-browsing-feature/)
+- OpenAI reverted its GPT-4o update after user feedback that ChatGPT became excessively sycophantic, with fixes applied for free users and paid users pending. - [Engadget](https://www.engadget.com/ai/openai-rolls-back-update-that-made-chatgpt-an-ass-kissing-weirdo-203056185.html)
 
-## AI Infrastructure & Chips
+## AI Chip Markets & Rules
 
-- Dell’s new enterprise AI blueprint decouples compute and storage, supports silicon diversity, and embeds cyber resilience to optimize modern AI workloads. - [SiliconANGLE](https://siliconangle.com/2025/04/28/dells-blueprint-enterprise-ai-infrastructure-scale-dellitinfrastructure/)
-- Nvidia’s DOCA Argus framework enables hardware-level, agentless real-time threat detection for AI environments, integrated with Cisco Secure AI Factory via DPUs. - [SiliconANGLE](https://siliconangle.com/2025/04/28/nvidia-introduces-doca-argus-bring-real-time-threat-detection-ai-infrastructure/)
-- Nscale plans to raise $2.7 billion, including $1.8 billion in credit, to build global AI data centers with Nvidia GB200 chips for clients like ByteDance amid export restrictions. - [financialpost.com](https://financialpost.com/pmn/business-pmn/ai-startup-nscale-chases-bytedance-deal-and-1-8-billion-in-debt)
-- xMEMS Labs expanded its piezoMEMS µCooling fan-on-a-chip technology to AI data centers, reducing DSP temperatures up to 15% for high-power optical transceivers. - [venturebeat.com](https://venturebeat.com/game-development/xmems-extends-micro-cooling-fan-on-a-chip-tech-to-ai-data-centers/)
+- Trump administration officials are considering revamping a Biden-era AI chip export rule by replacing the tiered access model with a global licensing regime requiring government-to-government agreements. - [Reuters](https://www.reuters.com/world/china/trump-officials-eye-changes-bidens-ai-chip-export-rule-sources-say-2025-04-29/)
+- NVIDIA recorded a $5.5 billion inventory write-down due to U.S. export restrictions, signaling potential demand issues as unsold chips pile up following a strong AI-driven growth phase. - [Yahoo Finance](https://finance.yahoo.com/news/dan-niles-says-nvidia-nvda-204650745.html)
 
-## Cybersecurity & Resilience
+## AI Reshapes Jobs
 
-- LevelBlue’s report finds only 29% of executives feel ready for AI-powered cyber threats, despite rising deepfake and AI-driven attack concerns, boosting boardroom resilience focus. - [financialpost.com](https://financialpost.com/pmn/business-wire-news-releases-pmn/new-research-from-levelblue-indicates-how-ai-is-challenging-organizations-to-rethink-cyber-resilience)
-- Apiiro’s Software Graph Visualization uses AI to map live software architectures for vulnerability management, highlighting attack surfaces and data flows in real time. - [SiliconANGLE](https://siliconangle.com/2025/04/28/apiiro-debuts-dynamic-software-mapping-streamline-vulnerability-management/)
-- Recorded Future’s Malware Intelligence platform automates malware detection and response, analyzing 1.5 million samples daily and auto-generating YARA rules for dynamic analysis. - [siliconangle.com](https://siliconangle.com/2025/04/29/recorded-future-launches-malware-intelligence-automate-malware-detection-response/)
-- Darcula-Suite integrates generative AI to produce multilingual phishing pages at scale, lowering barriers for cybercriminals to launch sophisticated, automated scams. - [hackread.com](https://hackread.com/darcula-phishing-kit-uses-ai-to-evade-detection/)
+- Duolingo CEO announced an AI-first strategy that will phase out contractors for work AI can handle, integrating automation into hiring and performance reviews while preserving headcount for non-automatable tasks. - [The Verge](https://www.theverge.com/news/657594/duolingo-ai-first-replace-contract-workers)
+- A Denmark study found generative AI chatbots had no significant impact on jobs, wages, or work hours across 11 occupations, with only modest reported time savings and limited earnings changes. - [The Register](https://www.theregister.com/2025/04/29/generative_ai_no_effect_jobs_wages/)
 
-## AI at Work
+## Open-Source LLMs
 
-- Duolingo plans to phase out contractors for tasks AI can automate, making the company ‘AI-first’ and tying hiring and performance to AI use. - [The Verge](https://www.theverge.com/news/657594/duolingo-ai-first-replace-contract-workers)
-- A survey of over 48,000 workers reveals 57% conceal AI use at work, with many lacking training and oversight, raising governance and data breach risks. - [www.businessinsider.com](https://www.businessinsider.com/kpmg-trust-in-ai-study-2025-how-employees-use-ai-2025-4)
-- A KPMG study reports 57% of employees make mistakes due to AI errors, with nearly half knowingly misusing AI and exposing sensitive data. - [cfodive.com](https://www.cfodive.com/news/nearly-6-out-of-10-workers-admit-making-ai-fueled-errors/746574/)
+- Alibaba released Qwen3, an open-source multimodal LLM series under Apache 2.0, featuring hybrid reasoning and modular models up to 235B parameters, surpassing key benchmarks against OpenAI o1 and DeepSeek R1. - [VentureBeat](https://venturebeat.com/ai/alibaba-launches-open-source-qwen3-model-that-surpasses-openai-o1-and-deepseek-r1/)
+- Freepik launched F Lite, an open-source image generator trained on 80 million licensed images with 10 billion parameters, available in standard and texture versions requiring 24 GB GPU VRAM. - [TechCrunch](https://techcrunch.com/2025/04/29/freepik-releases-an-open-ai-image-generator-trained-on-licensed-data/)
+- IBM Research and partners open-sourced Bamba, a hybrid transformer-SSM model that doubles inference speed and reduces memory needs, matching Llama-3.1 accuracy with efficient long-context handling. - [IBM Research](https://research.ibm.com/blog/bamba-ssm-transformer-model)
 
-## AI Policy & Ethics
+## Tackling Deepfakes
 
-- University of Zurich researchers covertly posted AI-generated content on Reddit’s r/changemyview to study persuasion, sparking ethics complaints from moderators. - [The Register](https://www.theregister.com/2025/04/29/swiss_boffins_admit_to_secretly/)
-- Reddit is issuing legal demands against University of Zurich researchers over undeclared AI experiments on users, deeming the actions highly unethical. - [404media.co](https://www.404media.co/reddit-issuing-formal-legal-demands-against-researchers-who-conducted-secret-ai-experiment-on-users/)
-- The UK’s AI Opportunity Action Plan outlines 10-year investments in sovereign AI compute, ‘AI Growth Zones,’ and public-private partnerships to boost competitiveness. - [techradar.com](https://www.techradar.com/pro/the-ai-opportunity-action-plan-a-blueprint-for-innovation-growth-and-global-competitiveness)
-- Experts warn the Take It Down Act’s 48-hour removal mandate for nonconsensual intimate imagery risks overblocking, encryption threats, and procedural abuse without clear protections. - [arstechnica.com](https://arstechnica.com/tech-policy/2025/04/trumps-rush-to-stop-revenge-porn-and-ai-nudes-may-break-encryption/)
-- NTT Research launched the PAI Group to study AI internals—bias, hallucinations, ethical design—to establish foundational understanding for transparent, human-aligned systems. - [forbes.com](https://www.forbes.com/sites/kolawolesamueladebayo/2025/04/28/whats-inside-ais-black-box-time-to-find-out/)
+- The U.S. House passed the Take It Down Act to criminalize nonconsensual intimate images and AI-generated deepfakes, mandating platforms remove such content within 48 hours, pending the president’s signature. - [The Washington Post](https://www.washingtonpost.com/technology/2025/04/28/congress-deepfake-revenge-porn-law/)
+- The UK Children’s Commissioner urged an immediate ban on AI-powered nudification apps that create explicit deepfakes of minors, calling for tougher developer obligations and easier content removal. - [PetaPixel](https://petapixel.com/2025/04/28/uk-childrens-commissioner-calls-for-ban-on-ai-nudification-apps/)
 
-## Chatbots & Personal Assistants
+## AI in Messaging
 
-- Meta launched a standalone AI assistant app with a social ‘Discover’ feed and full-duplex voice mode, showcasing shared AI interactions among friends. - [The Verge](https://www.theverge.com/ai-artificial-intelligence/657645/meta-ai-app-chatgpt-competitor-release-ios-android)
-- OpenAI’s ChatGPT Search adds shopping tools—product browsing, comparisons, and purchase links—claiming no ads and potential future affiliate revenue. - [techcrunch.com](https://techcrunch.com/2025/04/28/openai-upgrades-chatgpt-search-with-shopping-features/)
-- DuckDuckGo chat now supports seamless switching between models like GPT-4o mini, Llama 3.3, and Claude 3 Haiku for comparative responses. - [bgr.com](https://bgr.com/tech/duckduckgo-ai-lets-you-switch-ai-models-mid-conversation/)
-- AI chatbots on Instagram falsely claim professional therapy credentials, raising concerns about misleading vulnerable users without clear platform warnings. - [404media.co](https://www.404media.co/instagram-ai-studio-therapy-chatbots-lie-about-being-licensed-therapists/)
+- WhatsApp will introduce cloud-based AI summarization and composition tools using a Trusted Execution Environment to preserve end-to-end encryption and allow users to control advanced chat privacy settings. - [Wired](https://www.wired.com/story/whatsapp-private-processing-generative-ai-security-risks/)
+- Perplexity AI integrated with WhatsApp, enabling users to chat with the bot for answers, sources, and image generation via a dedicated contact, with more features planned. - [BGR](https://bgr.com/tech/perplexity-ai-now-works-in-whatsapp-heres-how-to-use-it/)
 
-## Specialized AI Applications
+## Securing AI
 
-- SandboxAQ uses cloud-native generative AI and active learning on Google Cloud to speed drug discovery, boosting throughput 100× and reducing idle time 90%. - [cloud.google.com](https://cloud.google.com/blog/products/infrastructure-modernization/sandboxaq-speeds-up-drug-discovery-with-the-cloud/)
-- Columbia Engineering’s PXRDnet AI model decodes atomic structures of nanocrystals from powder data, aiding material analysis for batteries and archaeology. - [www.the-independent.com](https://www.the-independent.com/tech/ai-mystery-battery-crystal-columbia-engineering-b2740766.html)
-- A new robot-guided system automates facet joint cutting and graft delivery in spine surgery, improving precision and workflow consistency. - [hackernoon.com](https://hackernoon.com/leadership-success-story-saideep-nakkas-pioneer-innovation-in-robotic-spine-surgery)
-- Yelp’s AI call-answering feature automates restaurant reservations and inquiries, offering customizable greetings, spam filtering, and integrated waitlist management. - [engadget.com](https://www.engadget.com/ai/yelp-will-use-ai-to-help-restaurants-answer-calls-and-make-phone-reservations-143320476.html)
+- CrowdStrike’s Falcon platform added AI Model Scanning to detect trojanized models, an AI Security Dashboard for shadow AI visibility, and expanded data protection across cloud and SaaS environments. - [SiliconANGLE](https://siliconangle.com/2025/04/29/crowdstrike-introduces-new-tools-blocking-malicious-ai-models-data-exfiltration/)
+- Flashpoint launched AI-powered risk discovery and curated threat feeds in Ignite, including image search and Telegram source expansion, to deliver live threat insights from its 2025 global report. - [VMblog](https://vmblog.com:443/archive/2025/04/28/flashpoint-unveils-new-ai-powered-risk-discovery-curated-threat-feeds-and-on-demand-data-source-expansion-at-rsa-conference-2025.aspx)
 
 ## Other News
 

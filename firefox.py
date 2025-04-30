@@ -1,11 +1,6 @@
-from pathlib import Path
 from playwright.sync_api import sync_playwright
 import time
-
-PROFILE_DIR = Path.home() / ".playwright_profiles" / "nytimes_firefox"
-PROFILE_DIR.mkdir(parents=True, exist_ok=True)  # make sure it exists
-
-FIREFOX_PROFILE_PATH = '/Users/drucev/Library/Application Support/Firefox/Profiles/k8k0lcjj.default-release'
+from ainb_const import FIREFOX_PROFILE_PATH
 
 with sync_playwright() as p:
     # ⬇️ one context *per* run – but data stays on disk

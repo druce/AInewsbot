@@ -27,8 +27,7 @@ import asyncio
 import yaml
 import markdown
 from typing import TypedDict
-
-from urllib.parse import urlparse  # , urljoin
+from urllib.parse import urlparse
 
 import sqlite3
 
@@ -901,6 +900,7 @@ def fn_summarize_pages(state: AgentState, model_medium) -> AgentState:
 
 # could abstract this to a generic filter function
 # description , system_prompt, user_prompt, output_class, model, column_name, filter_value
+# then roll all filters into the rating node
 
 
 def fn_quality_filter(state: AgentState, model_medium) -> AgentState:
