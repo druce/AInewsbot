@@ -25,7 +25,7 @@ A Python notebook/script to help find the latest news about AI
 
 **AInewsbot** is an end-to-end pipeline for **AI news gathering → topic clustering → summarization → AI newsletter & podcast creation**
 
-(potentially other subjects by modifying source URLs and search keywords)
+(potentially other subjects by modifying source URLs and filters / search parameters / prompts)
 
 - Used to help generate a daily newsletter at https://www.skynetandchill.com/
 
