@@ -322,7 +322,7 @@ class Agent:
         return self.state
 
 
-def initialize_agent(model_low, model_medium, model_high, do_download=True, before_date=None, max_edits=MAX_EDITS, n_browsers=N_BROWSERS):
+def initialize_agent(model_low, model_medium, model_high, do_download=True, before_date=None, max_edits=MAX_EDITS, n_browsers=N_BROWSERS):  # pylint: disable=redefined-outer-name
     """set initial state"""
     state = AgentState({
         'AIdf': [{}],

@@ -47,10 +47,11 @@ from langchain_core.prompts import (ChatPromptTemplate,)
 # SystemMessagePromptTemplate, HumanMessagePromptTemplate)
 
 from ainb_utilities import log
-from ainb_const import (TENACITY_RETRY, MAX_INPUT_TOKENS,
-                        CANONICAL_SYSTEM_PROMPT, CANONICAL_USER_PROMPT,
-                        SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT)
-
+from ainb_const import (TENACITY_RETRY, MAX_INPUT_TOKENS,)
+from ainb_prompts import (
+    CANONICAL_SYSTEM_PROMPT, CANONICAL_USER_PROMPT,
+    SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT
+)
 ##############################################################################
 # pydantic classes used to get structured outputs from LLM
 ##############################################################################
