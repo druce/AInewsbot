@@ -97,10 +97,11 @@ Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AI
 
 ### LLM Integration
 - `ainb_llm.py`: LangChain wrappers around ChatOpenAI.
-  - Take a current dataframe of news stories (~100 per day) and apply a prompt to each asynchronously (i.e. with 100 parallel LLM calls for classificaation, topic extraction, filtering, summarization)
+  - Take a current dataframe of news stories (~100 per day) and apply a prompt to each row asynchronously (i.e. with 100 parallel LLM calls for classificaation, topic extraction, filtering, summarization)
   - Structured JSON classification (like, is it AI-related?)
   - Topic extraction
   - Summary generation
+- `ainb_prompts.py`: Prompts used when calling LLM.
 
 ### Notebooks & Experiments
 - `AInewsbot_langgraph.ipynb`: Interactive pipeline runner, topic clustering, visualizations.
