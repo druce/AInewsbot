@@ -61,9 +61,9 @@ Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AI
    pip install -r requirements.txt
    ```
 
-3. This version uses Firefox to download pages. Point to a `FIREFOX_PROFILE_PATH` in `ainb_const.py` to use your own organic profile. You can use the browser of your choice by editing the code and picking a different Playwright driver in ainb_llm.py, and pointing to the profile of your choice. You can launch an interactive browser in that profile and log in to various services, and the automation should be able to take advantage of that.
+3. This version uses Firefox to download pages. Point to a `FIREFOX_PROFILE_PATH` in `ainb_const.py` to use your own organic profile. You can use the browser of your choice by editing the code and picking a different Playwright driver in `ainb_llm.py`, and pointing to the profile of your choice. You can launch an interactive browser in that profile and log in to various services, and the automation should be able to take advantage of any login cookies saved.
 
-4. Edit start pages to download in sources.yaml. Of course, avoid scraping anything in violation of the robots.txt and TOS. Use direct APIs to market data services that you subscribe to. Some low-cost APIs such as NewsAPI or Newscatcher are implemented in my [marketdata](https://github.com/druce/marketdata) repo.
+4. Edit start pages to download in `sources.yaml`. Of course, avoid scraping anything in violation of the robots.txt and terms of service. Use direct APIs to market data services that you subscribe to. Some low-cost APIs such as NewsAPI or Newscatcher are implemented in my [marketdata](https://github.com/druce/marketdata) repo.
    
 5. Run the main script:
 
