@@ -54,7 +54,8 @@ Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AI
 
 ## Quickstart
 
-1. Copy `dotenv.txt` to `.env` and add your `OPENAI_API_KEY`.
+1. Copy `dotenv.txt` to `.env` and add your `OPENAI_API_KEY`. (Code also supports Google and Claude, fairly straightforward to modify for models supported by LangChain. But current prompts heavily optimized for latest OpenAI models with improved structured JSON outputs, reasoning, will probably need a fair bit of tuning for other models.)
+   
 2. Install dependencies:
 
    ```bash
@@ -96,7 +97,7 @@ Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AI
 - `articles.db`: Tracks previously fetched URLs to avoid re-fetching and presenting previously discussed articles.
 
 ### LLM Integration
-- `ainb_llm.py`: LangChain wrappers around ChatOpenAI.
+- `ainb_llm.py`: LangGraph wrappers around ChatOpenAI.
   - Take a current dataframe of news stories (~100 per day) and apply a prompt to each row asynchronously (i.e. with 100 parallel LLM calls for classificaation, topic extraction, filtering, summarization)
   - Structured JSON classification (like, is it AI-related?)
   - Topic extraction
