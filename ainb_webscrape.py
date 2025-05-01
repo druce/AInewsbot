@@ -4,17 +4,19 @@ Web scraping utilities.
 This module contains functions used for web scraping from web sites in sources.yaml and individual news stories.
 """
 import asyncio
-from ainb_utilities import log
-from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, SCREENSHOT_DIR, FIREFOX_PROFILE_PATH,
-                        MIN_TITLE_LEN, SLEEP_TIME)
-import requests
-from bs4 import BeautifulSoup
-from playwright.async_api import async_playwright
 import re
 import os
 from urllib.parse import urljoin, urlparse
 import random
 import time
+
+import requests
+from bs4 import BeautifulSoup
+from playwright.async_api import async_playwright
+
+from ainb_utilities import log
+from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, FIREFOX_PROFILE_PATH,  # SCREENSHOT_DIR,
+                        MIN_TITLE_LEN, SLEEP_TIME)
 
 # Global state for per-domain rate limiting
 _domain_locks = {}
@@ -39,7 +41,7 @@ def get_og_tags(url):
     """
     result_dict = {}
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=60)
         if response.status_code == 200:
             soup = BeautifulSoup(response.content, "html.parser")
             head = soup.head
@@ -293,6 +295,9 @@ async def fetch_queue(queue, concurrency):
     Returns:
         list: A list of tuples containing (index, url, title, result) for each processed URL.
     """
+    # for now, skip these domains since I don't want to log in and potentially get my account blocked
+    ignore_list = ["www.bloomberg.com", "bloomberg.com",
+                   "wsj.com", "www.wsj.com"]
     async with async_playwright() as p:
         log("Launching browser")
         browser = await get_browser(p)
@@ -305,10 +310,16 @@ async def fetch_queue(queue, concurrency):
                     log(f"from queue: {idx}, {url}, {title}")
                 except asyncio.QueueEmpty:
                     return
-                try:
-                    results.append((idx, url, title, await fetch_url(url, title, browser, destination=PAGES_DIR)))
-                finally:
+                # skip urls from domains in ignore_list, just return empty path
+                if urlparse(url).hostname in ignore_list:
+                    log(f"Skipping fetch for {idx} {url} {title}")
+                    results.append((idx, url, title, ""))
                     queue.task_done()
+                else:
+                    try:
+                        results.append((idx, url, title, await fetch_url(url, title, browser, destination=PAGES_DIR)))
+                    finally:
+                        queue.task_done()
 
         results = []
         log("Launching workers")

@@ -1,46 +1,51 @@
-## Meta’s Big AI Push
+## AI Startup Fundings
 
-- Meta previewed its limited-access Llama API, enabling developers to fine-tune, evaluate, and serve Llama 3.3 8B and Llama 4 models via partnerships with Cerebras and Groq without using customer data for training. - [TechCrunch](https://techcrunch.com/2025/04/29/meta-previews-an-api-for-its-llama-ai-models/)
-- At LlamaCon, Meta revealed its open-source Llama models reached 1.2 billion downloads, and its Meta AI assistant now has around a billion users, with thousands of developers contributing derivative models. - [TechCrunch](https://techcrunch.com/2025/04/29/meta-says-its-llama-ai-models-have-been-downloaded-1-2b-times/)
-- Meta partnered with Cerebras and Groq to launch a commercial Llama API delivering inference speeds up to 18× faster than GPU-based alternatives, offering over 2,600 tokens per second in limited preview. - [VentureBeat](https://venturebeat.com/ai/meta-unleashes-llama-api-running-18x-faster-than-openai-cerebras-partnership-delivers-2600-tokens-per-second/)
-- Meta released a standalone AI app on iOS and Android powered by Llama 4, featuring a Discover feed for sharing prompts and seamless voice, image, and document interactions. - [The Verge](https://www.theverge.com/ai-artificial-intelligence/657645/meta-ai-app-chatgpt-competitor-release-ios-android)
+- Cast AI raised $108 million in a Series C led by G2 and SoftBank Vision Fund 2 at a nearly $900 million valuation to expand R&D and market presence. - [TechCrunch](https://techcrunch.com/2025/04/30/cast-ai-raises-108m-to-get-the-max-out-of-ai-kubernetes-and-other-workloads/)
+- Gruve.ai secured $20 million in Series A funding led by Mayfield to automate IT consulting tasks with AI agents and shift to usage-based pricing. - [TechCrunch](https://techcrunch.com/2025/04/30/gruve-ai-promises-software-like-margins-for-ai-tech-consulting-disrupting-decades-old-industry/)
+- Supio raised $60 million in a round led by Sapphire Ventures to grow its AI platform for automating data analysis in personal injury law. - [TechCrunch](https://techcrunch.com/2025/04/30/supio-an-ai-powered-legal-platform-lands-60m-in-fresh-capital/)
+- Kintsugi closed an $18 million funding round led by Vertex at a $150 million valuation to advance its AI-driven sales tax compliance for SMBs. - [TechCrunch](https://techcrunch.com/2025/04/30/ai-sales-tax-startup-kintsugi-had-doubled-its-valuation-in-6-months/)
+- Persona closed a $200 million Series D round led by Ribbit Capital and Founders Fund to enhance its AI-based identity verification platform powering thousands of companies. - [Forbes](https://www.forbes.com/sites/rashishrivastava/2025/04/30/ai-is-making-the-internets-bot-problem-worse-this-2-billion-startup-is-on-the-front-lines/)
 
-## ChatGPT’s New Tricks
+## Agentic AI Platforms
 
-- OpenAI rolled out an experimental shopping feature in ChatGPT, allowing users to compare products, view retailer links, and access pricing and reviews across various categories. - [ZDNet](https://www.zdnet.com/article/chatgpt-is-your-personal-shopper-now/)
-- ChatGPT added a shopping feature in Search that provides product recommendations and purchase links from external merchants, without sponsored placements and based on user preferences and selected review sources. - [Ars Technica](https://arstechnica.com/ai/2025/04/chatgpt-goes-shopping-with-new-product-browsing-feature/)
-- OpenAI reverted its GPT-4o update after user feedback that ChatGPT became excessively sycophantic, with fixes applied for free users and paid users pending. - [Engadget](https://www.engadget.com/ai/openai-rolls-back-update-that-made-chatgpt-an-ass-kissing-weirdo-203056185.html)
+- UiPath launched Maestro, a cloud-based platform for building and orchestrating AI agent teams with governance, real-time KPI monitoring, and third-party framework support. - [SiliconANGLE](https://siliconangle.com/2025/04/30/uipath-plunges-agentic-ai-development-orchestration-platform/)
+- Akka introduced self-hosted deployment options allowing enterprises to run agentic AI applications across diverse infrastructures including Kubernetes, cloud VMs, and edge nodes. - [SiliconANGLE](https://siliconangle.com/2025/04/30/distributed-app-platform-akka-targets-agentic-ai-flexible-deployment-options/)
+- Autonomous AI agents are enabling large-scale personalized social engineering attacks, with AI-generated phishing achieving a 54% click-through rate compared to 12% for human-crafted attempts. - [TechRadar](https://www.techradar.com/pro/agentic-ai-will-accelerate-social-engineering-attacks)
 
-## AI Chip Markets & Rules
+## Cloud & Chip Battles
 
-- Trump administration officials are considering revamping a Biden-era AI chip export rule by replacing the tiered access model with a global licensing regime requiring government-to-government agreements. - [Reuters](https://www.reuters.com/world/china/trump-officials-eye-changes-bidens-ai-chip-export-rule-sources-say-2025-04-29/)
-- NVIDIA recorded a $5.5 billion inventory write-down due to U.S. export restrictions, signaling potential demand issues as unsold chips pile up following a strong AI-driven growth phase. - [Yahoo Finance](https://finance.yahoo.com/news/dan-niles-says-nvidia-nvda-204650745.html)
+- Microsoft forecast Azure cloud revenue growth of 34%-35% in Q4 after a 33% increase, and reported $21.4 billion in third-quarter capex focused on AI-related assets. - [Reuters](https://www.reuters.com/business/microsoft-beats-quarterly-revenue-estimates-ai-shift-bolsters-cloud-demand-2025-04-30/)
+- Nvidia CEO Jensen Huang said the US and China are 'very, very close' in the AI chip race and urged balanced policies to support domestic production and global sales. - [Business Insider](https://www.businessinsider.com/jensen-huang-says-us-china-very-close-ai-chip-race-2025-4)
+- Amazon introduced Nova Premier, its most capable multimodal AI model on Bedrock with a million-token context window, priced at $2.50 per million input tokens and $12.50 per million output tokens. - [TechCrunch](https://techcrunch.com/2025/04/30/amazon-launches-nova-premier-its-largest-ai-model-yet/)
 
-## AI Reshapes Jobs
+## Open-Source Model Releases
 
-- Duolingo CEO announced an AI-first strategy that will phase out contractors for work AI can handle, integrating automation into hiring and performance reviews while preserving headcount for non-automatable tasks. - [The Verge](https://www.theverge.com/news/657594/duolingo-ai-first-replace-contract-workers)
-- A Denmark study found generative AI chatbots had no significant impact on jobs, wages, or work hours across 11 occupations, with only modest reported time savings and limited earnings changes. - [The Register](https://www.theregister.com/2025/04/29/generative_ai_no_effect_jobs_wages/)
+- JetBrains released Mellum, a 4 billion-parameter open-source code-generating model on Hugging Face under Apache 2.0, optimized for developer tool integration. - [TechCrunch](https://techcrunch.com/2025/04/30/jetbrains-releases-mellum-an-open-ai-coding-model/)
+- Microsoft published three Phi-4 reasoning models on Hugging Face, offering strong reasoning capabilities and permissive licensing for low-latency applications. - [TechCrunch](https://techcrunch.com/2025/04/30/microsofts-most-capable-new-phi-4-ai-model-rivals-the-performance-of-far-larger-systems/)
+- Alibaba released Qwen2.5-Omni-3B, a 3 billion-parameter multimodal model that runs on consumer PCs with under 30 GB VRAM, retaining over 90% of its predecessor’s performance. - [VentureBeat](https://venturebeat.com/ai/qwen-swings-for-a-double-with-2-5-omni-3b-model-that-runs-on-consumer-pcs-laptops/)
 
-## Open-Source LLMs
+## AI Reasoning Breakthroughs
 
-- Alibaba released Qwen3, an open-source multimodal LLM series under Apache 2.0, featuring hybrid reasoning and modular models up to 235B parameters, surpassing key benchmarks against OpenAI o1 and DeepSeek R1. - [VentureBeat](https://venturebeat.com/ai/alibaba-launches-open-source-qwen3-model-that-surpasses-openai-o1-and-deepseek-r1/)
-- Freepik launched F Lite, an open-source image generator trained on 80 million licensed images with 10 billion parameters, available in standard and texture versions requiring 24 GB GPU VRAM. - [TechCrunch](https://techcrunch.com/2025/04/29/freepik-releases-an-open-ai-image-generator-trained-on-licensed-data/)
-- IBM Research and partners open-sourced Bamba, a hybrid transformer-SSM model that doubles inference speed and reduces memory needs, matching Llama-3.1 accuracy with efficient long-context handling. - [IBM Research](https://research.ibm.com/blog/bamba-ssm-transformer-model)
+- Reasoning models like OpenAI’s o1 and o4-mini break problems into sub-tasks, improving accuracy and auditability over traditional LLMs in applications such as logistics optimization. - [SiliconANGLE](https://siliconangle.com/2025/04/30/beyond-autocomplete-reasoning-models-raise-bar-generative-ai/)
+- Bloomberg research found retrieval-augmented generation increases unsafe outputs by 15%-30% in LLMs, urging layered safeguards and domain-specific guardrails. - [ZDNet](https://www.zdnet.com/article/rag-can-make-ai-models-riskier-and-less-reliable-new-research-shows/)
+- AI researchers are developing advanced memory architectures—such as hierarchical and retrieval-augmented systems—to enable persistent context retention and continuous learning in AI. - [Forbes](https://www.forbes.com/councils/forbestechcouncil/2025/04/30/beyond-transformers-how-memory-architectures-are-reshaping-ai/)
 
-## Tackling Deepfakes
+## AI Safety & Ethics
 
-- The U.S. House passed the Take It Down Act to criminalize nonconsensual intimate images and AI-generated deepfakes, mandating platforms remove such content within 48 hours, pending the president’s signature. - [The Washington Post](https://www.washingtonpost.com/technology/2025/04/28/congress-deepfake-revenge-porn-law/)
-- The UK Children’s Commissioner urged an immediate ban on AI-powered nudification apps that create explicit deepfakes of minors, calling for tougher developer obligations and easier content removal. - [PetaPixel](https://petapixel.com/2025/04/28/uk-childrens-commissioner-calls-for-ban-on-ai-nudification-apps/)
+- OpenAI rolled back a GPT-4o update after ChatGPT became overly flattering, citing overemphasis on short-term feedback and pledging refined training to reduce sycophantic responses. - [VentureBeat](https://venturebeat.com/ai/openai-rolls-back-chatgpts-sycophancy-and-explains-what-went-wrong/)
+- Anthropic CEO Dario Amodei warned emergent behaviors in advanced AI models risk safety without interpretability, calling for diagnostic tools and investment in research to maintain control. - [Geeky Gadgets](https://www.geeky-gadgets.com/ai-interpretability-challenges/)
+- Cybercriminals using deepfakes and AI-generated phishing have executed record financial scams, prompting experts to deploy AI-driven detection and employee training. - [TechRadar](https://www.techradar.com/pro/ai-is-fueling-the-biggest-financial-scams-evercyber-safety-experts-are-fighting-back)
 
-## AI in Messaging
+## AI in Healthcare
 
-- WhatsApp will introduce cloud-based AI summarization and composition tools using a Trusted Execution Environment to preserve end-to-end encryption and allow users to control advanced chat privacy settings. - [Wired](https://www.wired.com/story/whatsapp-private-processing-generative-ai-security-risks/)
-- Perplexity AI integrated with WhatsApp, enabling users to chat with the bot for answers, sources, and image generation via a dedicated contact, with more features planned. - [BGR](https://bgr.com/tech/perplexity-ai-now-works-in-whatsapp-heres-how-to-use-it/)
-
-## Securing AI
-
-- CrowdStrike’s Falcon platform added AI Model Scanning to detect trojanized models, an AI Security Dashboard for shadow AI visibility, and expanded data protection across cloud and SaaS environments. - [SiliconANGLE](https://siliconangle.com/2025/04/29/crowdstrike-introduces-new-tools-blocking-malicious-ai-models-data-exfiltration/)
-- Flashpoint launched AI-powered risk discovery and curated threat feeds in Ignite, including image search and Telegram source expansion, to deliver live threat insights from its 2025 global report. - [VMblog](https://vmblog.com:443/archive/2025/04/28/flashpoint-unveils-new-ai-powered-risk-discovery-curated-threat-feeds-and-on-demand-data-source-expansion-at-rsa-conference-2025.aspx)
+- AI-powered simulators are reducing regenerative medicine training time by 30% and boosting competency by 25%, while insights accelerate personalized treatments by up to 60%. - [Forbes](https://www.forbes.com/sites/solrashidi/2025/04/30/how-ai-is-accelerating-the-future-of-regenerative-medicine/)
+- UTMB’s AI analyzes all CT scans for cardiac risk and flags high-risk cases monthly, while also detecting strokes and embolisms to speed clinical intervention. - [VentureBeat](https://venturebeat.com/ai/breaking-the-intellectual-bottleneck-how-ai-is-computing-the-previously-uncomputible-in-healthcare/)
+- The EU’s AI Act treats many healthcare AI applications as high-risk under GDPR, the US relies on FDA and HIPAA guidance, and China enforces data localization in its Healthy China 2030 plan. - [Forbes](https://www.forbes.com/councils/forbesbusinesscouncil/2025/04/30/ai-in-healthcare-administration-a-comparison-of-the-eu-us-and-china/)
 
 ## Other News
 
+- Netflix is piloting an AI search engine in partnership with OpenAI for select users, enabling nuanced content discovery based on emotional and thematic criteria. - [Forbes](https://www.forbes.com/sites/damiontaylor/2025/04/30/netflixs-ai-gambit-the-tech-giant-behind-a-hollywood-facade/)
+- Duolingo used generative AI tools to launch 148 new language courses, more than doubling its offerings and expanding learning options across its supported UI languages. - [The Verge](https://www.theverge.com/news/658968/duolingo-language-courses-ai)
+- WhatsApp’s upcoming 'Private Processing' feature will let users interact with Meta AI in encrypted cloud chats that Meta and third parties cannot access. - [The Verge](https://www.theverge.com/news/658646/whatsapp-is-working-on-private-ai-chats-in-the-cloud)
+- President Trump signed an executive order to prioritize AI education in K-12, directing teacher training, AI course offerings for students, and a White House task force on AI education. - [USA Today](https://www.usatoday.com/story/news/politics/2025/04/23/trump-order-artificial-intelligence-schools-ai/83230792007/)
+- Meta launched a standalone AI assistant app powered by its Llama model, offering voice conversations and a social feed, to compete directly with ChatGPT. - [financialpost.com](https://financialpost.com/technology/tech-news/meta-launches-ai-app-compete-with-chatgpt)

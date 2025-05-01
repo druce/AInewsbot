@@ -1,9 +1,17 @@
-# Description: LLM functions for AInewsbot project
-# import os
-# import time
-import pdb
+"""
+Module of functions for interacting with Large Language Models (LLMs) in the AInewsbot project.
 
-# from collections import defaultdict
+Most importantly, apply a prompt to a each row in a dataframe asynchronously.
+
+This module provides functions for calling LLMs to classify, extract topics, summarize, and filter
+news articles. It also provides functions for calling LLMs to generate a newsletter and podcast
+based on the filtered and summarized articles.
+
+The module is designed to be used by the AInewsbot script to generate a newsletter and podcast
+based on the latest AI news.
+"""
+import pdb
+import os
 import math
 # import aiohttp
 import asyncio
@@ -137,6 +145,7 @@ class NewsArticle(BaseModel):
 
 
 class Section(BaseModel):
+    """Section class for structured output filtering"""
     section_title: str = Field(description="The title of the section")
     news_items: List[NewsArticle]
 
@@ -149,6 +158,7 @@ class Section(BaseModel):
 
 
 class Newsletter(BaseModel):
+    """Newsletter class for structured output filtering"""
     section_items: List[Section]
 
     def __str__(self):
@@ -257,7 +267,7 @@ async def async_langchain(chain, input_dict, tag="", verbose=False):
     includes a reference tag
     so if we gather 100 responses we can match them up with the input, retry if needed"""
     if verbose:
-        print(f"async_langchain: {tag}")
+        print(f"async_langchain: {tag}, {input_dict}")
     # Call the chain asynchronously
     response = await chain.ainvoke(input_dict)
 
@@ -484,65 +494,63 @@ def normalize_html(path: Path | str) -> str:
 
     All extracted content is concatenated and truncated to MAX_INPUT_TOKENS length.
     """
-    with open(path, 'r', encoding='utf-8') as file:
-        html_content = file.read()
 
-        try:
-            with open(path, 'r', encoding='utf-8') as file:
-                html_content = file.read()
-        except Exception as exc:
-            log(f"Error: {str(exc)}")
-            log(f"Skipping {path}")
-            return ""
+    try:
+        with open(path, 'r', encoding='utf-8') as file:
+            html_content = file.read()
+    except Exception as exc:
+        log(f"Error: {str(exc)}")
+        log(f"Skipping {path}")
+        return ""
 
-        # Parse the HTML content using trafilatura
-        soup = BeautifulSoup(html_content, 'html.parser')
+    # Parse the HTML content using trafilatura
+    soup = BeautifulSoup(html_content, 'html.parser')
 
-        try:
-            # Try to get the title from the <title> tag
-            title_tag = soup.find("title")
-            title_str = "Page title: " + title_tag.string.strip() + \
-                "\n" if title_tag and title_tag.string else ""
-        except Exception as exc:
-            log(str(exc), "clean_html page_title")
+    try:
+        # Try to get the title from the <title> tag
+        title_tag = soup.find("title")
+        title_str = "Page title: " + title_tag.string.strip() + \
+            "\n" if title_tag and title_tag.string else ""
+    except Exception as exc:
+        log(str(exc), "clean_html page_title")
 
-        try:
-            # Try to get the title from the Open Graph meta tag
-            og_title_tag = soup.find("meta", property="og:title")
-            if not og_title_tag:
-                og_title_tag = soup.find(
-                    "meta", attrs={"name": "twitter:title"})
-            og_title = og_title_tag["content"].strip(
-            ) + "\n" if og_title_tag and og_title_tag.get("content") else ""
-            og_title = "Social card title: " + og_title if og_title else ""
-        except Exception as exc:
-            log(str(exc), "clean_html og_title")
+    try:
+        # Try to get the title from the Open Graph meta tag
+        og_title_tag = soup.find("meta", property="og:title")
+        if not og_title_tag:
+            og_title_tag = soup.find(
+                "meta", attrs={"name": "twitter:title"})
+        og_title = og_title_tag["content"].strip(
+        ) + "\n" if og_title_tag and og_title_tag.get("content") else ""
+        og_title = "Social card title: " + og_title if og_title else ""
+    except Exception as exc:
+        log(str(exc), "clean_html og_title")
 
-        try:
-            # get summary from social media cards
-            og_desc_tag = soup.find("meta", property="og:description")
-            if not og_desc_tag:
-                # Extract the Twitter description
-                og_desc_tag = soup.find(
-                    "meta", attrs={"name": "twitter:description"})
-            og_desc = og_desc_tag["content"] + "\n" if og_desc_tag else ""
-            og_desc = 'Social card description: ' + og_desc if og_desc else ""
-        except Exception as exc:
-            log(str(exc), "clean_html og_desc")
+    try:
+        # get summary from social media cards
+        og_desc_tag = soup.find("meta", property="og:description")
+        if not og_desc_tag:
+            # Extract the Twitter description
+            og_desc_tag = soup.find(
+                "meta", attrs={"name": "twitter:description"})
+        og_desc = og_desc_tag["content"] + "\n" if og_desc_tag else ""
+        og_desc = 'Social card description: ' + og_desc if og_desc else ""
+    except Exception as exc:
+        log(str(exc), "clean_html og_desc")
 
-        # Get text and strip leading/trailing whitespace
-        log(title_str + og_title + og_desc, "clean_html")
-        plaintext = ""
-        try:
-            plaintext = trafilatura.extract(html_content)
-            plaintext = plaintext.strip() if plaintext else ""
-        except Exception as exc:
-            log(str(exc), "clean_html trafilatura")
+    # Get text and strip leading/trailing whitespace
+    log(title_str + og_title + og_desc, "clean_html")
+    plaintext = ""
+    try:
+        plaintext = trafilatura.extract(html_content)
+        plaintext = plaintext.strip() if plaintext else ""
+    except Exception as exc:
+        log(str(exc), "clean_html trafilatura")
 
-        visible_text = title_str + og_title + og_desc + plaintext
-        visible_text = trunc_tokens(
-            visible_text, model='gpt-4o', maxtokens=MAX_INPUT_TOKENS)
-        return visible_text
+    visible_text = title_str + og_title + og_desc + plaintext
+    visible_text = trunc_tokens(
+        visible_text, model='gpt-4o', maxtokens=MAX_INPUT_TOKENS)
+    return visible_text
 
 
 async def fetch_all_summaries(aidf, model):
@@ -580,32 +588,47 @@ async def fetch_all_summaries(aidf, model):
     )
     parser = StrOutputParser()
     chain = prompt_template | model | parser
+    log(f"Attempting to fetch summaries for {len(aidf)} articles")
+
+    count_valid, count_no_path, count_no_content = 0, 0, 0
     for row in aidf.itertuples():
         path, rowid = row.path, row.id
         article_str = ""
-        print(path)
-        if path:
-            article_str = normalize_html(path)
-            if article_str.startswith("no content"):
-                article_str = ""
-        else:
+        if not path:
+            count_no_path += 1
             log(f"No path for {rowid}")
-        if article_str:
-            log(f"Queuing {rowid}: {article_str[:50]}...")
-            task = asyncio.create_task(async_langchain(
-                chain, {"article": article_str}, tag=rowid, verbose=True))
-            tasks.append(task)
-        else:
-            log(f"No article_str for {rowid}")
+            continue
+
+        # check if path exists
+        if not os.path.exists(path):
+            log(f"Invalid path for {rowid}")
+            count_no_path += 1
+            continue
+
+        article_str = normalize_html(path)
+        if len(article_str.strip()) == 0 or article_str.startswith("no content"):
+            log(f"No content for {rowid}")
+            count_no_content += 1
+            continue
+
+        # valid article to summarize
+        count_valid += 1
+        log(f"Queuing {rowid}: {article_str[:50]}...")
+        task = asyncio.create_task(async_langchain(
+            chain, {"article": article_str}, tag=rowid, verbose=True))
+        tasks.append(task)
+
+    log(f"{count_valid} valid articles, {count_no_path} no path, {count_no_content} no content")
 
     try:
+        log(f"Fetching summaries for {len(tasks)} articles")
         responses = await asyncio.gather(*tasks)
         log(f"Received {len(responses)} summaries")
+        for summary, rowid, article_len in responses:
+            log(f"Summary for {rowid} (length {article_len}): {summary}")
     except Exception as e:
-        log(f"Error fetching summary: {str(e)}")
+        log(f"Error fetching summaries: {str(e)}")
 
-    for summary, rowid, article_len in responses:
-        log(f"Summary for {rowid} (length {article_len}): {summary}")
     return responses
 
 

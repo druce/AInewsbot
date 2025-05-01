@@ -30,9 +30,10 @@ Usage:
 Run this script directly to execute the AInewsbot workflow, or import it as a module
 to use the `Agent` class and related functions programmatically.
 """
-import nest_asyncio
-import uuid
 import argparse
+import uuid
+
+import nest_asyncio
 
 import pandas as pd
 

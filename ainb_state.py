@@ -16,20 +16,19 @@ Key Features:
 - Use of machine learning models for clustering, topic extraction, and content summarization.
 - Modular design for easy customization and extension of the pipeline.
 """
-import pdb
+# import pdb
 import os
-import json
 import re
 import pickle
 from datetime import datetime, timedelta
 from collections import Counter, defaultdict
 import asyncio
-import yaml
-import markdown
 from typing import TypedDict
 from urllib.parse import urlparse
-
 import sqlite3
+
+import yaml
+import markdown
 
 import requests
 
@@ -54,7 +53,7 @@ from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
                       StoryRatings,  # StoryRatings,
                       Newsletter
                       )
-from ainb_sllm import sfetch_all_summaries
+# from ainb_sllm import sfetch_all_summaries
 from ainb_webscrape import (
     parse_file, fetch_queue, fetch_source_queue)
 from ainb_utilities import (log, delete_files, filter_unseen_urls_db,
@@ -391,14 +390,14 @@ def fn_extract_newsapi(state: AgentState) -> AgentState:
     https://newsapi.org/docs/get-started
     from newsapi import NewsApiClient
     """
-    NEWSAPI_API_KEY = os.environ['NEWSAPI_API_KEY']
+    NEWS_API_KEY = os.environ['NEWSAPI_API_KEY']
     aidf = pd.DataFrame(state['AIdf'])
 
-    pageSize = 100
+    page_size = 100
     q = 'artificial intelligence'
     date_24h_ago = datetime.now() - timedelta(hours=24)
     formatted_date = date_24h_ago.strftime("%Y-%m-%dT%H:%M:%S")
-    log(f"Fetching top {pageSize} stories matching {q} since {formatted_date} from NewsAPI")
+    log(f"Fetching top {page_size} stories matching {q} since {formatted_date} from NewsAPI")
 
     baseurl = 'https://newsapi.org/v2/everything'
 
@@ -408,7 +407,7 @@ def fn_extract_newsapi(state: AgentState) -> AgentState:
         'from': formatted_date,
         'language': 'en',
         'sortBy': 'relevancy',
-        'apiKey': NEWSAPI_API_KEY,
+        'apiKey': NEWS_API_KEY,
         'pageSize': 100
     }
 
@@ -680,8 +679,7 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
 
     log("Cleaning and formatting topics")
     # pdb.set_trace()
-    topics_df["topics"] = topics_df.apply(
-        lambda t: clean_topics(t), axis=1)
+    topics_df["topics"] = topics_df.apply(clean_topics, axis=1)
     topics_df["topic_str"] = topics_df.apply(
         lambda row: ", ".join(row.topics), axis=1)
 
@@ -1006,6 +1004,25 @@ def fn_rate_articles(state: AgentState) -> AgentState:
         - aidf['low_quality'] \
         # redo bullets with topics
     aidf["bullet"] = aidf.apply(make_bullet, axis=1)
+
+    # insert into db to keep a record and eventually train models on summaries
+    # Only keep the columns you want to insert
+    cols = ['url', 'src', 'site_name', 'hostname',
+            'title', 'actual_url', 'bullet', 'rating']
+    records = aidf[cols].to_records(index=False)
+    rows = list(records)
+
+    conn = sqlite3.connect('articles.db')
+    cursor = conn.cursor()
+    insert_sql = """
+    INSERT INTO daily_summaries
+    (url, src, site_name, hostname, title, actual_url, bullet, rating)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """
+    cursor.executemany(insert_sql, rows)
+    conn.commit()
+    conn.close()
+
     state["AIdf"] = aidf.to_dict(orient='records')
     return state
 

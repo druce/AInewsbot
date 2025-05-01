@@ -1,4 +1,6 @@
-# Description: Utility functions for the AInewsbot project.
+"""
+Utility functions for the AInewsbot project.
+"""
 import logging
 import os
 import unicodedata

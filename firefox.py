@@ -1,5 +1,12 @@
-from playwright.sync_api import sync_playwright
+
+"""
+Run an interactive playwright session to log in using a persistent browser profile.
+Test profile, add logins and cookies
+"""
 import time
+
+from playwright.sync_api import sync_playwright
+
 from ainb_const import FIREFOX_PROFILE_PATH
 
 with sync_playwright() as p:
