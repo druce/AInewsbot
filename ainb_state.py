@@ -1,4 +1,3 @@
-
 """
 This module contains all the state functions for LangGraph nodes used in the AI News Bot project.
 
@@ -904,90 +903,64 @@ def fn_summarize_pages(state: AgentState, model_medium) -> AgentState:
 # then roll all filters into the rating node
 
 
-def fn_quality_filter(state: AgentState, model_medium) -> AgentState:
-    "rate low quality articles using a prompt"
-    log("Starting quality filter")
-    aidf = pd.DataFrame(state['AIdf'])
-    qdf = aidf[["id", "bullet"]].copy().rename(columns={"bullet": "summary"})
+def filter_aidf(aidf: pd.DataFrame, model, system_prompt, user_prompt, output_column: str, input_column: str, input_column_rename: str = "") -> AgentState:
+    """Generic filter for AIdf rows using a prompt."""
+    log(f"Starting {output_column} filter")
+    qdf = aidf[['id', input_column]].copy()
+    if input_column_rename:
+        qdf = qdf.rename(columns={input_column: input_column_rename})
     pages = paginate_df(qdf, maxpagelen=50)
     responses = asyncio.run(process_dataframes(
         pages,
-        LOW_QUALITY_SYSTEM_PROMPT,
-        LOW_QUALITY_USER_PROMPT,
+        system_prompt,
+        user_prompt,
         StoryRatings,
-        model=model_medium,
+        model=model,
     ))
-    response_dict = {}
-    for response_obj in responses:
-        response_dict[response_obj.id] = response_obj.rating
-    aidf["low_quality"] = aidf["id"].map(response_dict.get)
-    counts_dict = aidf['low_quality'].value_counts().to_dict()
-    log(f"value counts: {counts_dict}")
-    # aidf = aidf.loc[aidf['low_quality'] != 1]
-    log(f"retained {len(aidf)} articles after applying quality filter")
-    state['AIdf'] = aidf.to_dict(orient='records')
-
-    return state
+    response_dict = {resp.id: resp.rating for resp in responses}
+    return response_dict
 
 
-def fn_on_topic_filter(state: AgentState, model_medium) -> AgentState:
-    "rate relevant articles using a prompt"
-
-    log("Starting on-topic filter")
-    aidf = pd.DataFrame(state['AIdf'])
-    qdf = aidf[["id", "bullet"]].copy().rename(columns={"bullet": "summary"})
-    pages = paginate_df(qdf, maxpagelen=50)
-    responses = asyncio.run(process_dataframes(
-        pages,
-        ON_TOPIC_SYSTEM_PROMPT,
-        ON_TOPIC_USER_PROMPT,
-        StoryRatings,
-        model=model_medium,
-    ))
-    response_dict = {}
-    for response_obj in responses:
-        response_dict[response_obj.id] = response_obj.rating
-    aidf["on_topic"] = aidf["id"].map(response_dict.get)
-    counts_dict = aidf['on_topic'].value_counts().to_dict()
-    log(f"value counts: {counts_dict}")
-    # aidf = aidf.loc[aidf['on_topic'] != 0]
-    log(f"retained {len(aidf)} articles after applying on-topic filter")
-    state['AIdf'] = aidf.to_dict(orient='records')
-
-    return state
+# def fn_quality_filter(state: AgentState, model_medium) -> AgentState:
+#     "rate low quality articles using a prompt"
+#     aidf = pd.DataFrame(state['AIdf'])
+#     response_dict = filter_aidf(aidf, model_medium, LOW_QUALITY_SYSTEM_PROMPT,
+#                                 LOW_QUALITY_USER_PROMPT, "low_quality", "bullet", "summary")
+#     aidf["low_quality"] = aidf["id"].map(response_dict.get)
+#     counts = aidf["low_quality"].value_counts().to_dict()
+#     log(f"value counts: {counts}")
+#     state['AIdf'] = aidf.to_dict(orient='records')
+#     return state
 
 
-def fn_importance_filter(state: AgentState, model_medium) -> AgentState:
-    "rate important news articles using a prompt"
-
-    log("Starting importance filter")
-    aidf = pd.DataFrame(state['AIdf'])
-    qdf = aidf[["id", "bullet"]].copy().rename(columns={"bullet": "summary"})
-    pages = paginate_df(qdf, maxpagelen=50)
-    responses = asyncio.run(process_dataframes(
-        pages,
-        IMPORTANCE_SYSTEM_PROMPT,
-        IMPORTANCE_USER_PROMPT,
-        StoryRatings,
-        model=model_medium,
-    ))
-    response_dict = {}
-    for response_obj in responses:
-        response_dict[response_obj.id] = response_obj.rating
-    aidf["importance"] = aidf["id"].map(response_dict.get)
-    counts_dict = aidf['importance'].value_counts().to_dict()
-    log(f"value counts: {counts_dict}")
-    # aidf = aidf.loc[aidf['importance'] != 0]
-    log(f"retained {len(aidf)} articles after applying importance filter")
-    state['AIdf'] = aidf.to_dict(orient='records')
-    return state
+# def fn_on_topic_filter(state: AgentState, model_medium) -> AgentState:
+#     "rate relevant articles using a prompt"
+#     aidf = pd.DataFrame(state['AIdf'])
+#     response_dict = filter_aidf(aidf, model_medium, ON_TOPIC_SYSTEM_PROMPT,
+#                                 ON_TOPIC_USER_PROMPT, "on_topic", "bullet", "summary")
+#     aidf["on_topic"] = aidf["id"].map(response_dict.get)
+#     counts = aidf["on_topic"].value_counts().to_dict()
+#     log(f"value counts: {counts}")
+#     state['AIdf'] = aidf.to_dict(orient='records')
+#     return state
 
 
-def fn_rate_articles(state: AgentState) -> AgentState:
+# def fn_importance_filter(state: AgentState, model_medium) -> AgentState:
+#     "rate important news articles using a prompt"
+#     aidf = pd.DataFrame(state['AIdf'])
+#     response_dict = filter_aidf(aidf, model_medium, IMPORTANCE_SYSTEM_PROMPT,
+#                                 IMPORTANCE_USER_PROMPT, "importance", "bullet", "summary")
+#     aidf["importance"] = aidf["id"].map(response_dict.get)
+#     counts = aidf["importance"].value_counts().to_dict()
+#     log(f"value counts: {counts}")
+#     state['AIdf'] = aidf.to_dict(orient='records')
+#     return state
+
+
+def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     """
     calculate ratings for articles
     """
-    log("Calculating article ratings")
     aidf = pd.DataFrame(state['AIdf']).fillna({
         'article_len': 1,
         'reputation': 0,
@@ -995,6 +968,29 @@ def fn_rate_articles(state: AgentState) -> AgentState:
         'importance': 0,
         'low_quality': 0,
     })
+    log(f"Calculating article rating for {len(aidf)} articles")
+
+    # low quality articles
+    response_dict = filter_aidf(aidf, model_medium, LOW_QUALITY_SYSTEM_PROMPT,
+                                LOW_QUALITY_USER_PROMPT, "low_quality", "bullet", "summary")
+    aidf["low_quality"] = aidf["id"].map(response_dict.get)
+    counts = aidf["low_quality"].value_counts().to_dict()
+    log(f"low quality articles: {counts}")
+
+    # on topic articles
+    response_dict = filter_aidf(aidf, model_medium, ON_TOPIC_SYSTEM_PROMPT,
+                                ON_TOPIC_USER_PROMPT, "on_topic", "bullet", "summary")
+    aidf["on_topic"] = aidf["id"].map(response_dict.get)
+    counts = aidf["on_topic"].value_counts().to_dict()
+    log(f"on topic articles: {counts}")
+
+    # important articles
+    response_dict = filter_aidf(aidf, model_medium, IMPORTANCE_SYSTEM_PROMPT,
+                                IMPORTANCE_USER_PROMPT, "importance", "bullet", "summary")
+    aidf["importance"] = aidf["id"].map(response_dict.get)
+    counts = aidf["importance"].value_counts().to_dict()
+    log(f"important articles: {counts}")
+
     # len < 100 -> 0
     # len > 10000 -> 2
     # in between log10(x) - 2
@@ -1004,8 +1000,11 @@ def fn_rate_articles(state: AgentState) -> AgentState:
         + aidf['adjusted_len'] \
         + aidf['on_topic'] \
         + aidf['importance'] \
-        - aidf['low_quality'] \
-        # redo bullets with topics
+        - aidf['low_quality']
+    # filter out low rated articles
+    aidf = aidf[aidf['rating'] >= 2].copy()
+    log(f"articles after rating: {len(aidf)}")
+    # redo bullets with topics and rating
     aidf["bullet"] = aidf.apply(make_bullet, axis=1)
 
     # insert into db to keep a record and eventually train models on summaries

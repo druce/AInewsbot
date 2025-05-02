@@ -58,9 +58,6 @@ from ainb_state import (AgentState,
                         fn_topic_clusters,
                         fn_download_pages,
                         fn_summarize_pages,
-                        fn_quality_filter,
-                        fn_on_topic_filter,
-                        fn_importance_filter,
                         fn_rate_articles,
                         fn_propose_topics,
                         fn_compose_summary,
@@ -138,9 +135,6 @@ class Agent:
         graph_builder.add_node("summarize_pages", self.summarize_pages)
         graph_builder.add_node("topic_analysis", self.topic_analysis)
         graph_builder.add_node("topic_clusters", self.topic_clusters)
-        graph_builder.add_node("quality_filter", self.quality_filter)
-        graph_builder.add_node("on_topic_filter", self.on_topic_filter)
-        graph_builder.add_node("importance_filter", self.importance_filter)
         graph_builder.add_node("rate_articles", self.rate_articles)
         graph_builder.add_node("propose_topics", self.propose_topics)
         graph_builder.add_node("compose_summary", self.compose_summary)
@@ -157,10 +151,7 @@ class Agent:
         graph_builder.add_edge("download_pages", "summarize_pages")
         graph_builder.add_edge("summarize_pages", "topic_analysis")
         graph_builder.add_edge("topic_analysis", "topic_clusters")
-        graph_builder.add_edge("topic_clusters", "quality_filter")
-        graph_builder.add_edge("quality_filter", "on_topic_filter")
-        graph_builder.add_edge("on_topic_filter", "importance_filter")
-        graph_builder.add_edge("importance_filter", "rate_articles")
+        graph_builder.add_edge("topic_clusters", "rate_articles")
         graph_builder.add_edge("rate_articles", "propose_topics")
         graph_builder.add_edge("propose_topics", "compose_summary")
         graph_builder.add_edge("compose_summary", "rewrite_summary")
@@ -244,27 +235,10 @@ class Agent:
         self.state = fn_topic_clusters(state, model)
         return self.state
 
-    def quality_filter(self, state: AgentState, model_str: str = "") -> AgentState:
-        """filter low-quality stories"""
-        model = get_model(model_str) if model_str else self.model_medium
-        self.state = fn_quality_filter(state, model)
-        return self.state
-
-    def on_topic_filter(self, state: AgentState, model_str: str = "") -> AgentState:
-        """filter off_topic stories"""
-        model = get_model(model_str) if model_str else self.model_medium
-        self.state = fn_on_topic_filter(state, model)
-        return self.state
-
-    def importance_filter(self, state: AgentState, model_str: str = "") -> AgentState:
-        """filter important stories"""
-        model = get_model(model_str) if model_str else self.model_medium
-        self.state = fn_importance_filter(state, model)
-        return self.state
-
-    def rate_articles(self, state: AgentState) -> AgentState:
+    def rate_articles(self, state: AgentState, model_str: str = "") -> AgentState:
         """set article ratings"""
-        self.state = fn_rate_articles(state)
+        model = get_model(model_str) if model_str else self.model_medium
+        self.state = fn_rate_articles(state, model)
         return self.state
 
     def propose_topics(self, state: AgentState, model_str: str = "") -> AgentState:

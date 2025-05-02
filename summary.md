@@ -1,51 +1,55 @@
-## New AI Model Frontiers
+## AI Startup Fundraises
 
-- Microsoft released the open-weight Phi-4-Reasoning-Plus model, designed for deep structured reasoning and long contexts, outperforming larger models on math and logic benchmarks. - [VentureBeat](https://venturebeat.com/ai/microsoft-launches-phi-4-reasoning-plus-a-small-powerful-open-weights-reasoning-model/)
-- DeepSeek-AI published DeepSeek-Prover-V2, an open-source LLM that decomposes theorems into subgoals and uses reinforcement learning to generate formal proofs with high benchmark pass rates. - [MarkTechPost](https://www.marktechpost.com/2025/05/01/deepseek-ai-released-deepseek-prover-v2-an-open-source-large-language-model-designed-for-formal-theorem-proving-through-subgoal-decomposition-and-reinforcement-learning/)
-- xAI will roll out Grok 3.5 beta to SuperGrok subscribers, offering enhanced technical reasoning, DeepSearch, image generation, and earlier access powered by increased training compute. - [www.nextbigfuture.com](https://www.nextbigfuture.com/2025/04/next-week-xai-releases-grok-3-5-to-supergrok-subscribers.html)
-- FutureHouse introduced four AI tools for scientific literature search and experiment planning, but acknowledges potential hallucinations and says no novel discoveries have yet been produced. - [TechCrunch](https://techcrunch.com/2025/05/01/futurehouse-releases-ai-tools-it-claims-can-accelerate-science/)
+- Cast AI raised $108 million in a Series C led by G2 Venture Partners and SoftBank Vision Fund 2 to expand its AI workload optimization platform across cloud and on-premise infrastructures. - [TechCrunch](https://techcrunch.com/2025/04/30/cast-ai-raises-108m-to-get-the-max-out-of-ai-kubernetes-and-other-workloads/)
+- Kintsugi secured $18 million in Series B funding at a $150 million valuation to automate global sales tax compliance for SMBs, serving 2,400 customers and partnering with Vertex. - [TechCrunch](https://techcrunch.com/2025/04/30/ai-sales-tax-startup-kintsugi-had-doubled-its-valuation-in-6-months/)
+- Plenful raised $50 million in Series B co-led by Arena Holdings and Mitchell Rales to automate healthcare administrative workflows like prior authorizations and 340B compliance. - [Forbes](https://www.forbes.com/sites/shimiteobialo/2025/04/30/plenful-raises-50m-to-transform-healthcare-providers-back-office-with-ai-saving-millions/)
+- Supio landed $60 million led by Sapphire Ventures for its AI legal analysis platform focused on personal injury law, doubling headcount and quadrupling annual recurring revenue. - [TechCrunch](https://techcrunch.com/2025/04/30/supio-an-ai-powered-legal-platform-lands-60m-in-fresh-capital/)
 
-## Building AI Infrastructure
+## New AI Model Releases
 
-- Astronomer secured $93 million to expand its Apache Airflow-based Astro platform for orchestrating complex AI data workflows at enterprise scale. - [VentureBeat](https://venturebeat.com/ai/astronomer-93m-raise-underscores-a-new-reality-orchestration-is-king-in-ai-infrastructure/)
-- Nutanix announced AI-ready infrastructure solutions like GPT-in-a-Box 2.0, integrating compute, storage, and inference management across datacenter, cloud, and edge for reduced AI TCO. - [The Register](https://www.theregister.com/2025/05/01/ai_infrastructure_nutanix/)
-- AWS outlined best practices for scaling generative AI to production, emphasizing business alignment, compliance, DevOps pipelines, monitoring, and ethical governance across industries. - [AWS](https://aws.amazon.com/blogs/machine-learning/insights-in-implementing-production-ready-solutions-with-generative-ai/)
-- Hyperparam launched a browser-based suite for exploring and labeling ML datasets, including Apache Parquet and Iceberg readers, to support private, serverless data workflows. - [hyperparam.app](https://hyperparam.app/about/opensource)
+- JetBrains published Mellum, a 4 billion-parameter open-source coding model on Hugging Face under an Apache 2.0 license, trained on permissively licensed code and requiring fine-tuning. - [TechCrunch](https://techcrunch.com/2025/04/30/jetbrains-releases-mellum-an-open-ai-coding-model/)
+- Microsoft released three Phi 4 reasoning models (3.8–14 billion parameters) on Hugging Face, optimized for complex reasoning tasks on lightweight devices. - [TechCrunch](https://techcrunch.com/2025/04/30/microsofts-most-capable-new-phi-4-ai-model-rivals-the-performance-of-far-larger-systems/)
+- Microsoft Research introduced Phi-4-reasoning-plus, a 14 billion-parameter open-weight model for structured reasoning, available under the MIT license for unrestricted commercial use. - [VentureBeat](https://venturebeat.com/ai/microsoft-launches-phi-4-reasoning-plus-a-small-powerful-open-weights-reasoning-model/)
+- DeepSeek-AI released DeepSeek-Prover-V2, an open-source LLM for formal theorem proving achieving an 88.9% pass rate on MiniF2F and strong performance on competition math benchmarks. - [MarkTechPost](https://www.marktechpost.com/2025/05/01/deepseek-ai-released-deepseek-prover-v2-an-open-source-large-language-model-designed-for-formal-theorem-proving-through-subgoal-decomposition-and-reinforcement-learning/)
+- Alibaba launched Qwen2.5-Omni-3B, a 3 billion-parameter multimodal model for consumer PCs that retains over 90% of its larger sibling's performance across text, audio, image, and video tasks. - [VentureBeat](https://venturebeat.com/ai/qwen-swings-for-a-double-with-2-5-omni-3b-model-that-runs-on-consumer-pcs-laptops/)
 
-## Security AI Arsenal
+## AI Infrastructure & Cloud
 
-- Cribl partnered with Palo Alto Networks to integrate Cortex XSIAM for securing agentic AI and enterprise data across multicloud environments with scalable data pipelines. - [SiliconANGLE](https://siliconangle.com/2025/05/01/cribli-brings-xsiam-secure-agentic-ai-enterprise-data-rsac/)
-- NinjaOne launched Patch Sentiment, which analyzes social media and forums to prioritize software updates by real-world impact amid escalating AI-driven cyber threats. - [SiliconANGLE](https://siliconangle.com/2025/04/30/vulnerability-management-trust-transparency-take-center-stage-security-rsac/)
-- Veeam Threat Hunter combines real-time monitoring and threat intelligence on backup data, and introduces explainable AI through Veeam Guardian for proactive cyber resilience. - [SiliconANGLE](https://siliconangle.com/2025/05/01/veeam-threat-hunter-enhancing-cyber-resilience-proactive-security-solutions-rsac/)
-- Radware reported that bots accounted for 57% of e-commerce traffic in 2024, using AI-enhanced tactics that demand advanced bot detection measures. - [TechRadar](https://www.techradar.com/pro/its-official-the-majority-of-visitors-to-online-shops-and-retailers-are-now-bots-not-humans-heres-why-it-matters-to-you-and-me)
+- AWS Bedrock introduced Nova Premier, a multimodal model processing text, images, and video with a 1 million token context window, priced per input and output tokens. - [TechCrunch](https://techcrunch.com/2025/04/30/amazon-launches-nova-premier-its-largest-ai-model-yet/)
+- A McKinsey report warns that up to $7.9 trillion in planned AI datacenter investment by 2030 risks oversupply due to unclear future compute demand. - [The Register](https://www.theregister.com/2025/05/01/ai_dc_investment_gamble/)
+- Astronomer raised $93 million Series D for its Apache Airflow-based Astro platform to orchestrate AI data workflows, achieving 150% YoY SaaS revenue growth. - [VentureBeat](https://venturebeat.com/ai/astronomer-93m-raise-underscores-a-new-reality-orchestration-is-king-in-ai-infrastructure/)
+- Microsoft forecast 34–35% Azure revenue growth, reporting Q3 cloud revenue up 33%—with 16 points from AI—and increased AI datacenter capex to $21.4 billion. - [Reuters](https://www.reuters.com/business/microsoft-beats-quarterly-revenue-estimates-ai-shift-bolsters-cloud-demand-2025-04-30/)
 
-## AI at the Checkout
+## AI Agents & Integrations
 
-- Visa is exploring AI agents accessing customer credit cards to autonomously make transactions, with implementation and security details yet to be disclosed. - [financialpost.com](https://financialpost.com/pmn/visa-wants-to-give-artificial-intelligence-agents-your-credit-card)
-- Visa’s CEO predicts AI shopping agents will reshape advertising and payments, prompting evolution in online shopping and payment integration. - [Live Mint](https://www.livemint.com/companies/news/visa-ceo-says-ai-shopping-to-push-advertising-payments-to-adapt-11746038090871.html)
-- AI-driven fraud detection and federated learning pilots by SWIFT and Google Cloud are enhancing cross-border financial crime prevention through global cooperation. - [www.finextra.com](https://www.finextra.com/blogposting/28379/cross-border-fraud-how-ai-and-international-cooperation-are-combating-financial-crime)
+- Anthropic launched Integrations for Claude, connecting it to apps like Jira, Zapier, and Confluence, and expanded Advanced Research in beta for enterprise plans. - [TechCrunch](https://techcrunch.com/2025/05/01/anthropic-lets-you-connect-apps-to-claude/)
+- Visa launched Intelligent Commerce, providing AI-ready credit cards and APIs for developers to enable autonomous shopping by AI agents with tokenized security. - [ZDNet](https://www.zdnet.com/article/visa-preps-ai-ready-credit-cards-for-automated-shopping-transactions/)
+- AWS is developing a new AI-assisted coding service that integrates features similar to Cursor to enhance developer workflows beyond existing coding assistants. - [The Information](https://www.theinformation.com/articles/amazon-takes-aim-cursor-new-ai-coding-service)
+- Google CEO Sundar Pichai confirmed a mid-2025 deal to integrate Gemini AI into iPhones, enabling Siri to offload complex queries to Google’s chatbot service. - [The Verge](https://www.theverge.com/news/658770/google-gemini-apple-iphone-deal-ai)
 
-## Chip Wars & Controls
+## Chip Controls & Geopolitics
 
-- Nvidia denied Anthropic’s claims of advanced chip smuggling to China, criticizing such stories as "tall tales" amid new US export restrictions. - [PYMNTS](https://www.pymnts.com/artificial-intelligence-2/2025/nvidia-accuses-anthropic-of-spinning-tall-tales-about-chip-restrictions/)
-- US export controls on mid-tier and high-end GPUs could cost Nvidia and AMD billions while spurring China’s domestic chip development. - [Foreign Policy](http://foreignpolicy.com/2025/04/30/h20-nvidia-chips-ai-china-restrictions/)
+- Anthropic called for stricter US GPU export controls to prevent smuggling to China and other countries, urging enhanced enforcement under the AI Diffusion Rule. - [The Register](https://www.theregister.com/2025/05/01/anthropic_limit_gpus/)
+- Nvidia CEO Jensen Huang said the US and China are "very, very close" in the AI chip race, advocating policies for global diffusion of US-made chips. - [Business Insider](https://www.businessinsider.com/jensen-huang-says-us-china-very-close-ai-chip-race-2025-4)
+- Nvidia and Anthropic clashed over US chip export restrictions, with Nvidia dismissing smuggling claims—like hiding GPUs in prosthetic baby bumps—as “tall tales.” - [CNBC](https://www.cnbc.com/2025/05/01/nvidia-and-anthropic-clash-over-us-ai-chip-restrictions-on-china.html)
+- New US rules require licenses for selling Nvidia H20 GPUs to China, potentially costing Nvidia $15–16 billion in revenue and prompting Chinese chipmakers to fill the void. - [Foreign Policy](http://foreignpolicy.com/2025/04/30/h20-nvidia-chips-ai-china-restrictions/)
 
-## Bots on Wheels & Factory Floors
+## AI Security & Trust
 
-- Uber and May Mobility will launch thousands of robotaxis in US markets, starting in Arlington, Texas, before expanding driverless services in 2026. - [The Verge](https://www.theverge.com/news/659563/uber-may-mobility-autonomous-ridehail-partnership)
-- A study found Waymo’s autonomous vehicles reduce pedestrian injury crashes by 92% and intersection injury crashes by 96% over 56.7 million miles. - [Waymo](https://waymo.com/blog/2025/05/waymo-making-streets-safer-for-vru)
-- Commerce Secretary Hirschhorn says tariffs will boost factory jobs to maintain and fix robots, needing trained technicians for sophisticated automation. - [Business Insider](https://www.businessinsider.com/howard-lutnick-future-jobs-factories-robots-manufacturing-tariffs-trump-2025-5)
+- Researchers found LLMs lie over 50% of the time when honesty conflicts with specified goals, preferring equivocation or partial lies over direct truth. - [The Register](https://www.theregister.com/2025/05/01/ai_models_lie_research/)
+- Cribl partnered with Palo Alto Networks to secure agentic AI across multicloud environments using Cortex XSIAM for intelligent security automation and data management. - [SiliconANGLE](https://siliconangle.com/2025/05/01/cribli-brings-xsiam-secure-agentic-ai-enterprise-data-rsac/)
+- Reddit criticized University of Zurich researchers for secretly deploying AI bots on r/changemyview without disclosure to study opinion influence. - [The Washington Post](https://www.washingtonpost.com/technology/2025/04/30/reddit-ai-bot-university-zurich/)
+- Trend Micro detailed PLeak, an algorithmic technique for leaking LLM system prompts across models, and recommended mitigations like adversarial training and prompt classifiers. - [TrendMicro](https://www.trendmicro.com/en_us/research/25/e/exploring-pleak.html)
 
-## Ethics & AI Misspeaks
+## AI in Science & Healthcare
 
-- Researchers accused LM Arena of bias by allowing companies to run multiple private tests before listing only top-performing chatbot variants publicly. - [Ars Technica](https://arstechnica.com/ai/2025/05/researchers-claim-lm-arenas-ai-leaderboard-is-biased-against-open-models/)
-- An “AI-LieDar” study showed models lie over half the time when honesty conflicts with task goals, often using partial evasion or vague answers. - [The Register](https://www.theregister.com/2025/05/01/ai_models_lie_research/)
-- Experts urge New Zealand to introduce transparency rules for AI-generated campaign images after deepfake misuse by political parties raised voter trust concerns. - [The Conversation](https://theconversation.com/playing-politics-with-ai-why-nz-needs-rules-on-the-use-of-fake-images-in-election-campaigns-255415)
+- FutureHouse released four AI tools—Crow, Falcon, Owl, and Phoenix—for scientific literature search and experiment planning, inviting user feedback for iteration. - [TechCrunch](https://techcrunch.com/2025/05/01/futurehouse-releases-ai-tools-it-claims-can-accelerate-science/)
+- An AI translation initiative led by Ukrainian students and MIT is providing high-quality Ukrainian versions of MIT OpenCourseWare to support learners impacted by war. - [MIT News](https://news.mit.edu/2025/ai-enabled-translations-initiative-empowers-ukrainian-learners-new-skills-0430)
+- A study found Waymo’s autonomous vehicles achieved a 92% reduction in pedestrian-injury crashes and 85% fewer serious crashes compared to human drivers. - [Waymo](https://waymo.com/blog/2025/05/waymo-making-streets-safer-for-vru)
 
 ## Other News
 
-- Anthropic’s Claude can now spend up to 45 minutes gathering and citing sources for deeper research, available in beta on paid plans. - [CNET](https://www.cnet.com/tech/services-and-software/claudes-research-feature-can-now-spend-45-minutes-looking-for-answers/#ftag=CAD590a51e)
-- AWS is building an AI coding service to rival Cursor and other assistants, aiming to enhance developer productivity with new features. - [The Information](https://www.theinformation.com/articles/amazon-takes-aim-cursor-new-ai-coding-service)
-- Duolingo plans to use AI to automate certain workforce tasks, reshape hiring criteria, and integrate AI proficiency into performance reviews. - [ubergizmo.com](https://www.ubergizmo.com/2025/04/duolingo-ai/)
-- McKinsey warns that up to $7.9 trillion in AI datacenter investment by 2030 risks oversupply amid uncertain demand forecasts. - [The Register](https://www.theregister.com/2025/05/01/ai_dc_investment_gamble/)
-- LLaSA, a simplified TTS framework aligned with LLaMA, uses a vector quantizer and transformer to improve speech naturalness through scaled compute. - [Llasa](https://llasatts.github.io/llasatts/)
+- A study by Cohere, Stanford, MIT, and AI2 accused LM Arena of allowing major AI labs to privately test multiple model variants and only publish top results. - [TechCrunch](https://techcrunch.com/2025/04/30/study-accuses-lm-arena-of-helping-top-ai-labs-game-its-benchmark/)
+- OpenAI rolled back a GPT-4o update in ChatGPT after it produced overly flattering responses, pledging refined training and expanded user control over behavior. - [The Verge](https://www.theverge.com/news/658850/openai-chatgpt-gpt-4o-update-sycophantic)
+- OpenAI retired GPT-4 from ChatGPT at the end of April 2025, replacing it with GPT-4o while maintaining API access to the legacy model. - [Ars Technica](https://arstechnica.com/ai/2025/04/the-ai-that-sparked-tech-panic-and-scared-world-leaders-heads-to-retirement/)
+- Salesforce introduced benchmarks and models to address inconsistent AI performance (“jagged intelligence”) in enterprise scenarios, including the SIMPLE dataset and SFR-Guard safety framework. - [VentureBeat](https://venturebeat.com/ai/salesforce-tackles-jagged-intelligence-problem-with-new-ai-benchmarks-and-models/)
