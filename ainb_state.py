@@ -46,10 +46,9 @@ from langgraph.errors import NodeInterrupt
 # import subprocess
 
 from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
-                      filter_page_async,
+                      filter_page_async, filter_df,
                       get_all_canonical_topic_results, clean_topics,
                       Stories, TopicSpecList, TopicHeadline, TopicCategoryList, Sites,
-                      StoryRatings,  # StoryRatings,
                       Newsletter
                       )
 # from ainb_sllm import sfetch_all_summaries
@@ -789,32 +788,6 @@ def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
     with open('bullets.md', 'w', encoding="utf-8") as f:
         f.write(markdown_str)
 
-    # Convert Markdown to HTML
-    markdown_extensions = [
-        # 'tables',
-        # 'fenced_code',
-        # 'codehilite',
-        'attr_list',
-        'def_list',
-        # 'footnotes',
-        'markdown.extensions.nl2br',
-        'markdown.extensions.sane_lists'
-    ]
-
-    html_str = markdown.markdown(markdown_str, extensions=markdown_extensions)
-    with open('bullets.html', 'w', encoding="utf-8") as f:
-        f.write(html_str)
-
-    # send email html_str
-    log("Sending bullet points email")
-    subject = f'AI news bullets {datetime.now().strftime("%H:%M:%S")}'
-    send_gmail(subject, html_str)
-
-    # same with a delimiter and no ID
-    bullet_str = "\n~~~\n".join(aidf['bullet'])
-    with open('bullet_str.txt', 'w', encoding='utf-8') as f:
-        f.write(bullet_str)
-
     state["AIdf"] = aidf.to_dict(orient='records')
     log(state["cluster_topics"])
     return state
@@ -898,64 +871,6 @@ def fn_summarize_pages(state: AgentState, model_medium) -> AgentState:
 
     return state
 
-# could abstract this to a generic filter function
-# description , system_prompt, user_prompt, output_class, model, column_name, filter_value
-# then roll all filters into the rating node
-
-
-def filter_aidf(aidf: pd.DataFrame, model, system_prompt, user_prompt, output_column: str, input_column: str, input_column_rename: str = "") -> AgentState:
-    """Generic filter for AIdf rows using a prompt."""
-    log(f"Starting {output_column} filter")
-    qdf = aidf[['id', input_column]].copy()
-    if input_column_rename:
-        qdf = qdf.rename(columns={input_column: input_column_rename})
-    pages = paginate_df(qdf, maxpagelen=50)
-    responses = asyncio.run(process_dataframes(
-        pages,
-        system_prompt,
-        user_prompt,
-        StoryRatings,
-        model=model,
-    ))
-    response_dict = {resp.id: resp.rating for resp in responses}
-    return response_dict
-
-
-# def fn_quality_filter(state: AgentState, model_medium) -> AgentState:
-#     "rate low quality articles using a prompt"
-#     aidf = pd.DataFrame(state['AIdf'])
-#     response_dict = filter_aidf(aidf, model_medium, LOW_QUALITY_SYSTEM_PROMPT,
-#                                 LOW_QUALITY_USER_PROMPT, "low_quality", "bullet", "summary")
-#     aidf["low_quality"] = aidf["id"].map(response_dict.get)
-#     counts = aidf["low_quality"].value_counts().to_dict()
-#     log(f"value counts: {counts}")
-#     state['AIdf'] = aidf.to_dict(orient='records')
-#     return state
-
-
-# def fn_on_topic_filter(state: AgentState, model_medium) -> AgentState:
-#     "rate relevant articles using a prompt"
-#     aidf = pd.DataFrame(state['AIdf'])
-#     response_dict = filter_aidf(aidf, model_medium, ON_TOPIC_SYSTEM_PROMPT,
-#                                 ON_TOPIC_USER_PROMPT, "on_topic", "bullet", "summary")
-#     aidf["on_topic"] = aidf["id"].map(response_dict.get)
-#     counts = aidf["on_topic"].value_counts().to_dict()
-#     log(f"value counts: {counts}")
-#     state['AIdf'] = aidf.to_dict(orient='records')
-#     return state
-
-
-# def fn_importance_filter(state: AgentState, model_medium) -> AgentState:
-#     "rate important news articles using a prompt"
-#     aidf = pd.DataFrame(state['AIdf'])
-#     response_dict = filter_aidf(aidf, model_medium, IMPORTANCE_SYSTEM_PROMPT,
-#                                 IMPORTANCE_USER_PROMPT, "importance", "bullet", "summary")
-#     aidf["importance"] = aidf["id"].map(response_dict.get)
-#     counts = aidf["importance"].value_counts().to_dict()
-#     log(f"value counts: {counts}")
-#     state['AIdf'] = aidf.to_dict(orient='records')
-#     return state
-
 
 def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     """
@@ -971,23 +886,20 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     log(f"Calculating article rating for {len(aidf)} articles")
 
     # low quality articles
-    response_dict = filter_aidf(aidf, model_medium, LOW_QUALITY_SYSTEM_PROMPT,
-                                LOW_QUALITY_USER_PROMPT, "low_quality", "bullet", "summary")
-    aidf["low_quality"] = aidf["id"].map(response_dict.get)
+    aidf = filter_df(aidf, model_medium, LOW_QUALITY_SYSTEM_PROMPT,
+                     LOW_QUALITY_USER_PROMPT, "low_quality", "bullet", "summary")
     counts = aidf["low_quality"].value_counts().to_dict()
     log(f"low quality articles: {counts}")
 
     # on topic articles
-    response_dict = filter_aidf(aidf, model_medium, ON_TOPIC_SYSTEM_PROMPT,
-                                ON_TOPIC_USER_PROMPT, "on_topic", "bullet", "summary")
-    aidf["on_topic"] = aidf["id"].map(response_dict.get)
+    aidf = filter_df(aidf, model_medium, ON_TOPIC_SYSTEM_PROMPT,
+                     ON_TOPIC_USER_PROMPT, "on_topic", "bullet", "summary")
     counts = aidf["on_topic"].value_counts().to_dict()
     log(f"on topic articles: {counts}")
 
     # important articles
-    response_dict = filter_aidf(aidf, model_medium, IMPORTANCE_SYSTEM_PROMPT,
-                                IMPORTANCE_USER_PROMPT, "importance", "bullet", "summary")
-    aidf["importance"] = aidf["id"].map(response_dict.get)
+    aidf = filter_df(aidf, model_medium, IMPORTANCE_SYSTEM_PROMPT,
+                     IMPORTANCE_USER_PROMPT, "importance", "bullet", "summary")
     counts = aidf["importance"].value_counts().to_dict()
     log(f"important articles: {counts}")
 
@@ -1024,6 +936,33 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     cursor.executemany(insert_sql, rows)
     conn.commit()
     conn.close()
+
+    # Convert Markdown to HTML and send mail
+    markdown_extensions = [
+        # 'tables',
+        # 'fenced_code',
+        # 'codehilite',
+        'attr_list',
+        'def_list',
+        # 'footnotes',
+        'markdown.extensions.nl2br',
+        'markdown.extensions.sane_lists'
+    ]
+
+    markdown_str = "\n\n".join(aidf['bullet'])
+    html_str = markdown.markdown(markdown_str, extensions=markdown_extensions)
+    with open('bullets.html', 'w', encoding="utf-8") as f:
+        f.write(html_str)
+
+    # send email html_str
+    log("Sending bullet points email")
+    subject = f'AI news bullets {datetime.now().strftime("%H:%M:%S")}'
+    send_gmail(subject, html_str)
+
+    # same with a delimiter and no ID, to save as a txt file to use downstream
+    bullet_str = "\n~~~\n".join(aidf['bullet'])
+    with open('bullet_str.txt', 'w', encoding='utf-8') as f:
+        f.write(bullet_str)
 
     state["AIdf"] = aidf.to_dict(orient='records')
     return state

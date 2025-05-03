@@ -1,7 +1,9 @@
 """
 Module of functions for interacting with Large Language Models (LLMs) in the AInewsbot project.
 
-Most importantly, apply a prompt to a each row in a dataframe asynchronously.
+Most importantly, apply a prompt to a each row in a dataframe, either sending
+the entire dataframe to the model at once (paginating it) or sending each row individually,
+sending all pages or rows in parallel (using asyncio), and returning structured outputs.
 
 This module provides functions for calling LLMs to classify, extract topics, summarize, and filter
 news articles. It also provides functions for calling LLMs to generate a newsletter and podcast
@@ -15,7 +17,7 @@ import os
 import math
 # import aiohttp
 import asyncio
-from typing import List, Type, TypeVar, Dict, Any  # , TypedDict, Annotated,
+from typing import List, Type, TypeVar, Dict, Any, Callable  # , TypedDict, Annotated,
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -38,7 +40,7 @@ import trafilatura
 # import langchain
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
-
+from langchain_core.language_models import BaseLanguageModel
 # from langchain_google_genai import ChatGoogleGenerativeAI
 # from langchain_anthropic import ChatAnthropic
 # from langchain_core.messages import BaseMessage, AnyMessage, SystemMessage, HumanMessage, ToolMessage
@@ -554,6 +556,123 @@ def normalize_html(path: Path | str) -> str:
     return visible_text
 
 
+def filter_df(aidf: pd.DataFrame,
+              model: BaseLanguageModel,
+              system_prompt: str, user_prompt: str,
+              output_column: str, input_column: str, input_column_rename: str = "",
+              output_class: Type[T] = StoryRatings,
+              output_class_label: str = "rating",
+              mapper_func: Callable = None,
+              batch_size=50) -> pd.DataFrame:
+    """
+    Generic filter for a dataframe using a prompt.
+
+    Given a dataframe of article information, create a new column with the
+    output of a prompt. The dataframe is paginated and processed
+    asynchronously. The entire dataframe (or page) is sent to the model at once.
+    The prompt should expect a dataframe with id and input_column(_rename),
+    and return a dataframe with id and output_column.
+    Returns an object of type T (with a list of responses for each row)
+
+    Args:
+        aidf (pd.DataFrame): The DataFrame containing article information.
+        model: The language model to use
+        system_prompt (str): The system prompt to use
+        user_prompt (str): The user prompt to use
+        output_column (str): The name of the new column to create
+        input_column (str): The name of the column containing the text to apply the prompt to
+        input_column_rename (str, optional): The name to give the input column. Defaults to "".
+        output_class (Type[T], optional): The class to use for the output. Defaults to StoryRatings.
+        mapper_func (Callable, optional): A function to apply to the input column. Defaults to None.
+        batch_size (int, optional): The number of rows to process at once. Defaults to 50.
+
+    Returns:
+        pd.DataFrame: the updated aidf, a DataFrame with the output of the prompt.
+    """
+    log(f"Starting {output_column} filter")
+    qdf = aidf[['id', input_column]].copy()
+    if input_column_rename:
+        qdf = qdf.rename(columns={input_column: input_column_rename})
+        input_column = input_column_rename
+    if mapper_func:
+        qdf[input_column] = qdf[input_column].apply(
+            mapper_func, axis=1)
+    pages = paginate_df(qdf, maxpagelen=batch_size)
+    responses = asyncio.run(process_dataframes(
+        pages,
+        system_prompt,
+        user_prompt,
+        output_class,
+        model=model,
+    ))
+    response_dict = {resp.id: getattr(
+        resp, output_class_label) for resp in responses}
+    aidf[output_column] = aidf["id"].map(response_dict.get)
+    return aidf
+
+
+# async def filter_df_rows(aidf: pd.DataFrame, model, system_prompt, user_prompt, output_column: str, input_column: str, input_column_rename: str = "", output_class: Type[T] = StoryRatings, mapper_func: Callable = None) -> pd.DataFrame:
+#     """
+#     Generic filter for a dataframe using a prompt.
+
+#     Given a dataframe of article information, create a new column with the
+#     output of a prompt. Rows are sent indidividually. The prompt should expect a
+#     string and return a single object of type T.
+
+#     this has not been tested or used yet, but initial implementation to parallel filter_df
+
+#     Args:
+#         aidf (pd.DataFrame): The DataFrame containing article information.
+#         model: The language model to use
+#         system_prompt (str): The system prompt to use
+#         user_prompt (str): The user prompt to use
+#         output_column (str): The name of the new column to create
+#         input_column (str): The name of the column containing the text to apply the prompt to
+#         input_column_rename (str, optional): The name to give the input column. Defaults to "".
+#         output_class (Type[T], optional): The class to use for the output. Defaults to StoryRatings.
+#         mapper_func (Callable, optional): A function to apply to the input column. Defaults to None.
+
+#     Returns:
+#         Dict[str, int]: A dictionary mapping article id to the output of the prompt.
+#     """
+#     log(f"Starting {output_column} filter")
+#     qdf = aidf[['id', input_column]].copy()
+#     if input_column_rename:
+#         qdf = qdf.rename(columns={input_column: input_column_rename})
+#     else:
+#         input_column_rename = input_column
+#     if mapper_func:
+#         qdf[input_column_rename] = qdf[input_column_rename].apply(
+#             mapper_func, axis=1)
+
+#     prompt_template = ChatPromptTemplate.from_messages(
+#         [("system", system_prompt),
+#          ("user", user_prompt)]
+#     )
+#     chain = prompt_template | model.with_structured_output(output_class)
+
+#     tasks = []
+#     for row in qdf.itertuples():
+#         input_str = getattr(row, input_column_rename)
+#         log(f"Queuing {row.id}: {input_str[:50]}...")
+#         task = asyncio.create_task(async_langchain(
+#             chain, {"input": input_str}, tag=row.id, verbose=True))
+#         tasks.append(task)
+
+#     response_dict = {}
+#     try:
+#         log(f"Fetching responses for {len(tasks)} articles")
+#         responses = await asyncio.gather(*tasks)
+#         log(f"Received {len(responses)} responses")
+#         for response, rowid, _ in responses:
+#             log(f"Response for {rowid}: {response}")
+#             response_dict[rowid] = response
+#     except Exception as e:
+#         log(f"Error fetching responses: {str(e)}")
+
+#     return response_dict
+
+
 async def fetch_all_summaries(aidf, model):
     """
     Fetch summaries for all articles in the AIdf DataFrame.
@@ -572,11 +691,7 @@ async def fetch_all_summaries(aidf, model):
     Raises:
         Exception: If there is an error during the asynchronous processing of the articles.
 
-    TODO: can make a more generic version
-    pass in prompt, model, output class
-    pass in df with id and value(s)
-    pass in optional function dict to call on each column, eg map path to normalized text
-    get the column names, apply function if provided, apply template using those names
+
 
     """
 
