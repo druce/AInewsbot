@@ -328,7 +328,7 @@ if __name__ == "__main__":
     parser.add_argument('-n', '--nofetch', action='store_true', default=False,
                         help='Disable web fetch, use existing HTML files in htmldata directory')
     parser.add_argument('-d', '--before-date', type=str, default='',
-                        help='Process articles before this date (YYYY-MM-DD HH:MM:SS format)')
+                        help='Force processing of articles before this date even if already processed (YYYY-MM-DD HH:MM:SS format)')
     parser.add_argument('-b', '--browsers', type=int, default=4,
                         help='Number of browser instances to run in parallel (default: 4)')
     parser.add_argument('-e', '--max-edits', type=int, default=2,

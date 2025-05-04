@@ -144,6 +144,22 @@ OPENAI_API_KEY=sk-...
 
 ## 5. How to Run
 
+- For basic usage, run `python AInewsbot_langgraph.py`
+
+```bash
+usage: AInewsbot_langgraph.py [-h] [-n] [-d BEFORE_DATE] [-b BROWSERS] [-e MAX_EDITS]
+
+options:
+  -h, --help            show this help message and exit
+  -n, --nofetch         Disable web fetch, use existing HTML files in htmldata directory
+  -d BEFORE_DATE, --before-date BEFORE_DATE
+                        Force processing of articles before this date even if already processed (YYYY-MM-DD HH:MM:SS format)
+  -b BROWSERS, --browsers BROWSERS
+                        Number of browser instances to run in parallel (default: 4)
+  -e MAX_EDITS, --max-edits MAX_EDITS
+                        Maximum number of summary rewrites
+```
+
 - For advanced usage, schedule runs of `AInewsbot.sh`, customize sources in `sources.yaml`, or run interactively in `AInewsbot_langgraph.ipynb`.
 
 ![flowchart](https://github.com/druce/AInewsbot/blob/main/graph.png?raw=true)
