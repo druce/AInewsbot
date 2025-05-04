@@ -147,6 +147,8 @@ OPENAI_API_KEY=sk-...
 - For basic usage, run `python AInewsbot_langgraph.py`
 
 ```bash
+$ python AInewsbot_langgraph.py --help
+
 usage: AInewsbot_langgraph.py [-h] [-n] [-d BEFORE_DATE] [-b BROWSERS] [-e MAX_EDITS]
 
 options:
@@ -160,7 +162,7 @@ options:
                         Maximum number of summary rewrites
 ```
 
-- For advanced usage, schedule runs of `AInewsbot.sh`, customize sources in `sources.yaml`, or run interactively in `AInewsbot_langgraph.ipynb`.
+- For advanced usage, schedule runs of `AInewsbot.sh`, customize sources in `sources.yaml`, change additional configs in `ainb_const.py`, or run interactively in `AInewsbot_langgraph.ipynb`.
 
 ![flowchart](https://github.com/druce/AInewsbot/blob/main/graph.png?raw=true)
 
