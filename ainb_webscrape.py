@@ -307,7 +307,7 @@ async def fetch_queue(queue, concurrency):
             while True:
                 try:
                     idx, url, title = await queue.get()
-                    log(f"from queue: {idx}, {url}, {title}")
+                    log(f"from queue: {idx}, {url} , {title}")
                 except asyncio.QueueEmpty:
                     return
                 # skip urls from domains in ignore_list, just return empty path
