@@ -21,8 +21,6 @@ A Python pipeline for **AI news gathering → topic clustering → summarization
 - [License](#license)
 
 
-A Python notebook/script to help find the latest news about AI
-
 **AInewsbot** is an end-to-end pipeline for **AI news gathering → topic clustering → summarization → AI newsletter & podcast creation**
 
 (potentially other subjects by modifying source URLs and filters / search parameters / prompts)
