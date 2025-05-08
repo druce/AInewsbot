@@ -261,10 +261,8 @@ def paginate_df(input_df: pd.DataFrame,
     retry=retry_if_exception_type(Exception),
     before_sleep=lambda retry_state: log(
         f"Attempt {retry_state.attempt_number}: {retry_state.outcome.exception()}, tag: {retry_state.args[1].get('tag', '')}")
-
-
 )
-async def async_langchain(chain, input_dict, tag="", verbose=False):
+async def async_langchain(chain, input_dict, tag="", label="article", verbose=False):
     #     async with sem:
     """call langchain asynchronously with ainvoke
     includes a reference tag
@@ -277,66 +275,10 @@ async def async_langchain(chain, input_dict, tag="", verbose=False):
     if verbose:
         print(f"async_langchain: {tag} response: {response}")
 
-    article_str = input_dict.get("article", "")
-    return response, tag, len(article_str)
-
-
-##############################################################################
-# functions to process dataframes
-##############################################################################
-
-@retry(
-    stop=stop_after_attempt(TENACITY_RETRY),  # Maximum 8 attempts
-    # Wait 2^x * multiplier seconds between retries
-    wait=wait_exponential(multiplier=1, min=2, max=128),
-    retry=retry_if_exception_type(Exception),
-    before_sleep=lambda retry_state: log(
-        f"Retrying after {retry_state.outcome.exception()}, attempt {retry_state.attempt_number}")
-)
-async def filter_page_async(
-    input_df: pd.DataFrame,
-    system_prompt: str,
-    user_prompt: str,
-    output_class: Type[T],
-    model: ChatOpenAI,
-    input_vars: Dict[str, Any] = None,
-    opening_delimiter: str = "### <<<DATASET>>>",
-    closing_delimiter: str = "### <<<END>>>###\nThink silently, then respond with the JSON only.",
-) -> T:
-    """
-    Process a single dataframe asynchronously.
-    apply input_prompt to input_df converted to JSON per output_class type schema,
-    supplying additional input_vars, and returning a variable of type output_class
-    """
-    # print(user_prompt)
-    if opening_delimiter:
-        user_prompt += "\n" + opening_delimiter + "\n"
-    user_prompt += "{input_text}"
-    if closing_delimiter:
-        user_prompt += "\n" + closing_delimiter
-    # print(user_prompt)
-
-    prompt_template = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("user", user_prompt)
-    ])
-
-    # Create the chain
-    chain = prompt_template | model.with_structured_output(output_class)
-
-    # Convert DataFrame to JSON
-    input_text = input_df.to_json(orient='records', indent=2)
-    input_dict = {"input_text": input_text}
-    if input_vars is not None:
-        input_dict.update(input_vars)
-    # input_prompt = prompt_template.format_messages(**input_dict)
-    # print(input_prompt)
-    # print(input_text)
-
-    # Call the chain asynchronously
-    response = await chain.ainvoke(input_dict)
-
-    return response  # Should be an instance of output_class
+    if label in input_dict:
+        return response, tag, len(input_dict.get(label, ""))
+    else:
+        return response, tag
 
 
 @retry(
@@ -410,6 +352,64 @@ async def filter_page_async_id(
 
     # print(response)
     return response  # instance of output_class
+
+
+##############################################################################
+# functions to process dataframes
+##############################################################################
+
+@retry(
+    stop=stop_after_attempt(TENACITY_RETRY),  # Maximum 8 attempts
+    # Wait 2^x * multiplier seconds between retries
+    wait=wait_exponential(multiplier=1, min=2, max=128),
+    retry=retry_if_exception_type(Exception),
+    before_sleep=lambda retry_state: log(
+        f"Retrying after {retry_state.outcome.exception()}, attempt {retry_state.attempt_number}")
+)
+async def filter_page_async(
+    input_df: pd.DataFrame,
+    system_prompt: str,
+    user_prompt: str,
+    output_class: Type[T],
+    model: ChatOpenAI,
+    input_vars: Dict[str, Any] = None,
+    opening_delimiter: str = "### <<<DATASET>>>",
+    closing_delimiter: str = "### <<<END>>>###\nThink silently, then respond with the JSON only.",
+) -> T:
+    """
+    Process a single dataframe asynchronously.
+    apply input_prompt to input_df converted to JSON per output_class type schema,
+    supplying additional input_vars, and returning a variable of type output_class
+    """
+    # print(user_prompt)
+    if opening_delimiter:
+        user_prompt += "\n" + opening_delimiter + "\n"
+    user_prompt += "{input_text}"
+    if closing_delimiter:
+        user_prompt += "\n" + closing_delimiter
+    # print(user_prompt)
+
+    prompt_template = ChatPromptTemplate.from_messages([
+        ("system", system_prompt),
+        ("user", user_prompt)
+    ])
+
+    # Create the chain
+    chain = prompt_template | model.with_structured_output(output_class)
+
+    # Convert DataFrame to JSON
+    input_text = input_df.to_json(orient='records', indent=2)
+    input_dict = {"input_text": input_text}
+    if input_vars is not None:
+        input_dict.update(input_vars)
+    # input_prompt = prompt_template.format_messages(**input_dict)
+    # print(input_prompt)
+    # print(input_text)
+
+    # Call the chain asynchronously
+    response = await chain.ainvoke(input_dict)
+
+    return response  # Should be an instance of output_class
 
 
 async def process_dataframes(dataframes: List[pd.DataFrame],
@@ -611,66 +611,83 @@ def filter_df(aidf: pd.DataFrame,
     return aidf
 
 
-# async def filter_df_rows(aidf: pd.DataFrame, model, system_prompt, user_prompt, output_column: str, input_column: str, input_column_rename: str = "", output_class: Type[T] = StoryRatings, mapper_func: Callable = None) -> pd.DataFrame:
-#     """
-#     Generic filter for a dataframe using a prompt.
+@retry(
+    stop=stop_after_attempt(TENACITY_RETRY),  # Maximum 5 attempts
+    # Wait 2^x * multiplier seconds between retries
+    wait=wait_exponential(multiplier=1, min=2, max=128),
+    retry=retry_if_exception_type(Exception),
+    before_sleep=lambda retry_state: log(
+        f"Retrying after {retry_state.outcome.exception()}, attempt {retry_state.attempt_number}")
+)
+async def filter_df_rows(aidf: pd.DataFrame,
+                         model: BaseLanguageModel,
+                         system_prompt: str,
+                         user_prompt: str,
+                         output_column: str,
+                         input_column: str,
+                         input_column_rename: str = "",
+                         output_class: Type[T] = StoryRatings,
+                         output_class_label: str = "rating",
+                         mapper_func: Callable = None) -> pd.DataFrame:
+    """
+    Generic filter for a dataframe using a prompt.
 
-#     Given a dataframe of article information, create a new column with the
-#     output of a prompt. Rows are sent indidividually. The prompt should expect a
-#     string and return a single object of type T.
+    Given a dataframe of article information, create a new column with the
+    output of a prompt. Rows are sent indidividually. The prompt should expect a
+    string and return a single object of type T.
 
-#     this has not been tested or used yet, but initial implementation to parallel filter_df
+    this has not been tested or used yet, but initial implementation to parallel filter_df
 
-#     Args:
-#         aidf (pd.DataFrame): The DataFrame containing article information.
-#         model: The language model to use
-#         system_prompt (str): The system prompt to use
-#         user_prompt (str): The user prompt to use
-#         output_column (str): The name of the new column to create
-#         input_column (str): The name of the column containing the text to apply the prompt to
-#         input_column_rename (str, optional): The name to give the input column. Defaults to "".
-#         output_class (Type[T], optional): The class to use for the output. Defaults to StoryRatings.
-#         mapper_func (Callable, optional): A function to apply to the input column. Defaults to None.
+    Args:
+        aidf (pd.DataFrame): The DataFrame containing article information.
+        model: The language model to use
+        system_prompt (str): The system prompt to use
+        user_prompt (str): The user prompt to use
+        output_column (str): The name of the new column to create
+        input_column (str): The name of the column containing the text to apply the prompt to
+        input_column_rename (str, optional): The name to give the input column. Defaults to "".
+        output_class (Type[T], optional): The class to use for the output. Defaults to StoryRatings.
+        mapper_func (Callable, optional): A function to apply to the input column. Defaults to None.
 
-#     Returns:
-#         Dict[str, int]: A dictionary mapping article id to the output of the prompt.
-#     """
-#     log(f"Starting {output_column} filter")
-#     qdf = aidf[['id', input_column]].copy()
-#     if input_column_rename:
-#         qdf = qdf.rename(columns={input_column: input_column_rename})
-#     else:
-#         input_column_rename = input_column
-#     if mapper_func:
-#         qdf[input_column_rename] = qdf[input_column_rename].apply(
-#             mapper_func, axis=1)
+    Returns:
+        Dict[str, int]: A dictionary mapping article id to the output of the prompt.
+    """
+    log(f"Starting {output_column} filter")
+    qdf = aidf[['id', input_column]].copy()
+    if input_column_rename:
+        qdf = qdf.rename(columns={input_column: input_column_rename})
+    else:
+        input_column_rename = input_column
+    if mapper_func:
+        qdf[input_column_rename] = qdf[input_column_rename].apply(
+            mapper_func, axis=1)
 
-#     prompt_template = ChatPromptTemplate.from_messages(
-#         [("system", system_prompt),
-#          ("user", user_prompt)]
-#     )
-#     chain = prompt_template | model.with_structured_output(output_class)
+    prompt_template = ChatPromptTemplate.from_messages(
+        [("system", system_prompt),
+         ("user", user_prompt)]
+    )
+    chain = prompt_template | model.with_structured_output(output_class)
 
-#     tasks = []
-#     for row in qdf.itertuples():
-#         input_str = getattr(row, input_column_rename)
-#         log(f"Queuing {row.id}: {input_str[:50]}...")
-#         task = asyncio.create_task(async_langchain(
-#             chain, {"input": input_str}, tag=row.id, verbose=True))
-#         tasks.append(task)
+    tasks = []
+    for row in qdf.itertuples():
+        input_str = getattr(row, input_column_rename)
+        log(f"Queuing {row.id}: {input_str[:50]}...")
+        task = asyncio.create_task(async_langchain(
+            chain, {"input_text": input_str}, tag=row.id, verbose=True))
+        tasks.append(task)
 
-#     response_dict = {}
-#     try:
-#         log(f"Fetching responses for {len(tasks)} articles")
-#         responses = await asyncio.gather(*tasks)
-#         log(f"Received {len(responses)} responses")
-#         for response, rowid, _ in responses:
-#             log(f"Response for {rowid}: {response}")
-#             response_dict[rowid] = response
-#     except Exception as e:
-#         log(f"Error fetching responses: {str(e)}")
+    try:
+        log(f"Fetching responses for {len(tasks)} articles")
+        responses = await asyncio.gather(*tasks)
+        log(f"Received {len(responses)} responses")
+    except Exception as e:
+        log(f"Error fetching responses: {str(e)}")
+    response_dict = {rowid: getattr(
+        resp, output_class_label) for resp, rowid in responses}
 
-#     return response_dict
+    aidf[output_column] = aidf["id"].map(response_dict.get)
+
+    return aidf
 
 
 async def fetch_all_summaries(aidf, model):

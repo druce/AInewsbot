@@ -11,8 +11,9 @@ scikit-learn
 # ortools
 ipykernel
 # selenium
+# fake-useragent
 playwright>=1.43.0
-fake_useragent
+playwright-stealth
 openai
 tiktoken
 python-dotenv

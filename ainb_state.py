@@ -46,7 +46,7 @@ from langgraph.errors import NodeInterrupt
 # import subprocess
 
 from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
-                      filter_page_async, filter_df,
+                      filter_page_async, filter_df, filter_df_rows,
                       get_all_canonical_topic_results, clean_topics,
                       Stories, TopicSpecList, TopicHeadline, TopicCategoryList, Sites,
                       Newsletter
@@ -64,6 +64,7 @@ from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, SOURCECONFIG, SOURCES_EXPECTED,
 from ainb_prompts import (
     FILTER_SYSTEM_PROMPT, FILTER_USER_PROMPT,
     TOPIC_SYSTEM_PROMPT, TOPIC_USER_PROMPT,
+    TOPIC_FILTER_SYSTEM_PROMPT, TOPIC_FILTER_USER_PROMPT,
     TOPIC_WRITER_SYSTEM_PROMPT, TOPIC_WRITER_USER_PROMPT,
     TOPIC_REWRITE_SYSTEM_PROMPT, TOPIC_REWRITE_USER_PROMPT,
     LOW_QUALITY_SYSTEM_PROMPT, LOW_QUALITY_USER_PROMPT,
@@ -691,6 +692,33 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
 
     aidf = pd.merge(
         aidf, topics_df[["id", "topic_str"]], on="id", how="outer")
+
+    # filter topics using TOPIC_FILTER_SYSTEM_PROMPT and TOPIC_FILTER_USER_PROMPT
+    log("Filtering redundant topics")
+    aidf["filter_input"] = aidf.apply(
+        lambda row: f"""### <<<ARTICLE SUMMARY>>>
+# {row.title}
+
+{row.summary}
+### <<<END>>>
+### <<<CANDIDATE TOPICS>>>
+{row.topic_str}
+### <<<END>>>
+""",
+        axis=1
+    )
+
+    aidf = asyncio.run(filter_df_rows(aidf,
+                                      model_low,
+                                      TOPIC_FILTER_SYSTEM_PROMPT, TOPIC_FILTER_USER_PROMPT,
+                                      "topic_list",
+                                      "filter_input",
+                                      "",
+                                      output_class=TopicCategoryList,
+                                      output_class_label="items"
+                                      ))
+    aidf["topic_str"] = aidf["topic_list"].str.join(", ")
+
     aidf['title_topic_str'] = aidf.apply(
         lambda row: f'{row.title} (Topics: {row.topic_str})', axis=1)
     log("End topic analysis")

@@ -17,6 +17,7 @@ from playwright.async_api import async_playwright
 from ainb_utilities import log
 from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, FIREFOX_PROFILE_PATH,  # SCREENSHOT_DIR,
                         MIN_TITLE_LEN, SLEEP_TIME)
+from playwright_stealth import stealth_async
 
 # Global state for per-domain rate limiting
 _domain_locks = {}
@@ -191,56 +192,9 @@ async def get_browser(p):
 
 
 async def apply_stealth_script(context):
-    """Apply various evasion scripts to make the browser less detectable."""
-    # Create a new page for executing scripts
+    """Apply stealth settings to a new page using playwright_stealth."""
     page = await context.new_page()
-
-    # Mask WebDriver
-    await page.evaluate("""() => {
-        // Overwrite navigator.webdriver
-        Object.defineProperty(navigator, 'webdriver', {
-            get: () => false,
-        });
-
-        // Remove automation-related properties
-        if (navigator.plugins) {
-            // Add some fake plugins
-            Object.defineProperty(navigator, 'plugins', {
-                get: () => {
-                    return {
-                        length: Math.floor(Math.random() * 5) + 1
-                    };
-                },
-            });
-        }
-
-        // Add randomness to canvas fingerprinting
-        const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
-        HTMLCanvasElement.prototype.toDataURL = function(type) {
-            if (type === 'image/png' && this.width === 220 && this.height === 30) {
-                // This might be a fingerprinting attempt
-                const dataURL = originalToDataURL.apply(this, arguments);
-                const noise = Math.random().toString(36).substring(2, 7);
-                return dataURL.substring(0, dataURL.length - noise.length) + noise;
-            }
-            return originalToDataURL.apply(this, arguments);
-        }
-
-        // Randomize client rects slightly
-        const originalGetClientRects = Element.prototype.getClientRects;
-        Element.prototype.getClientRects = function() {
-            const rects = originalGetClientRects.apply(this, arguments);
-            for (let rect of rects) {
-                rect.x += Math.random() * 0.001;
-                rect.y += Math.random() * 0.001;
-                rect.width += Math.random() * 0.001;
-                rect.height += Math.random() * 0.001;
-            }
-            return rects;
-        }
-    }""")
-
-    # Close the temporary page
+    await stealth_async(page)
     await page.close()
 
 
@@ -283,6 +237,32 @@ async def perform_human_like_actions(page):
         await page.evaluate(f"window.scrollBy(0, -{random.randint(100, 300)})")
         await asyncio.sleep(random.uniform(0.3, 1))
 
+    return page
+
+
+async def worker(queue, browser, results):
+    log("Launching worker")
+
+    ignore_list = ["www.bloomberg.com", "bloomberg.com",
+                   "wsj.com", "www.wsj.com"]
+
+    while True:
+        try:
+            idx, url, title = await queue.get()
+            log(f"from queue: {idx}, {url} , {title}")
+        except asyncio.QueueEmpty:
+            return
+        # skip urls from domains in ignore_list, just return empty path
+        if urlparse(url).hostname in ignore_list:
+            log(f"Skipping fetch for {idx} {url} {title}")
+            results.append((idx, url, title, ""))
+            queue.task_done()
+        else:
+            try:
+                results.append((idx, url, title, await fetch_url(url, title, browser, destination=PAGES_DIR)))
+            finally:
+                queue.task_done()
+
 
 async def fetch_queue(queue, concurrency):
     """
@@ -296,30 +276,9 @@ async def fetch_queue(queue, concurrency):
         list: A list of tuples containing (index, url, title, result) for each processed URL.
     """
     # for now, skip these domains since I don't want to log in and potentially get my account blocked
-    ignore_list = ["www.bloomberg.com", "bloomberg.com",
-                   "wsj.com", "www.wsj.com"]
     async with async_playwright() as p:
         log("Launching browser")
         browser = await get_browser(p)
-
-        async def worker(queue, browser, results):
-            log("Launching worker")
-            while True:
-                try:
-                    idx, url, title = await queue.get()
-                    log(f"from queue: {idx}, {url} , {title}")
-                except asyncio.QueueEmpty:
-                    return
-                # skip urls from domains in ignore_list, just return empty path
-                if urlparse(url).hostname in ignore_list:
-                    log(f"Skipping fetch for {idx} {url} {title}")
-                    results.append((idx, url, title, ""))
-                    queue.task_done()
-                else:
-                    try:
-                        results.append((idx, url, title, await fetch_url(url, title, browser, destination=PAGES_DIR)))
-                    finally:
-                        queue.task_done()
 
         results = []
         log("Launching workers")
@@ -350,7 +309,7 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
         title (str): The title for the fetched page.
         click_xpath (str): An optional XPath expression to click on before saving.
         scrolls (int): The number of times to scroll to the bottom of the page and wait for new content to load.
-        browser_context (BrowserContext): The Playwright browser context.
+        browser_context (BrowserContext): The Playwright browser context to use. If not provided, a new browser context will be initialized.
         initial_sleep (float): The number of seconds to wait after the page has loaded before clicking.
 
     Returns:
@@ -438,7 +397,7 @@ async def fetch_source(source_dict, browser_context=None):
     scrolls = source_dict.get("scroll", 0)
     initial_sleep = source_dict.get("initial_sleep", SLEEP_TIME)
 
-    log(f"Starting get_file {url}, {title}")
+    log(f"Starting fetch_source {url}, {title}")
 
     # Open the page
     file_path = await fetch_url(url, title, browser_context,
