@@ -1,63 +1,60 @@
-## AI Agents Evolution
+## From Copilots to Autopilots
 
-- AI agents have evolved into partly autonomous systems using large language models for complex tasks but still require human oversight, with full autonomy remaining theoretical. - [Financial Times](https://www.ft.com/content/3e862e23-6e2c-4670-a68c-e204379fe01f)
-- Companies deploy AI agents primarily for efficiency and cost reduction in areas like customer service and internal workflows, facing challenges in data quality, trust, and strategic integration. - [Financial Times](https://on.ft.com/4d5AXpx)
+- FT reports that AI agents are evolving from simple assistants to autonomous systems handling complex tasks with human oversight, bringing efficiency gains across industries but raising data, trust, and ethical challenges. - [Financial Times](https://www.ft.com/content/3e862e23-6e2c-4670-a68c-e204379fe01f)
+- Parloa raised $120M in Series C funding at a $1B valuation to expand its enterprise AI agent management platform across North America and Europe. - [SiliconANGLE](https://siliconangle.com/2025/05/06/parloa-raises-120m-1b-valuation-expand-enterprise-ai-agent-platform/)
+- Sett emerged from stealth with $27M funding, deploying AI agents to create and manage mobile game marketing content faster and cheaper for major game publishers. - [TechCrunch](https://techcrunch.com/2025/05/07/game-sett-funding-a-startup-building-ai-agents-for-game-development-emerges-from-stealth-with-27m/)
+- Microsoft is adopting Google’s open Agent2Agent protocol in Azure AI Foundry and Copilot Studio, enabling cross-service communication between AI agents using shared open-source standards. - [TechCrunch](https://techcrunch.com/2025/05/07/microsoft-adopts-googles-standard-for-linking-up-ai-agents/)
+- ServiceNow launched its AI-powered CRM platform with AI Control Tower for agent monitoring and AI Agent Fabric to orchestrate end-to-end sales and service workflows. - [SiliconANGLE](https://siliconangle.com/2025/05/06/servicenow-debuts-servicenow-crm-new-ai-tools/)
 
-## OpenAI Strategy
+## Battle for Search Supremacy
 
-- OpenAI reversed plans to become a traditional for-profit, converting its subsidiary into a public benefit corporation controlled by its nonprofit parent to maintain mission oversight. - [TechSpot](https://www.techspot.com/news/107811-openai-abandons-profit-shift-keeps-nonprofit-control-new.html)
-- OpenAI plans to expand its Stargate AI infrastructure globally to boost capabilities and partnerships, exceeding its initial US-focused investments. - [Financial Times](https://www.ft.com/content/060c08f6-e504-47cc-9309-80158a407046)
-- OpenAI unveiled 'OpenAI for Countries' under its Stargate initiative to help governments build secure, localized AI services and sovereign data centers. - [OpenAI](https://openai.com/global-affairs/openai-for-countries)
+- Alphabet shares dropped after reports that Apple is exploring AI-based search alternatives to replace Google as the default on Safari browsers. - [Financial Times](https://www.ft.com/content/daaf1fe5-615d-4f52-90c4-18aac6d542e5)
+- Major AI firms including Google, OpenAI, and Perplexity compete to integrate agentic AI assistants into web browsers, with potential legal moves around Chrome ownership. - [Hacker Noon](https://hackernoon.com/ai-giants-are-battling-it-out-for-the-ultimate-prize-in-ai-race-your-web-browser)
+- Anthropic launched a web search API for Claude models, enabling developers to integrate up-to-date information retrieval and citation features into their applications. - [TechCrunch](https://techcrunch.com/2025/05/07/anthropic-rolls-out-an-api-for-ai-powered-web-search/)
+- LinkedIn introduced AI-powered job search and coaching tools that let Premium users find roles by describing ideal positions and receive interview and salary negotiation support. - [ZDNet](https://www.zdnet.com/article/linkedins-newest-ai-features-make-it-easier-to-score-your-dream-role/)
 
-## AI Infrastructure & Chips
+## Self-Driving Showdown
 
-- Nozomi Networks integrated its security sensors with Nvidia BlueField-3 DPUs to enable AI-powered threat detection and response for OT and IoT environments. - [SiliconANGLE](https://siliconangle.com/2025/05/07/nozomi-networks-adds-support-nvidia-bluefield-dpus-enhance-ot-iot-security/)
-- The US may replace tiered export controls for AI chips with a global licensing regime, potentially restricting access to Nvidia H100 chips under lower licensing thresholds. - [Yahoo Finance](https://finance.yahoo.com/news/meta-platforms-inc-meta-momentum-112804720.html)
-- F5’s BIG-IP platform uses iRules scripting to process AI data at the edge, reducing latency, bandwidth costs, and enhancing security for real-time workloads. - [The Register](https://www.theregister.com/2025/05/06/f5_etl_ai_innfrastructure/)
-- TSMC is poised for strong AI-driven growth as US export regulations shift to a global licensing regime, potentially reshaping semiconductor trade dynamics. - [Yahoo Finance](https://finance.yahoo.com/news/taiwan-semiconductor-manufacturing-company-limited-112652268.html)
+- Uber partnered with Pony.ai, Momenta, and WeRide to launch and expand robotaxi services in Europe and the Middle East starting in 2025, featuring onboard safety operators during pilots. - [TechCrunch](https://techcrunch.com/2025/05/06/uber-turns-to-chinese-companies-to-snap-up-robotaxi-market-share-in-europe-middle-east/)
+- The USPTO rejected Tesla’s 'Robotaxi' and 'Cybercab' trademark applications as too descriptive, halting their autonomous ride-hailing branding plans pending response. - [TechCrunch](https://techcrunch.com/2025/05/07/teslas-robotaxi-and-cybercab-trademarks-hit-roadblocks-ahead-of-june-launch/)
 
-## AI in Business Tools
+## Fueling AI Startups
 
-- Amazon introduced Vulcan, a tactile warehouse robot that uses AI and force sensors to handle items safely and improve sorting efficiency alongside human workers. - [The Verge](https://www.theverge.com/news/662452/amazon-vulcan-warehouse-robot-sense-touch)
-- AWS is developing 'Kiro', an AI-powered code generation tool with multimodal capabilities, real-time code synthesis, and integration with existing AI agent workflows. - [TechCrunch](https://techcrunch.com/2025/05/07/amazon-is-working-on-an-ai-code-generating-tool/)
-- Microsoft is testing AI-powered natural language search and accessibility features in Windows 11 Settings for Copilot+ PCs, aiming to simplify configuration tasks. - [TechRadar](https://www.techradar.com/computing/windows/microsoft-has-a-big-new-ai-settings-upgrade-for-windows-11-on-copilot-pcs-plus-3-other-nifty-tricks)
+- Mistral launched its Medium 3 AI model at $0.40 per million input tokens, offering performance comparable to leading competitors and introducing Le Chat Enterprise for corporate chatbot deployments. - [TechCrunch](https://techcrunch.com/2025/05/07/mistral-claims-its-newest-ai-model-delivers-leading-performance-for-the-price/)
+- AI data provider Toloka secured $72M funding led by Bezos Expeditions to scale its custom training dataset services across over 200,000 annotators in 40+ languages. - [SiliconANGLE](https://siliconangle.com/2025/05/07/ai-data-provider-toloka-raises-72m-funding/)
+- Ox Security raised $60M Series B to enhance its platform that scans millions of lines of AI-generated and human-written code daily for vulnerabilities, expanding amid strong demand. - [TechCrunch](https://techcrunch.com/2025/05/07/ox-security-lands-a-fresh-60m-to-scan-for-vulnerabilities-in-code/)
 
-## Autonomous Vehicles & Drones
+## Chips & Clouds
 
-- Amazon’s self-driving subsidiary Zoox is scaling robotaxi production with a new Bay Area facility to expand its autonomous vehicle operations across the US. - [Financial Times](https://www.ft.com/content/a49cefe6-a9ec-4f3b-9b02-2b95fb3a27bf)
-- Uber partnered with Pony AI, Momenta, and WeRide to deploy robotaxis in Europe and the Middle East, leveraging Chinese AV firms to grow its autonomous mobility services. - [TechCrunch](https://techcrunch.com/2025/05/06/uber-turns-to-chinese-companies-to-snap-up-robotaxi-market-share-in-europe-middle-east/)
-- ZenaTech opened its European headquarters in Dublin to offer AI-powered drone services for precision agriculture and other sectors amid rapid market growth. - [Financial Post](https://financialpost.com/globe-newswire/zenatech-expands-ireland-office-offering-drone-as-a-service-daas-including-precision-agriculture-to-a-european-market-growing-at-28-6-annually)
+- OpenAI plans to expand its Stargate AI infrastructure internationally, boosting global spending beyond its US-focused $500B investment target. - [Financial Times](https://www.ft.com/content/060c08f6-e504-47cc-9309-80158a407046)
+- AMD anticipates $1.5B revenue loss in 2025 due to US export controls on AI accelerators to China but offsets this with growth in non-China markets and Oracle contracts. - [The Register](https://www.theregister.com/2025/05/07/us_export_controls_on_instinct/)
+- AWS will invest $4B to build its first Chilean data centers and cloud infrastructure, aiming for operations in H2 2026 with minimal water usage for cooling. - [Reuters](https://www.reuters.com/business/energy/amazon-spend-4-billion-cloud-infrastructure-chile-2025-05-07/)
+- The US administration is set to overhaul Biden-era AI chip export restrictions, balancing national security with industry concerns over market competitiveness. - [The Wall Street Journal](https://www.wsj.com/tech/ai-chip-exports-overhaul-0518a821)
 
-## Ethics & Policy
+## AI Ethics Under Fire
 
-- WorldCon apologized after using AI to vet panelists for misconduct, prompting author backlash over flawed screening and leading to staff resignations. - [The Register](https://www.theregister.com/2025/05/07/worldcon_uses_ai/)
-- Predictive policing AI faces bias and privacy concerns, with San Jose pioneering public accountability measures to ensure transparency and fairness. - [The Conversation](https://theconversation.com/predictive-policing-ai-is-on-the-rise-making-it-accountable-to-the-public-could-curb-its-harmful-effects-254185)
-- A survey found only 17% of government leaders plan to upskill in AI, raising concerns about governance and effective regulation readiness. - [Fortune](https://fortune.com/article/government-leaders-plans-ai-skills-brainstorm-london/)
-- Organizations using AI in HR face bias, transparency, and legal compliance challenges, with the EU AI Act imposing strict requirements on high-risk tools. - [Forbes](https://www.forbes.com/councils/forbescommunicationscouncil/2025/05/06/ai-challenges-in-hr-what-every-hr-professional-should-know/)
-- Users can opt out of ChatGPT data being used for model training via account settings and delete histories to enhance privacy. - [Tom's Guide](https://www.tomsguide.com/ai/keep-your-chatgpt-data-private-by-opting-out-of-training-heres-how)
+- WorldCon faced backlash after using ChatGPT to vet panelist submissions, leading to organizer resignations and a public apology to re-evaluate panels without AI. - [The Register](https://www.theregister.com/2025/05/07/worldcon_uses_ai/)
+- The WEF proposed treating online disinformation as cybercrime and establishing an International Cybercrime Coordination Authority for standardized global enforcement. - [Hacker Noon](https://hackernoon.com/wef-calls-for-disinformation-to-be-treated-as-cybercrime)
+- The California bar exam contractor’s use of AI to write multiple-choice questions sparked criticism despite validation panels’ reviews and prompted calls for oversight. - [Ars Technica](https://arstechnica.com/tech-policy/2025/04/ai-secretly-helped-write-california-bar-exam-sparking-uproar/)
+- An Arizona court presented an AI-generated victim impact statement as a deepfake of a deceased man, raising ethical questions over generative AI in legal settings. - [Popular Science](https://www.popsci.com/technology/ai-in-courtrooms/)
 
-## AI Finance Insights
+## Securing the AI Frontier
 
-- ChatGPT ranked Adobe among its top stock picks, citing strong revenues, AI partnerships, and investor reliance on AI-driven recommendations. - [Yahoo Finance](https://finance.yahoo.com/news/chatgpt-stock-advice-adobe-inc-092804765.html)
-- ChatGPT recommended Amazon stock for its robust sales growth and rural delivery investments, despite recent trade-war-related declines in cloud forecasts. - [Yahoo Finance](https://finance.yahoo.com/news/chatgpt-stock-advice-amazon-com-090550022.html)
-- Citadel, WorldQuant, and Freestone Grove integrate AI to process data, enhance models, and support human oversight in investment workflows. - [Business Insider](https://www.businessinsider.com/how-citadel-worldquant-freestone-grove-use-ai-2025-5)
+- Index Engines’ CyberSense platform uses AI to detect data anomalies and ransomware threats for faster recovery but warns that attackers also leverage AI. - [SiliconANGLE](https://siliconangle.com/2025/05/06/unpacking-new-frontier-enterprise-cyber-resiliency-cubeconversations/)
+- The maintainers of the open-source curl project banned AI-generated vulnerability reports after an influx of low-quality submissions overwhelmed their security triage process. - [The Register](https://www.theregister.com/2025/05/07/curl_ai_bug_reports/)
 
-## Startups & Funding
+## Everyday AI Tools
 
-- A new cohort of AI startups with under 50 employees have reached billion-dollar valuations, leveraging lean teams and AI-driven scaling strategies. - [Business Insider](https://www.businessinsider.com/ai-startup-unicorns-with-tiny-teams-2025-5)
-- Periodic Labs aims to build a 'ChatGPT for material science,' seeking hundreds of millions in funding at a valuation above $1 billion. - [The Information](https://www.theinformation.com/briefings/former-openai-deepmind-leaders-seek-funding-chatgpt-material-science)
-- AI enables startups to iterate faster and operate with smaller teams, automating routine tasks and reshaping funding toward generative AI ventures. - [Forbes](https://www.forbes.com/councils/forbestechcouncil/2025/05/06/ai-is-transforming-entrepreneurship-whats-changing-and-what-comes-next/)
-
-## AI Research & Methods
-
-- Diffusion models generate high-quality data by learning to reverse a noise-adding process, with code examples demonstrating PyTorch implementation details. - [Hacker Noon](https://hackernoon.com/decoding-diffusion-models-core-concepts-and-pytorch-code)
-- A developer built a basic AI code review agent using GPT-4.1-mini via GitHub API, highlighting ease of setup and limitations in context understanding. - [Sourcebot.dev](https://www.sourcebot.dev/blog/review-agent-learnings)
+- Apple and Google now provide free on-device AI writing tools for proofreading, rewriting, and summarizing text across mobile apps for iPhone and Android users. - [The New York Times](https://www.nytimes.com/2025/05/07/technology/personaltech/ai-writing-tools-phone.html)
+- Oura’s smart ring app added AI-driven meal identification and glucose tracking features, offering nutritional breakdowns and 24/7 monitoring with a biosensor pack. - [CNET](https://www.cnet.com/health/fitness/oura-adds-two-new-ai-features-that-track-your-meals-and-glucose-intake/#ftag=CAD590a51e)
+- Microsoft Photos on Windows 11 gained AI-powered relighting capabilities alongside new Copilot+ PC features including Recall and Click to Do previews. - [PetaPixel](https://petapixel.com/2025/05/06/microsoft-photos-can-relight-your-images/)
+- Google introduced 'Simplify' for iOS, allowing users to convert complex web text into plain English using Gemini AI within the browser app. - [Wccftech](https://wccftech.com/read-smarter-googles-new-ai-tool-for-iphone-users-turns-complex-text-into-plain-english-for-better-understanding/)
 
 ## Other News
 
-- Smartphone users can now use AI writing tools from Apple and Google for composing, editing, and summarizing text within native apps. - [The New York Times](https://www.nytimes.com/2025/05/07/technology/personaltech/ai-writing-tools-phone.html)
-- The article explores philosophical questions on AI consciousness, examining thought experiments like the Turing Test and the Ship of Theseus. - [Discover Wild Science](https://discoverwildscience.com/what-if-ai-had-a-soul-philosophical-thought-experiments-about-machine-minds-1-306032/)
-- The article outlines a practical step-by-step plan to become an AI/ML professional by 2025, focusing on hands-on projects and deployment skills. - [Hacker Noon](https://hackernoon.com/from-beginner-to-aiml-pro-in-2025-the-step-by-step-roadmap-that-gets-you-hired)
-- Figma’s report shows designers are enthusiastic about AI yet uncertain how to apply it effectively beyond experimentation. - [Fast Company](https://www.fastcompany.com/91328873/designers-are-excited-about-ai-but-most-dont-know-what-to-do-with-it)
-- DeepMind’s CEO warns AGI could arrive within five to ten years, cautioning that society may not be prepared for its implications. - [Windows Central](https://www.windowscentral.com/software-apps/google-deepmind-ceo-says-agi-is-coming-society-not-ready)
-- The EU launched its AI Continent Strategy to boost investment, harmonize regulations, and enhance infrastructure to improve global AI competitiveness. - [Computer Weekly](https://www.computerweekly.com/news/366623604/EU-acts-to-mend-ailing-AI-competitiveness)
+- Figma introduced AI features including Figma Sites for website creation, Figma Make for app prototyping, Figma Buzz for marketing assets, and Figma Draw for vector editing. - [TechCrunch](https://techcrunch.com/2025/05/07/figma-releases-new-ai-powered-tools-for-creating-sites-app-prototypes-and-marketing-assets/)
+- AT&T switched from ChatGPT to an open-source AI system to process millions of service calls faster and more cheaply while preserving high accuracy. - [Business Insider](https://www.businessinsider.com/att-open-source-ai-better-than-chatgpt-customer-service-calls-2025-5)
+- Netflix began beta testing generative AI search in its iOS app, allowing users to describe viewing preferences in natural language for personalized recommendations. - [TechCrunch](https://techcrunch.com/2025/05/07/netflix-debuts-its-generative-ai-powered-search-tool/)
+- Nutanix previewed its Cloud Clusters solution on Google Cloud, enabling hybrid multicloud migrations and integration with Nvidia AI tools. - [SiliconANGLE](https://siliconangle.com/2025/05/07/nutanix-cloud-cluster-solution-google-cloud-nextconf/)
+- Periodic Labs is seeking over $100M funding at a valuation above $1B to develop an industry-specific ChatGPT model for material science applications. - [The Information](https://www.theinformation.com/briefings/former-openai-deepmind-leaders-seek-funding-chatgpt-material-science)
+- An SEO specialist admitted to using AI to mass-produce deceptive content targeting older users on social media, prompting platforms to enhance detection measures. - [Futurism](https://futurism.com/slop-farmer-ai-social-media)
