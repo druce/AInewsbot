@@ -11,7 +11,6 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-
 import numpy as np
 import pandas as pd
 
@@ -147,6 +146,11 @@ def filter_unseen_urls_db(orig_df, before_date=None, after_date=None):
 
     Returns:
         pandas.DataFrame: The filtered DataFrame with rows removed if their URLs are already present in the database.
+
+    # TODO: there is an issue of getting same story from multiple hostnames
+    #       add domain to news_articles schema
+    #       populate it via a script and update insert_article
+    #       filter by domain + title instead of src + title
     """
     conn = sqlite3.connect(SQLITE_DB)
     where_clause = ''
