@@ -81,7 +81,8 @@ Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AI
 
 ### Configuration & Prompts
 - `sources.yaml`: List of news sources (URL, include/exclude regex, scrolling instructions, etc.).
-- `ainb_const.py`: Paths, API keys (via `.env`), model settings, LLM prompts (classification, topic extraction, summarization).
+- `ainb_const.py`: Paths, API keys (via `.env`), model settings,
+- `ainb_prompts.py`: LLM prompts (classification, topic extraction, summarization etc.)
 
 ### Scraping
 - `ainb_webscrape.py`:
