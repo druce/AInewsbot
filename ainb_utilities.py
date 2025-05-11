@@ -99,7 +99,7 @@ def delete_files(download_dir):
                 # If you want to remove subdirectories as well, use os.rmdir() here
                 pass
         except Exception as e:
-            print(f'Failed to delete {file_path}. Reason: {e}')
+            log(f'Failed to delete {file_path}. Reason: {e}')
 
 
 def insert_article(conn, cursor, src, actual_src, title, url, actual_url, is_ai, article_date):
@@ -147,8 +147,8 @@ def filter_unseen_urls_db(orig_df, before_date=None, after_date=None):
     Returns:
         pandas.DataFrame: The filtered DataFrame with rows removed if their URLs are already present in the database.
 
-    # TODO: there is an issue of getting same story from multiple hostnames
-    #       add domain to news_articles schema
+    # TODO: there is an issue of getting same story from multiple hostnames (e.g. www1.ft.com, on.ft.com, ft.com)
+    #       add top level domain to news_articles schema
     #       populate it via a script and update insert_article
     #       filter by domain + title instead of src + title
     """

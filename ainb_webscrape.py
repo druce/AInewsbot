@@ -62,7 +62,7 @@ def get_og_tags(url):
                         result_dict["title"] = page_title
         return result_dict
     except requests.RequestException as e:
-        print(f"Error fetching {url}: {e}")
+        log(f"Error fetching {url}: {e}")
     return result_dict
 
 

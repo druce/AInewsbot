@@ -876,6 +876,7 @@ def fn_summarize_pages(state: AgentState, model_medium) -> AgentState:
         AgentState: The updated state of the agent.
 
     """
+    # possible TODO: do a GPT self-check to evaluate summaries against facts in the article and correct
     log("Starting summarize")
     aidf = pd.DataFrame(state['AIdf'])
     responses = []
@@ -1077,7 +1078,7 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
 
 def fn_rewrite_summary(state: AgentState, model_high) -> AgentState:
     """Edit summary using REWRITE_PROMPT"""
-
+    # possible TODO: evaluate with flesch-kincaid readability score
     log(f"Rewriting summary using {str(type(model_high))}")
 
     prompt_template = ChatPromptTemplate.from_messages([

@@ -1,73 +1,53 @@
-## Workforce & Jobs
+## AI Regulation Roundup
 
-- AI adoption is transforming HR functions like recruitment and onboarding, but most departments lack readiness and require human oversight for effective implementation. - [Forbes](https://www.forbes.com/sites/johnwerner/2025/05/09/ai-hr-is-going-to-rock-our-worlds-as-ai-adoption-soars/)
-- Mark Zuckerberg said AI enables smaller, talent-dense startup teams and could replace midlevel engineers by writing code, though experts warn of security and scalability risks. - [Business Insider](https://www.businessinsider.com/mark-zuckerberg-ai-startup-company-with-small-team-2025-5)
-- OpenAI CEO Sam Altman told a Senate committee that AI could eliminate up to 70% of jobs, urging early adoption and policy support to prepare for workforce transitions. - [PYMNTS](https://www.pymnts.com/artificial-intelligence-2/2025/senator-grills-openai-ceo-on-view-that-ai-could-eliminate-up-to-70percent-of-jobs/)
-- Federal Reserve Governor Michael Barr outlined incremental and transformative AI scenarios, detailing productivity gains, job creation opportunities, displacement risks, and monetary policy implications. - [Federal Reserve](https://www.federalreserve.gov/newsevents/speech/barr20250509a.htm)
+- Insurers have launched policies covering losses from AI chatbot errors, including legal costs and damages, to address growing liability risks in business AI adoption. - [Financial Times](https://www.ft.com/content/1d35759f-f2a9-46c4-904b-4a78ccc027df)
+- The FDA plans to integrate AI across its centers by June to speed up drug review tasks, aiming to reduce multi-day processes to minutes while noting reliability risks. - [Futurism](https://futurism.com/fda-ai-approve-drugs)
+- AI tools often provide inaccurate or outdated U.S. tax advice, risking costly IRS penalties, and professional tax experts remain essential for reliable, compliant guidance. - [Forbes](https://www.forbes.com/sites/virginialatorrejeker/2025/05/11/the-danger-of-relying-on-ai-for-us-tax-advice/)
+- The European AI Act bans social scoring practices but permits regulated high-risk AI scoring, seeking to protect individual rights while allowing credit and fraud assessment under strict rules. - [arXiv](https://arxiv.org/abs/2505.02791)
+- The U.S. Department of Labor closed its investigation into Scale AI's compliance with wage and overtime laws, highlighting scrutiny of labor practices in AI labeling firms. - [Tech in Asia](https://www.techinasia.com/news/us-govt-concludes-probe-into-scale-ais-wage-practices)
 
-## AI Agents & Automation
+## The Heart of AI Hardware
 
-- Ninja’s AI agent autonomously searches and synthesizes online sources, delivering citation-backed insights within minutes for $15 a month, claiming over 91% accuracy on SimpleQA tests. - [Hacker Noon](https://hackernoon.com/ninja-deep-research-the-ai-agent-everyone-can-actually-start-using-now)
-- Zencoder introduced Zen Agents, a platform for creating and deploying custom AI development assistants that automate workflows like code review and testing, backed by an open-source marketplace and enterprise security certifications. - [VentureBeat](https://venturebeat.com/ai/zencoder-launches-zen-agents-ushering-in-a-new-era-of-team-based-ai-for-software-development/)
-- StackAI raised $16M led by Lobby VC for its no-code AI agent platform that integrates with software like Snowflake and Salesforce to automate back-office tasks in industries like construction and insurance. - [Business Insider](https://www.businessinsider.com/pitch-deck-ai-agent-startup-stackai-series-a-funding-round-2025-5)
-- Hugging Face’s open-source Open Computer Agent can navigate websites, fill forms, and click buttons via natural language commands, though logins and CAPTCHAs may require user input. - [TechRadar](https://www.techradar.com/computing/artificial-intelligence/theres-a-new-ai-agent-ready-to-browse-the-web-and-fill-in-forms-without-the-need-to-touch-your-mouse)
+- Nvidia holds over 80% of the AI chip market, while AMD, Qualcomm, Broadcom, hyperscalers, and startups race to develop competitive AI processors and ecosystems. - [Business Insider](https://www.businessinsider.com/nvidia-competitors)
+- Intel announced management layoffs and delayed its Ohio plant as new U.S. export controls on AI chips impose multibillion-dollar charges impacting major semiconductor firms. - [Tech in Asia](https://www.techinasia.com/news/intel-layoffs-ai-chip-rules-reshape-us-chip-sector)
 
-## LLM Customization & Research
+## Autonomy & Talent
 
-- ByteDance released DeerFlow, an open-source multi-agent framework built on LangChain to automate research workflows through coordinated LLM agents for planning, retrieval, execution, and synthesis. - [MarkTechPost](https://www.marktechpost.com/2025/05/09/bytedance-open-sources-deerflow-a-modular-multi-agent-framework-for-deep-research-automation/)
-- Researchers propose an augmented fine-tuning method combining in-context learning examples to improve LLM generalization, balancing training costs and inference efficiency. - [VentureBeat](https://venturebeat.com/ai/fine-tuning-vs-in-context-learning-new-research-guides-better-llm-customization-for-real-world-tasks/)
-- OpenAI outlines optimal ChatGPT models by task: GPT-4o for general use, GPT-4.5 for creative tasks, mini variants for technical help, and o1 Pro Mode for high-stakes analysis. - [MakeUseOf](https://www.makeuseof.com/best-chatgpt-model-for-each-task/)
-- The Model Context Protocol (MCP) standardizes AI integration with external tools by enabling dynamic tool discovery, complementing APIs for adaptable, scalable AI-driven applications. - [Geeky Gadgets](https://www.geeky-gadgets.com/mcp-and-apis-for-ai-integration/)
-- Giskard’s study shows that instructing chatbots for brevity increases hallucinations by limiting context needed to debunk misinformation, highlighting a trade-off between conciseness and factual accuracy. - [TechCrunch](https://techcrunch.com/2025/05/08/asking-chatbots-for-short-answers-can-increase-hallucinations-study-finds/)
+- Big Tech is hiring fewer but higher-skilled employees, leveraging generative AI to automate coding tasks and reduce staffing needs while expanding non-engineer development. - [Business Insider](https://www.businessinsider.com/bi-today-big-tech-ai-do-more-with-less-2025-5)
+- Waymo cofounder Sebastian Thrun stressed that safety, multi-sensor systems, and cautious deployment are critical to public trust and success in the robotaxi industry. - [Business Insider](https://www.businessinsider.com/waymo-cofounder-sebastian-thrun-alphabet-robotaxi-race-competition-2025-5)
+- A Naukri survey found one in three Indian tech professionals receive formal AI training, with generative AI skills prioritized, though concerns persist over outdated tech and limited time for upskilling. - [The Economic Times](https://economictimes.indiatimes.com/tech/artificial-intelligence/half-of-tech-workers-in-india-getting-ai-training-at-work-naukri-survey/articleshow/121055792.cms)
 
-## Enterprise & Sector AI
+## AI Tools for Today
 
-- AI enhances supply chain visibility, risk prediction, inventory optimization, and demand forecasting but faces hurdles like data silos and stakeholder resistance requiring strategic planning. - [Forbes](https://www.forbes.com/councils/forbestechcouncil/2025/05/09/ai-in-the-supply-chain-challenges-solutions-and-applications/)
-- InsurTech platform First Connect uses AI analytics to match agents with carriers, cutting onboarding from weeks to minutes, backed by $60M funding to expand digital insurance marketplaces. - [PYMNTS](https://www.pymnts.com/insurance/2025/digital-marketplaces-rewrite-insurance-rules-artificial-intelligence-drives-industry-shake-up/)
-- SAP’s Christian Klein highlights a best-of-suite AI strategy embedding intelligence into business processes, leveraging a Databricks partnership and its Business Network for supply chain transparency. - [Stratechery](https://stratechery.com/2025/an-interview-with-sap-ceo-christian-klein-about-enterprise-ai/)
-- GenAI-powered knowledge systems speed information retrieval in sectors like healthcare and banking, improving outcomes but requiring trust-building and data integration efforts. - [Computer Weekly](https://www.computerweekly.com/feature/How-GenAI-driven-knowledge-management-can-enhance-customer-experience)
+- iPhone users can set ChatGPT as Safari’s default search engine via its app extension, enabling conversational and voice-based queries alongside image generation. - [Geeky Gadgets](https://www.geeky-gadgets.com/ditch-google-how-to-unleash-chatgpt-search-on-your-iphone/)
+- AI-driven search demands semantic content structure, Schema.org markup, and clear metadata to improve AI assistants’ understanding and feature your site in generated answers. - [Hacker Noon](https://hackernoon.com/come-on-dont-just-rely-on-traditional-seo-your-website-needs-to-be-ai-ready)
+- Grok AI generated a C++23 program to parse CSV files and count distinct column values, illustrating how generative AI can automate practical coding tasks. - [lemire.me](https://lemire.me/blog/2025/05/10/producing-useful-commands-on-the-go-using-c-and-ai/)
+- LLMs shift digital marketing from clicks and SEO to third-party mentions and brand credibility, requiring companies to optimize content for AI-driven consumer queries. - [AOL](https://www.aol.com/digital-marketing-used-clicks-rise-192813346.html)
 
-## M&A & Investment Moves
+## Pushing AI Frontiers
 
-- ServiceNow bought Data.World to enhance its data catalog and governance capabilities, following its acquisition of Moveworks, aiming to make enterprise data AI-ready. - [TechCrunch](https://techcrunch.com/2025/05/07/servicenow-acquires-data-world-two-months-after-acquiring-moveworks/)
-- Datadog acquired Eppo for around $220M to integrate feature flagging and experimentation tools into its product analytics, supporting live AI experiments and risk-reduction. - [TechCrunch](https://techcrunch.com/2025/05/05/datadog-acquires-eppo-a-feature-flagging-and-experimentation-platform/)
-- OpenAI’s $3B purchase of Windsurf secures a customizable AI development environment to accelerate AGI efforts and intensify competition with rivals like Google. - [Geeky Gadgets](https://www.geeky-gadgets.com/openai-windsurf-acquisition/)
-- Cloud GPU specialist CoreWeave plans to raise $1.5B in high-yield debt to refinance existing loans, support data center expansion, and back new AI software offerings. - [SiliconANGLE](https://siliconangle.com/2025/05/09/weeks-ipo-coreweave-reportedly-seeking-1-5b-debt-financing/)
+- Researchers introduce Absolute Zero, a self-play reinforcement learning model generating and solving its own tasks without external data, achieving state-of-the-art reasoning performance. - [arXiv](https://arxiv.org/abs/2505.03335)
+- AI safety advocates urge companies to perform existential threat assessments akin to nuclear test protocols to prevent uncontrollable superintelligence development. - [biztoc.com](https://biztoc.com/x/fe1269c01f72a017)
 
-## Regulation, Ethics & Safety
+## Funding & Startups
 
-- The article argues that litigation against AI firms could decentralize AI control by promoting pro-human funding systems and countering centralized data and infrastructure power. - [Hacker Noon](https://hackernoon.com/more-individual-lawsuits-equals-more-decentralized-ai)
-- Yoshua Bengio proposes "Scientist AI," an AI paradigm focused on transparency and causal understanding to guard against unsafe autonomous agents and guide safe AGI development. - [Time](https://time.com/7283507/safer-ai-development/)
-- Character.AI argues its chatbot outputs are protected speech under the First Amendment to shield AI firms from liability, a stance critics warn could distort constitutional protections. - [Mashable](https://mashable.com/article/chatbots-lawsuit-free-speech)
-- AI-generated deepfake evidence of a murder victim in Arizona raises ethical and privacy concerns, prompting courts to seek guidelines for AI-based legal evidence. - [Verdict](https://www.verdict.co.uk/ai-deepfakes-courtroom-cases/)
+- AI21 Labs raised $300 million in Series D funding from Google and Nvidia, boosting its valuation to $1.4 billion for enterprise-focused language model development. - [Tech in Asia](https://www.techinasia.com/news/google-nvidia-back-israeli-ai-firms-300m-series-d)
+- StackOne secured $20 million Series A from GV and others to advance its AI agent platform for deep, secure SaaS integrations across enterprise systems. - [Silicon Canals](https://siliconcanals.com/londons-stackone-secures-e17-6m/)
 
-## Hardware & Robotics
+## Titans of AI
 
-- An Nvidia VP described GPUs as essential resources for AI research, noting cross-team collaborations and sacrifices of computing power accelerate model development. - [Business Insider](https://www.businessinsider.com/nvidia-researchers-training-artificial-intelligence-2025-5)
-- Nvidia will release a lower-spec H20 chip in China by July to comply with export restrictions, preserving its market share amid performance limitations. - [CNBC](https://www.cnbc.com/2025/05/09/nvidia-modifies-h20-chip-for-china-to-overcome-us-export-controls.html)
-- Amazon deployed tactile-capable Vulcan robots in warehouses to assist human workers, and Walmart used 3D printing robots to expand facilities and integrate physical and digital retail experiences. - [PYMNTS](https://www.pymnts.com/news/retail/2025/how-amazon-and-walmart-are-rewiring-retails-future-with-robotics/)
-- NVIDIA achieved zero-shot transfer training enabling humanoid robots to acquire human-like movement in two hours of simulation, showcasing rapid robotics learning techniques. - [Reddit](https://v.redd.it/mfzs81cq3sze1)
-
-## Consumer AI & Gadgets
-
-- Notion Mail is an AI-integrated Gmail client offering features like Autolabel and prompt-based draft composition, though it has a learning curve, Gmail dependency, and some efficiency trade-offs. - [Tom's Guide](https://www.tomsguide.com/ai/i-ditched-gmail-for-notion-mail-for-3-weeks-heres-what-its-like-to-use-ai-powered-email)
-- Samsung’s Galaxy AI and Apple Intelligence offer writing assistance and summarization tools, with Galaxy AI excelling in correction accuracy and Apple providing versatile text generation and sharing options. - [SamMobile](https://www.sammobile.com/news/samsung-galaxy-ai-vs-apple-intelligence-writing-assistance-part-1/)
-- Meta’s AssetGen 2.0 uses a 3D diffusion model trained on 3D asset corpora to produce detailed, consistent 3D assets from text prompts, with integration into Horizon tools planned later in 2025. - [UploadVR](https://www.uploadvr.com/meta-assetgen-2-0-ai-3d-asset-generation/)
-
-## Security & Privacy
-
-- Microsoft banned DeepSeek’s app over data security and Chinese government influence concerns but offers its underlying R1 model on Azure after internal safety evaluations. - [TechCrunch](https://techcrunch.com/2025/05/08/microsoft-employees-are-banned-from-using-deepseek-app-president-says/)
-- Google’s on-device Gemini Nano model in Chrome’s Enhanced Protection mode flags scam sites, with plans to expand AI-based scam detection to Android and notify users about malicious notifications. - [Gadgets360](https://www.gadgets360.com/ai/news/google-search-chrome-android-ai-combat-online-scams-new-report-8369682)
-- Drupal’s AI module had RCE and file deletion vulnerabilities due to unsanitized LLM-generated inputs, now fixed in version 1.0.5 with proper input sanitization. - [mcdruid.co.uk](https://www.mcdruid.co.uk/article/hacking-ai-module-drupal-cms)
-- Chrome’s new Android feature uses on-device ML to detect deceptive notifications locally, offering unsubscribe options and integrating with Safe Browsing without sending user data to Google. - [blog.chromium.org](https://blog.chromium.org/2025/05/fighting-unwanted-notifications-with.html)
+- OpenAI CEO Sam Altman called for societal humility and caution about AI’s vast potential during a Senate Commerce hearing on U.S. competitiveness. - [Yahoo Finance](https://finance.yahoo.com/news/sam-altman-says-cant-wrap-105353681.html)
+- Among major chatbots, only Musk-owned Grok favored Elon Musk for leading AI safety, while others supported Sam Altman and suggested collaboration between the two. - [Business Insider](https://www.businessinsider.com/elon-musk-vs-sam-altman-grok-chatgpt-comparison-advance-ai-2025-5)
+- Anthropic co-founder Jack Clark forecasts modest AI-driven growth, predicts slow AGI adoption in physical sectors, and highlights alignment and regulatory challenges. - [conversationswithtyler.com](https://conversationswithtyler.com/episodes/jack-clark/)
+- Sam Altman invited Elon Musk to reconcile their differences and collaborate on advancing artificial general intelligence despite past public feuds. - [NDTV](https://www.ndtv.com/world-news/sam-altman-extends-olive-105353681.html)
 
 ## Other News
 
-- WildTrack’s mobile app uses machine learning to analyze animal paw prints for species identification, supporting wildlife conservation with a database of over 7,000 resources. - [TrendHunter.com](https://www.trendhunter.com/trends/wildtrack)
-- The FDA appointed its first chief AI officer and plans to deploy generative AI tools across all centers by June 2025 to streamline medical product reviews. - [FierceBiotech](https://www.fiercebiotech.com/medtech/fda-appoints-first-chief-ai-officer-it-looks-speed-reviews)
-- An expert warns that using AI as a replacement for junior developers risks widening the IT skills gap and advocates for AI-assisted upskilling and mentorship. - [BetaNews](https://betanews.com/2025/05/09/why-using-ai-as-a-replacement-for-junior-developer-talent-is-a-mistake-qa/)
-- ChatGPT Deep Research’s beta feature connects to GitHub repos, enabling multi-step code analysis and detailed report generation with citations for Plus and Pro users. - [aiagent.marktechpost.com](https://aiagent.marktechpost.com/post/how-to-connect-github-repos-to-deep-research-in-chatgpt)
-- A Duke University study found that employees using AI tools at work face stigma and negative judgments on competence and motivation regardless of demographics. - [Slashdot](https://slashdot.org/story/25/05/09/225245/ai-use-damages-professional-reputation-study-suggests)
-- A paper shows LLM text undergoes cumulative changes and biases in iterative transmissions, akin to a telephone game, highlighting cultural dynamics and attractor effects. - [Language Log](https://languagelog.ldc.upenn.edu/nll/?p=69090)
-- The Posha kitchen robot uses AI vision and pre-loaded ingredients to prepare hundreds of recipes automatically, monitoring cooking progress to serve fresh meals. - [TrendHunter.com](https://www.trendhunter.com/trends/posha-kitchen-robot)
-- llama.cpp added multimodal input support via libmtmd, allowing OpenAI-compatible multi-modal chat API usage with models like Gemma 3 and SmolVLM. - [GitHub](https://github.com/ggml-org/llama.cpp/blob/master/docs/multimodal.md)
+- Baidu's patented AI system aims to translate animal sounds and behaviors into human language by analyzing biological signals, though the technology remains in early research stages. - [NDTV](https://www.ndtv.com/science/this-ai-tool-may-help-translate-your-dogs-barks-into-human-language-8380049)
+- An AI-controlled greenhouse in Ontario automates lettuce production to cut imports, optimize growth conditions, and employ sustainable methods, raising questions about automation’s social impacts. - [CBC](https://www.cbc.ca/news/canada/machine-lettuce-1.7528860)
+- Researchers argue AI can personalize math learning, monitor student emotions, and support socio-emotional outcomes, advocating ethical governance and data privacy in education. - [Nature](https://www.nature.com/articles/s41539-025-00315-4)
+- A French startup’s 3 mm neurosurgical robot navigates curved brain pathways guided by AI and MRI for precise biopsies and drug delivery, with human trials planned. - [Fox News](https://www.foxnews.com/tech/rice-sized-robot-could-make-brain-surgery-safer-less-invasive)
+- SoundCloud now allows its content for AI model training under safeguards, implements no-AI tags, and plans opt-out options, reflecting industry shifts in music AI policy. - [Tech in Asia](https://www.techinasia.com/news/soundcloud-updates-terms-on-ai-training-for-content)
+- The U.S. Treasury is reviewing Benchmark’s $500 million investment in Chinese startup Manus AI for compliance with 2023 restrictions amid heightened US-China tech tensions. - [Tech in Asia](https://www.techinasia.com/news/us-reviews-vc-firms-investment-in-chinese-ai-startup-manus)
+- OpenAI’s Sam Altman and Microsoft’s Brad Smith testified on AI policy and US-China competitiveness as an AWS survey found generative AI tops corporate technology priorities for 2025. - [GeekWire](https://www.geekwire.com/2025/ai-boom-and-d-c-hot-mics-openai-and-microsoft-go-to-washington-amazon-surveys-the-field/)
+- President Trump fired US Copyright Office head Shira Perlmutter after her report questioned AI’s use of copyrighted materials, prompting criticism over political interference. - [CBS News](https://www.cbsnews.com/news/trump-fires-director-of-u-s-copyright-office-shira-perlmutter-sources/)

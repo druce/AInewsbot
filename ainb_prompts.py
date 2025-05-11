@@ -190,7 +190,11 @@ Think carefully through each on-topic category for each story and then rate it.
 """
 
 ######################################################################
-
+# possibly divide into credibility, novelty, impact, and ask it to rationalize
+# could ask it to rate from 0-10 but calibration could be an issue
+# maybe ask it to rate from 1-5 with 20% in each bucket
+# or send many pairs of prompts and run an ELO contest. if you have 100 stories, you can run 500 contests with each story in 10 contests
+# eliminate by ELO rating < 50% likely to beat a random story
 IMPORTANCE_SYSTEM_PROMPT = """You are the AI analyst, an AI-news importance classifier.
 
 Goal: Use deep understanding of the AI ecosystem and its evolution to rate the importance of each news story for an AI newsletter.
