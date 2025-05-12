@@ -31,7 +31,7 @@ A Python pipeline for **AI news gathering → topic clustering → summarization
 
 [![A podcast created with podcastfy](https://img.youtube.com/vi/Fl0xP1Io72k/0.jpg)](https://www.youtube.com/shorts/AOVOOZQthNU)
 
-Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AInewsbot/blob/main/AInewsbot_langgraph.ipynb).
+Explore interactively in [AInewsbot.ipynb](https://github.com/druce/AInewsbot/blob/main/AInewsbot.ipynb).
 
 
 ## 1. Purpose
@@ -67,13 +67,13 @@ Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AI
 5. Run the main script:
 
    ```bash
-   python AInewsbot_langgraph.py
+   python AInewsbot.py
    ```
 
 ## 2. Core Components
 
 ### Orchestration
-- `AInewsbot_langgraph.py`: Top-level orchestrator. Follows the workflow in the image below.
+- `AInewsbot.py`: Top-level orchestrator. Follows the workflow in the image below.
   - Fetch source pages specified in `sources.yaml` (and NewsAPI) → Extract & dedupe URLs → - Classify headlines as AI or not AI, filter previously seen
   - Scrape indivdual stories & summarize →  Embed & cluster topics, order by topic
   - Prompt LLM for newsletter → Polish / re-edit → Send email
@@ -104,7 +104,7 @@ Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AI
 - `ainewsbot/prompts.py`: Prompts used when calling LLM.
 
 ### Notebooks & Experiments
-- `AInewsbot_langgraph.ipynb`: Interactive pipeline runner, topic clustering, visualizations.
+- `AInewsbot.ipynb`: Interactive pipeline runner, topic clustering, visualizations.
 - `AInewsbot_test_llms.ipynb`: test best way to call various LLMs
 
 ---
@@ -143,12 +143,12 @@ OPENAI_API_KEY=sk-...
 
 ## 5. How to Run
 
-- For basic usage, run `python AInewsbot_langgraph.py`
+- For basic usage, run `python AInewsbot.py`
 
 ```bash
-$ python AInewsbot_langgraph.py --help
+$ python AInewsbot.py --help
 
-usage: AInewsbot_langgraph.py [-h] [-n] [-d BEFORE_DATE] [-b BROWSERS] [-e MAX_EDITS]
+usage: AInewsbot.py [-h] [-n] [-d BEFORE_DATE] [-b BROWSERS] [-e MAX_EDITS]
 
 options:
   -h, --help            show this help message and exit
@@ -161,7 +161,7 @@ options:
                         Maximum number of summary rewrites
 ```
 
-- For advanced usage, schedule runs of `AInewsbot.sh`, customize sources in `sources.yaml`, change additional configs in `ainewsbot/config.py`, or run interactively in `AInewsbot_langgraph.ipynb`.
+- For advanced usage, schedule runs of `AInewsbot.sh`, customize sources in `sources.yaml`, change additional configs in `ainewsbot/config.py`, or run interactively in `AInewsbot.ipynb`.
 
 ![flowchart](https://github.com/druce/AInewsbot/blob/main/graph.png?raw=true)
 
