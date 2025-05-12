@@ -1044,7 +1044,7 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     n_rounds = math.ceil(math.log2(len(aidf))) * 2
     elo_ranking_dict = {i: 1000 for i in aidf["id"]}
     battle_history_dict = {}
-    K = 32
+    k_factor = 32
     prompt = ChatPromptTemplate.from_messages([
         ("system", PROMPT_BATTLE_SYSTEM_PROMPT),
         ("user", PROMPT_BATTLE_USER_PROMPT)
@@ -1063,22 +1063,25 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
             # Convert result into scores
             if result == 1:
                 score_a, score_b = 1.0, 0.0
+                log(f"'{aidf.loc[a, 'title']}' > '{aidf.loc[b, 'title']}'")
             elif result == -1:
                 score_a, score_b = 0.0, 1.0
+                log(f"'{aidf.loc[b, 'title']}' > '{aidf.loc[a, 'title']}'")
             else:
                 score_a = score_b = 0.5
+                log(f"'{aidf.loc[b, 'title']}' == '{aidf.loc[a, 'title']}'")
 
             # Current ratings
-            R_a = elo_ranking_dict[a]
-            R_b = elo_ranking_dict[b]
+            rank_a = elo_ranking_dict[a]
+            rank_b = elo_ranking_dict[b]
 
             # Expected scores
-            E_a = 1.0 / (1.0 + 10 ** ((R_b - R_a) / 400))
-            E_b = 1.0 / (1.0 + 10 ** ((R_a - R_b) / 400))
+            expected_a = 1.0 / (1.0 + 10 ** ((rank_b - rank_a) / 400))
+            expected_b = 1.0 / (1.0 + 10 ** ((rank_a - rank_b) / 400))
 
             # Update ratings in-place
-            elo_ranking_dict[a] += K * (score_a - E_a)
-            elo_ranking_dict[b] += K * (score_b - E_b)
+            elo_ranking_dict[a] += k_factor * (score_a - expected_a)
+            elo_ranking_dict[b] += k_factor * (score_b - expected_b)
 
     log("finished ELO rating")
     aidf['elo'] = aidf['id'].map(elo_ranking_dict.get)
