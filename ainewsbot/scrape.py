@@ -13,11 +13,11 @@ import time
 import requests
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
-
-from ainb_utilities import log
-from ainb_const import (DOWNLOAD_DIR, PAGES_DIR, FIREFOX_PROFILE_PATH,  # SCREENSHOT_DIR,
-                        MIN_TITLE_LEN, SLEEP_TIME)
 from playwright_stealth import stealth_async
+
+from .utilities import log
+from .config import (DOWNLOAD_DIR, PAGES_DIR, FIREFOX_PROFILE_PATH,  # SCREENSHOT_DIR,
+                     MIN_TITLE_LEN, SLEEP_TIME)
 
 # Global state for per-domain rate limiting
 _domain_locks = {}

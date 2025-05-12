@@ -3,33 +3,31 @@ for debugging, some synchronous versions of ainb_llm functions
 can call these from top level with pdb.set_trace, and step through
 unlike async versions which will spawn many threads and not allow pdb to work
 """
-from ainb_llm import normalize_html, async_langchain
-
 import pdb
 
 # from collections import defaultdict
-import math
+# import math
 # import aiohttp
 import asyncio
 from typing import List, Type, TypeVar, Dict, Any  # , TypedDict, Annotated,
-from pathlib import Path
+# from pathlib import Path
 import os
 
-from pydantic import BaseModel, Field
+# from pydantic import BaseModel, Field
 import pandas as pd
 
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_exponential,
-    retry_if_exception_type
-)
+# from tenacity import (
+#     retry,
+#     stop_after_attempt,
+#     wait_exponential,
+#     retry_if_exception_type
+# )
 
-import tiktoken
+# import tiktoken
 # import openai
 # from openai import OpenAI
-from bs4 import BeautifulSoup
-import trafilatura
+# from bs4 import BeautifulSoup
+# import trafilatura
 
 
 # import langchain
@@ -43,11 +41,12 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import (ChatPromptTemplate,)
 # SystemMessagePromptTemplate, HumanMessagePromptTemplate)
 
-from ainb_utilities import log
-from ainb_const import (MAX_INPUT_TOKENS, TENACITY_RETRY,)
-from ainb_prompts import (
+from .utilities import log
+# from config import (MAX_INPUT_TOKENS, TENACITY_RETRY,)
+from .prompts import (
     CANONICAL_SYSTEM_PROMPT, CANONICAL_USER_PROMPT,
     SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT)
+from .llm import normalize_html, async_langchain, CanonicalTopicSpecList
 
 T = TypeVar('T')
 

@@ -60,7 +60,7 @@ Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AI
    pip install -r requirements.txt
    ```
 
-3. This version uses Firefox to download pages. Point to a `FIREFOX_PROFILE_PATH` in `ainb_const.py` to use your own organic profile. You can use the browser of your choice by editing the code and picking a different Playwright driver in `ainb_llm.py`, and pointing to the profile of your choice. You can launch an interactive browser in that profile and log in to various services, and the automation should be able to take advantage of any login cookies saved.
+3. This version uses Firefox to download pages. Point to a `FIREFOX_PROFILE_PATH` in `ainewsbot/config.py` to use your own organic profile. You can use the browser of your choice by editing the code and picking a different Playwright driver in `ainewsbot/llm.py`, and pointing to the profile of your choice. You can launch an interactive browser in that profile and log in to various services, and the automation should be able to take advantage of any login cookies saved.
 
 4. Edit start pages to download in `sources.yaml`. Of course, avoid scraping anything in violation of any site's `robots.txt` and terms of service. Use direct APIs to market data services that you subscribe to. Some low-cost APIs such as NewsAPI or Newscatcher are implemented in my [marketdata](https://github.com/druce/marketdata) repo.
 
@@ -81,27 +81,27 @@ Explore interactively in [AInewsbot_langgraph.ipynb](https://github.com/druce/AI
 
 ### Configuration & Prompts
 - `sources.yaml`: List of news sources (URL, include/exclude regex, scrolling instructions, etc.).
-- `ainb_const.py`: Paths, API keys (via `.env`), model settings,
-- `ainb_prompts.py`: LLM prompts (classification, topic extraction, summarization etc.)
+- `ainewsbot/config.py`: Paths, API keys (via `.env`), model settings,
+- `ainewsbot/prompts.py`: LLM prompts (classification, topic extraction, summarization etc.)
 
 ### Scraping
-- `ainb_webscrape.py`:
+- `ainewsbot/scrape.py`:
   - Downloads “landing pages” using Playwright
   - Extracts story links
   - Downloads full-article HTML
   - Captures screenshots to potentially show during YouTube podcast
 
 ### Utilities & Storage
-- `ainb_utilities.py`: Logging wrapper, file cleanup, SQLite insert/query of seen URLs, text normalization.
+- `ainewsbot/utilities.py`: Logging wrapper, file cleanup, SQLite insert/query of seen URLs, text normalization.
 - `articles.db`: Tracks previously fetched URLs to avoid re-fetching and presenting previously discussed articles.
 
 ### LLM Integration
-- `ainb_llm.py`: LangGraph wrappers around ChatOpenAI.
+- `ainewsbot/llm.py`: LangGraph wrappers around ChatOpenAI.
   - Take a current dataframe of news stories (~100 per day) and apply a prompt to each row asynchronously (i.e. with 100 parallel LLM calls for classificaation, topic extraction, filtering, summarization)
   - Structured JSON classification (like, is it AI-related?)
   - Topic extraction
   - Summary generation
-- `ainb_prompts.py`: Prompts used when calling LLM.
+- `ainewsbot/prompts.py`: Prompts used when calling LLM.
 
 ### Notebooks & Experiments
 - `AInewsbot_langgraph.ipynb`: Interactive pipeline runner, topic clustering, visualizations.
@@ -161,7 +161,7 @@ options:
                         Maximum number of summary rewrites
 ```
 
-- For advanced usage, schedule runs of `AInewsbot.sh`, customize sources in `sources.yaml`, change additional configs in `ainb_const.py`, or run interactively in `AInewsbot_langgraph.ipynb`.
+- For advanced usage, schedule runs of `AInewsbot.sh`, customize sources in `sources.yaml`, change additional configs in `ainewsbot/config.py`, or run interactively in `AInewsbot_langgraph.ipynb`.
 
 ![flowchart](https://github.com/druce/AInewsbot/blob/main/graph.png?raw=true)
 

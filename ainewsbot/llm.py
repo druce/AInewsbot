@@ -12,7 +12,7 @@ based on the filtered and summarized articles.
 The module is designed to be used by the AInewsbot script to generate a newsletter and podcast
 based on the latest AI news.
 """
-import pdb
+# import pdb
 import os
 import math
 import re
@@ -49,9 +49,9 @@ from langchain_core.language_models import BaseLanguageModel
 from langchain_core.prompts import (ChatPromptTemplate,)
 # SystemMessagePromptTemplate, HumanMessagePromptTemplate)
 
-from ainb_utilities import log
-from ainb_const import (TENACITY_RETRY, MAX_INPUT_TOKENS,)
-from ainb_prompts import (
+from .utilities import log
+from .config import (TENACITY_RETRY, MAX_INPUT_TOKENS,)
+from .prompts import (
     CANONICAL_SYSTEM_PROMPT, CANONICAL_USER_PROMPT,
     SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT
 )

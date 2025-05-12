@@ -1,35 +1,3 @@
-"""
-AInewsbot_langgraph.py
-This is the top-level file for the AInewsbot application. It sets up the state graph
-and runs it using the LangGraph framework. The individual state functions that define
-specific behaviors and transformations are implemented in the `ainb_state.py` module.
-
-The script initializes the agent, configures the state graph, and executes the
-workflow for processing news articles, including downloading, filtering, summarizing,
-and sending email summaries. It supports command-line arguments for customization.
-
-Modules and Features:
-- Defines the `AgentState` TypedDict to represent the state of the agent.
-- Implements the `Agent` class to manage the state graph and its execution.
-- Provides utility functions to initialize the agent and run the workflow.
-- Supports integration with multiple AI models (e.g., OpenAI, Google Generative AI).
-- Uses LangGraph for state graph management and execution.
-
-Command-line Arguments:
-- `--nofetch`: Disable web fetching and use existing HTML files.
-- `--before-date`: Process articles before a specific date.
-- `--browsers`: Number of browser instances to run in parallel.
-- `--max-edits`: Maximum number of summary rewrites.
-
-Dependencies:
-- `ainb_state.py`: Contains the individual state functions.
-- `ainb_utilities.py`: Provides logging and utility functions.
-- `ainb_const.py`: Defines constants like model families and request timeouts.
-
-Usage:
-Run this script directly to execute the AInewsbot workflow, or import it as a module
-to use the `Agent` class and related functions programmatically.
-"""
 import argparse
 import uuid
 
@@ -39,35 +7,31 @@ import pandas as pd
 
 from IPython.display import display, Markdown  # , Audio
 
-from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph, START, END
 
 import langchain
 
-from ainb_state import (AgentState,
-                        fn_initialize,
-                        fn_download_sources,
-                        fn_extract_urls,
-                        fn_verify_download,
-                        # fn_extract_newscatcher,
-                        fn_extract_newsapi,
-                        fn_filter_urls,
-                        fn_topic_analysis,
-                        fn_topic_clusters,
-                        fn_download_pages,
-                        fn_summarize_pages,
-                        fn_rate_articles,
-                        fn_propose_topics,
-                        fn_compose_summary,
-                        fn_rewrite_summary,
-                        fn_is_revision_complete,
-                        fn_send_mail,)
+from .state import (AgentState,
+                    fn_initialize,
+                    fn_download_sources,
+                    fn_extract_urls,
+                    fn_verify_download,
+                    # fn_extract_newscatcher,
+                    fn_extract_newsapi,
+                    fn_filter_urls,
+                    fn_topic_analysis,
+                    fn_topic_clusters,
+                    fn_download_pages,
+                    fn_summarize_pages,
+                    fn_rate_articles,
+                    fn_propose_topics,
+                    fn_compose_summary,
+                    fn_rewrite_summary,
+                    fn_is_revision_complete,
+                    fn_send_mail,)
 
-from ainb_utilities import (log,)
-from ainb_const import (REQUEST_TIMEOUT,
-                        MODEL_FAMILY)
+from .utilities import (log, get_model)
 
 # from langchain_anthropic import ChatAnthropic
 
@@ -83,21 +47,9 @@ langchain.verbose = True
 nest_asyncio.apply()  # needed for asyncio.run to work under langgraph
 
 # defaults if called via import and not __main__
-N_BROWSERS = 4
+N_BROWSERS = 8
 MAX_EDITS = 2
 
-
-def get_model(model_name):
-    """get langchain model based on model_name"""
-    if model_name in MODEL_FAMILY:
-        model_type = MODEL_FAMILY[model_name]
-        if model_type == 'openai':
-            return ChatOpenAI(model=model_name, request_timeout=REQUEST_TIMEOUT)
-        elif model_type == 'google':
-            return ChatGoogleGenerativeAI(model=model_name, request_timeout=REQUEST_TIMEOUT, verbose=True)
-    else:
-        log(f"Unknown model {model_name}")
-        return None
 
 # print(f"Python            {sys.version}")
 # print(f"LangChain         {langchain.__version__}")

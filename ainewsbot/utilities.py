@@ -18,7 +18,11 @@ from scipy.spatial.distance import cdist, pdist
 from scipy.cluster.hierarchy import linkage, leaves_list
 from scipy.optimize import linear_sum_assignment
 
-from ainb_const import SQLITE_DB
+from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+from .config import (SQLITE_DB, REQUEST_TIMEOUT,
+                     MODEL_FAMILY)
 
 # from ortools.constraint_solver import routing_enums_pb2
 # from ortools.constraint_solver import pywrapcp
@@ -68,6 +72,19 @@ def log(action_str, source_str="", level=logging.INFO):
 ############################################################################################################
 # utility functions
 ############################################################################################################
+
+
+def get_model(model_name):
+    """get langchain model based on model_name"""
+    if model_name in MODEL_FAMILY:
+        model_type = MODEL_FAMILY[model_name]
+        if model_type == 'openai':
+            return ChatOpenAI(model=model_name, request_timeout=REQUEST_TIMEOUT)
+        elif model_type == 'google':
+            return ChatGoogleGenerativeAI(model=model_name, request_timeout=REQUEST_TIMEOUT, verbose=True)
+    else:
+        log(f"Unknown model {model_name}")
+        return None
 
 
 def delete_files(download_dir):
