@@ -120,7 +120,7 @@ def sanitize_filename(filename):
     # Remove leading or trailing underscores
     filename = filename.strip('_')
     # filename = re.sub(r'[^a-zA-Z0-9_\-]', '_', title)
-    trunc_len = 255 - len(datestr) - len(sep)
+    trunc_len = 255 - len(datestr) - len(sep) - len(".html") - 1
     filename = filename[:trunc_len]
     return filename
 

@@ -15,6 +15,7 @@ based on the latest AI news.
 import pdb
 import os
 import math
+import re
 # import aiohttp
 import asyncio
 from typing import List, Type, TypeVar, Dict, Any, Callable  # , TypedDict, Annotated,
@@ -550,6 +551,10 @@ def normalize_html(path: Path | str) -> str:
     except Exception as exc:
         log(str(exc), "clean_html trafilatura")
 
+    # remove special tokens, have found in artiles about tokenization
+    # All OpenAI special tokens follow the pattern <|something|>
+    SPECIAL_TOKEN_RE = re.compile(r"<\|\w+\|>")
+    plaintext = SPECIAL_TOKEN_RE.sub("", plaintext)
     visible_text = title_str + og_title + og_desc + plaintext
     visible_text = trunc_tokens(
         visible_text, model='gpt-4o', maxtokens=MAX_INPUT_TOKENS)
@@ -748,7 +753,7 @@ async def fetch_all_summaries(aidf, model):
         count_valid += 1
         log(f"Queuing {rowid}: {article_str[:50]}...")
         task = asyncio.create_task(async_langchain(
-            chain, {"article": article_str}, tag=rowid, verbose=True))
+            chain, {"article": article_str}, tag=rowid, verbose=False))
         tasks.append(task)
 
     log(f"{count_valid} valid articles, {count_no_path} no path, {count_no_content} no content")

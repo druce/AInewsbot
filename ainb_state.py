@@ -25,7 +25,8 @@ import asyncio
 from typing import TypedDict
 from urllib.parse import urlparse
 import sqlite3
-
+import random
+import math
 import yaml
 import markdown
 
@@ -51,6 +52,8 @@ from ainb_llm import (paginate_df, process_dataframes, fetch_all_summaries,
                       Stories, TopicSpecList, TopicHeadline, TopicCategoryList, Sites,
                       Newsletter
                       )
+# from ainb_sllm import (
+#     sfetch_all_summaries, sfilter_page_async)
 # from ainb_sllm import sfetch_all_summaries
 from ainb_webscrape import (
     parse_file, fetch_queue, fetch_source_queue)
@@ -74,6 +77,7 @@ from ainb_prompts import (
     FINAL_SUMMARY_SYSTEM_PROMPT, FINAL_SUMMARY_USER_PROMPT,
     REWRITE_SYSTEM_PROMPT, REWRITE_USER_PROMPT,
     SITE_NAME_PROMPT,
+    PROMPT_BATTLE_SYSTEM_PROMPT, PROMPT_BATTLE_USER_PROMPT,
 )
 
 
@@ -622,6 +626,8 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
 
     langchain.verbose = True
     aidf = pd.DataFrame(state['AIdf'])
+    aidf["summary"] = aidf["summary"].fillna("")
+    aidf["title"] = aidf["title"].fillna("")
     tmpdf = aidf[['id', 'title', 'summary']].copy()
     tmpdf["summary"] = tmpdf["title"] + "\n" + tmpdf["summary"]
     # gemini seems to have had trouble with 50 headlines
@@ -901,9 +907,109 @@ def fn_summarize_pages(state: AgentState, model_medium) -> AgentState:
     return state
 
 
+def run_elo_round(elo_ranking_dict, battle_history_dict):
+    """
+    Run one round of an even-numbered tournament:
+      - ids: list of player IDs (ints)
+      - elo_ranking_dict: mutable dict of floats, indexed by ID
+      - battle_history_dict: dict mapping (smaller_id, larger_id) -> result (1 = smaller won, -1 = smaller lost, 0 = draw)
+      - K: Elo K‐factor (default 32)
+
+    Returns:
+      List of (id1, id2) pairs that were played this round.
+    """
+    n = len(elo_ranking_dict)
+    ids = list(elo_ranking_dict.keys())
+    n_pairs = n // 2
+    # Find a random matching of unplayed pairs
+    for _ in range(10000):
+        shuffled = ids[:]
+        random.shuffle(shuffled)
+        pairs = [(shuffled[i*2], shuffled[i*2+1])
+                 for i in range(0, n_pairs)]
+        ordered_pairs = [(min(a, b), max(a, b)) for a, b in pairs]
+        if all(p not in battle_history_dict for p in ordered_pairs):
+            break
+    else:
+        log(
+            "Couldn't find a full round of unplayed pairs after 10000 tries")
+        return []
+
+    return ordered_pairs
+
+
+async def elo_battle(aidf, id1, id2, chain, max_retries=3):
+    """
+    Conduct a single 'battle' between two stories using the provided LLM chain.
+
+    Args:
+        aidf (pd.DataFrame): DataFrame containing articles.
+        id1 (int): ID of the first story.
+        id2 (int): ID of the second story.
+        chain: A Prompt‐>Model‐>Parser chain that returns a string '1', '0', or '-1'.
+        max_retries (int): How many times to retry on error or invalid output.
+
+    Returns:
+        int:  1 if story1 wins, -1 if story2 wins, 0 if draw.
+
+    Raises:
+        ValueError: if no valid response is obtained after max_retries.
+    """
+    # If either summary is empty, drop both
+    headline1 = aidf.loc[id1, "title"]
+    summary1 = aidf.loc[id1, "summary"]
+    headline2 = aidf.loc[id2, "title"]
+    summary2 = aidf.loc[id2, "summary"]
+
+    if not summary1 or not summary2:
+        summary1 = ""
+        summary2 = ""
+
+    payload = {
+        "headline_A": headline1,
+        "summary_A":  summary1,
+        "headline_B": headline2,
+        "summary_B":  summary2,
+    }
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            raw = chain.invoke(payload)
+        except Exception as e:
+            log(f"ELO battle error ({headline1!r} vs {headline2!r}), attempt {attempt}: {e}")
+            continue
+
+        resp = raw.strip()
+        if resp in {"1", "0", "-1"}:
+            return int(resp), id1, id2
+
+        # Unexpected output—log and retry
+        log(f"Unexpected battle result '{resp}' for ({headline1!r} vs {headline2!r}), attempt {attempt}")
+
+    # If we get here, all attempts failed
+    raise ValueError(
+        f"Failed to obtain valid battle result for {headline1!r} vs {headline2!r} "
+        f"after {max_retries} attempts."
+    )
+
+
+async def run_elo_battles(aidf, pairs, chain):
+    """
+    Run a round of ELO battles between pairs of articles asynchronously.
+    """
+    tasks = [asyncio.create_task(elo_battle(
+        aidf, a, b, chain)) for a, b in pairs]
+    results = await asyncio.gather(*tasks)
+
+    return results
+
+
 def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     """
     calculate ratings for articles
+    for these semantic understanding tasks, o4-mini seems like the one to use based on cookbook doc
+    but it takes 5 minutes per elo round and is expensive
+    so for now, use gpt-4.1-mini
     """
     aidf = pd.DataFrame(state['AIdf']).fillna({
         'article_len': 1,
@@ -932,6 +1038,53 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     counts = aidf["importance"].value_counts().to_dict()
     log(f"important articles: {counts}")
 
+    # AI is good at yes or no questions, not necessarily at converting understanding
+    # to a rating. Use ELO to rate articles based on a series of pairwise comparisons
+    log("running ELO rating")
+    n_rounds = math.ceil(math.log2(len(aidf))) * 2
+    elo_ranking_dict = {i: 1000 for i in aidf["id"]}
+    battle_history_dict = {}
+    K = 32
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", PROMPT_BATTLE_SYSTEM_PROMPT),
+        ("user", PROMPT_BATTLE_USER_PROMPT)
+    ])
+    chain = prompt | model_medium | StrOutputParser()
+    log(f"number of rounds: {n_rounds}")
+    for i in range(n_rounds):
+        log(f"running ELO round {i}")
+        pairs = run_elo_round(elo_ranking_dict, battle_history_dict)
+        if not pairs:
+            break
+        results = asyncio.run(run_elo_battles(aidf, pairs, chain))
+        for result, a, b in results:
+            # Store result
+            battle_history_dict[(a, b)] = result
+            # Convert result into scores
+            if result == 1:
+                score_a, score_b = 1.0, 0.0
+            elif result == -1:
+                score_a, score_b = 0.0, 1.0
+            else:
+                score_a = score_b = 0.5
+
+            # Current ratings
+            R_a = elo_ranking_dict[a]
+            R_b = elo_ranking_dict[b]
+
+            # Expected scores
+            E_a = 1.0 / (1.0 + 10 ** ((R_b - R_a) / 400))
+            E_b = 1.0 / (1.0 + 10 ** ((R_a - R_b) / 400))
+
+            # Update ratings in-place
+            elo_ranking_dict[a] += K * (score_a - E_a)
+            elo_ranking_dict[b] += K * (score_b - E_b)
+
+    log("finished ELO rating")
+    aidf['elo'] = aidf['id'].map(elo_ranking_dict.get)
+    aidf["elo_z"] = (aidf["elo"] - aidf["elo"].mean()) / \
+        aidf["elo"].std(ddof=0)
+
     # len < 100 -> 0
     # len > 10000 -> 2
     # in between log10(x) - 2
@@ -941,9 +1094,10 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
         + aidf['adjusted_len'] \
         + aidf['on_topic'] \
         + aidf['importance'] \
-        - aidf['low_quality']
+        - aidf['low_quality'] \
+        + aidf['elo_z'] / 2
     # filter out low rated articles
-    aidf = aidf[aidf['rating'] >= 2].copy()
+    aidf = aidf[aidf['rating'] >= 1].copy()
     log(f"articles after rating: {len(aidf)}")
     # redo bullets with topics and rating
     aidf["bullet"] = aidf.apply(make_bullet, axis=1)

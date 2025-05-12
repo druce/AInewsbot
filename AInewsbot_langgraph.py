@@ -230,7 +230,7 @@ class Agent:
         return self.state
 
     def topic_clusters(self, state: AgentState, model_str: str = "") -> AgentState:
-        """identify clusters of similar stores"""
+        """identify clusters of similar stories"""
         model = get_model(model_str) if model_str else self.model_low
         self.state = fn_topic_clusters(state, model)
         return self.state

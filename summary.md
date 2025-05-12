@@ -1,53 +1,51 @@
-## AI Regulation Roundup
+## Major AI Investments
 
-- Insurers have launched policies covering losses from AI chatbot errors, including legal costs and damages, to address growing liability risks in business AI adoption. - [Financial Times](https://www.ft.com/content/1d35759f-f2a9-46c4-904b-4a78ccc027df)
-- The FDA plans to integrate AI across its centers by June to speed up drug review tasks, aiming to reduce multi-day processes to minutes while noting reliability risks. - [Futurism](https://futurism.com/fda-ai-approve-drugs)
-- AI tools often provide inaccurate or outdated U.S. tax advice, risking costly IRS penalties, and professional tax experts remain essential for reliable, compliant guidance. - [Forbes](https://www.forbes.com/sites/virginialatorrejeker/2025/05/11/the-danger-of-relying-on-ai-for-us-tax-advice/)
-- The European AI Act bans social scoring practices but permits regulated high-risk AI scoring, seeking to protect individual rights while allowing credit and fraud assessment under strict rules. - [arXiv](https://arxiv.org/abs/2505.02791)
-- The U.S. Department of Labor closed its investigation into Scale AI's compliance with wage and overtime laws, highlighting scrutiny of labor practices in AI labeling firms. - [Tech in Asia](https://www.techinasia.com/news/us-govt-concludes-probe-into-scale-ais-wage-practices)
+- Google's Gemma AI models have been downloaded over 150 million times since February 2024, with developers creating more than 70,000 variants on Hugging Face. - [TechCrunch](https://techcrunch.com/2025/05/12/googles-gemma-ai-models-surpass-150m-downloads/)
+- SoftBank's planned $100 billion AI infrastructure investment in the U.S. faces delays due to tariff concerns, with financing agreements still pending amid economic uncertainties. - [PYMNTS](https://www.pymnts.com/economy/2025/softbank-stargate-ai-investment-could-be-grounded-tariff-worries/)
+- Perplexity is in advanced talks to raise $500 million led by Accel, valuing the AI startup at $14 billion, up from $9 billion in November 2024. - [The Wall Street Journal](https://www.wsj.com/tech/ai-startup-perplexitys-valuation-surges-to-14-billion-in-fresh-funding-round-26124482)
+- OpenAI and Microsoft are negotiating revised terms to support OpenAI’s public benefit corporation transition, ensuring continued model access as OpenAI plans for an IPO. - [TechRadar](https://www.techradar.com/pro/openai-and-microsoft-in-talks-to-revise-terms-and-renew-partnership-ft-reports)
 
-## The Heart of AI Hardware
+## AI Governance & Regulation
 
-- Nvidia holds over 80% of the AI chip market, while AMD, Qualcomm, Broadcom, hyperscalers, and startups race to develop competitive AI processors and ecosystems. - [Business Insider](https://www.businessinsider.com/nvidia-competitors)
-- Intel announced management layoffs and delayed its Ohio plant as new U.S. export controls on AI chips impose multibillion-dollar charges impacting major semiconductor firms. - [Tech in Asia](https://www.techinasia.com/news/intel-layoffs-ai-chip-rules-reshape-us-chip-sector)
+- House Republicans proposed a 10-year ban on state-level AI regulations in the budget reconciliation bill, potentially overriding existing and proposed consumer protection laws. - [404 Media](https://www.404media.co/republicans-try-to-cram-ban-on-ai-regulation-into-budget-reconciliation-bill/)
+- A federal court in Southern Texas warned lawyers to verify AI-generated legal work for accuracy, emphasizing responsibility under Rule 11 and cautioning against unvetted AI content. - [Bloomberg Law](https://news.bloomberglaw.com/us-law-week/south-texas-us-court-warns-lawyers-to-check-ai-generated-work)
+- Sen. Tom Cotton introduced legislation mandating geo-tracking technology in high-end gaming GPUs and AI processors to prevent unauthorized foreign use and ensure export compliance. - [Tom's Hardware](https://www.tomshardware.com/pc-components/gpus/u-s-inks-bill-to-force-geo-tracking-tech-for-gpus-and-servers-high-end-gaming-gpus-also-subject-to-tracking)
+- Over 400 UK artists, including Paul McCartney and Elton John, urged amendments to mandate AI firms to disclose copyrighted works used in model training. - [The Register](https://www.theregister.com/2025/05/12/uk_creatives_ai_letter/)
+- Major tech firms are lobbying for federal AI regulations to preempt stricter California laws, sparking a power struggle over state versus federal oversight. - [Politico](https://www.politico.com/news/2025/05/12/how-big-tech-is-pitting-washington-against-california-00336484)
 
-## Autonomy & Talent
+## AI Infrastructure & Sustainability
 
-- Big Tech is hiring fewer but higher-skilled employees, leveraging generative AI to automate coding tasks and reduce staffing needs while expanding non-engineer development. - [Business Insider](https://www.businessinsider.com/bi-today-big-tech-ai-do-more-with-less-2025-5)
-- Waymo cofounder Sebastian Thrun stressed that safety, multi-sensor systems, and cautious deployment are critical to public trust and success in the robotaxi industry. - [Business Insider](https://www.businessinsider.com/waymo-cofounder-sebastian-thrun-alphabet-robotaxi-race-competition-2025-5)
-- A Naukri survey found one in three Indian tech professionals receive formal AI training, with generative AI skills prioritized, though concerns persist over outdated tech and limited time for upskilling. - [The Economic Times](https://economictimes.indiatimes.com/tech/artificial-intelligence/half-of-tech-workers-in-india-getting-ai-training-at-work-naukri-survey/articleshow/121055792.cms)
+- A World Economic Forum report calls for aligned governance and infrastructure development to address AI’s rising energy, water use, and e-waste challenges. - [World Economic Forum](https://www.weforum.org/stories/2025/05/why-ai-infrastructure-and-governance-must-evolve-together/)
+- Coastal data centers are adopting closed-loop seawater cooling to reduce freshwater consumption and heat management costs as AI workloads surge. - [TechRadar](https://www.techradar.com/pro/seawaters-role-in-surfing-the-ai-wave)
 
-## AI Tools for Today
+## AI Applications in Industry
 
-- iPhone users can set ChatGPT as Safari’s default search engine via its app extension, enabling conversational and voice-based queries alongside image generation. - [Geeky Gadgets](https://www.geeky-gadgets.com/ditch-google-how-to-unleash-chatgpt-search-on-your-iphone/)
-- AI-driven search demands semantic content structure, Schema.org markup, and clear metadata to improve AI assistants’ understanding and feature your site in generated answers. - [Hacker Noon](https://hackernoon.com/come-on-dont-just-rely-on-traditional-seo-your-website-needs-to-be-ai-ready)
-- Grok AI generated a C++23 program to parse CSV files and count distinct column values, illustrating how generative AI can automate practical coding tasks. - [lemire.me](https://lemire.me/blog/2025/05/10/producing-useful-commands-on-the-go-using-c-and-ai/)
-- LLMs shift digital marketing from clicks and SEO to third-party mentions and brand credibility, requiring companies to optimize content for AI-driven consumer queries. - [AOL](https://www.aol.com/digital-marketing-used-clicks-rise-192813346.html)
+- General Motors hired former Tesla Autopilot leader Sterling Anderson as its chief product officer to advance GM’s software-defined vehicle strategy. - [Bloomberg](https://www.bloomberg.com/news/articles/2025-05-12/gm-said-to-hire-former-tesla-autopilot-leader-sterling-anderson)
+- Mastercard employs AI-driven risk scoring and behavioral biometrics to analyze 160 billion transactions yearly, enabling real-time fraud detection with human oversight. - [Business Insider](https://www.businessinsider.com/mastercard-ai-credit-card-fraud-detection-protects-consumers-2025-5)
+- MIT Sloan highlights ten AI startups innovating in areas from infrastructure monitoring and digital twins to worker safety, reflecting diverse applications across industries. - [MIT Sloan School of Management](https://mitsloan.mit.edu/ideas-made-to-matter/10-mit-ai-startups-to-watch-2025)
+- Glass Imaging raised $20 million to develop GlassAI, a neural network that enhances digital image sharpness by correcting lens and sensor imperfections. - [VentureBeat](https://venturebeat.com/games/glass-imaging-raises-20m-to-use-ai-to-improve-digital-image-quality/)
 
-## Pushing AI Frontiers
+## AI in Healthcare & Wellness
 
-- Researchers introduce Absolute Zero, a self-play reinforcement learning model generating and solving its own tasks without external data, achieving state-of-the-art reasoning performance. - [arXiv](https://arxiv.org/abs/2505.03335)
-- AI safety advocates urge companies to perform existential threat assessments akin to nuclear test protocols to prevent uncontrollable superintelligence development. - [biztoc.com](https://biztoc.com/x/fe1269c01f72a017)
+- ChatGPT assists users with personalized meal plans, grocery receipt audits, and calorie tracking, offering real-time diet and exercise guidance subject to professional verification. - [CNET](https://www.cnet.com/tech/services-and-software/how-to-use-chatgpt-to-achieve-your-health-goals/#ftag=COS-05-10aaa2h)
+- Researchers developed an efficient chip using FFT and neural networks to detect heart attacks in real time with 92.4% accuracy for potential wearables. - [New Atlas](https://newatlas.com/medical-tech/chip-ai-powered-heart-attack-detection/)
+- Clinical AI implementation is hindered by inconsistent, incomplete, and erroneous healthcare records, underscoring the need for data validation and standardized terminology. - [KevinMD](https://kevinmd.com/2025/05/health-cares-data-problem-the-real-obstacle-to-ai-success.html)
 
-## Funding & Startups
+## AI Tools & Techniques
 
-- AI21 Labs raised $300 million in Series D funding from Google and Nvidia, boosting its valuation to $1.4 billion for enterprise-focused language model development. - [Tech in Asia](https://www.techinasia.com/news/google-nvidia-back-israeli-ai-firms-300m-series-d)
-- StackOne secured $20 million Series A from GV and others to advance its AI agent platform for deep, secure SaaS integrations across enterprise systems. - [Silicon Canals](https://siliconcanals.com/londons-stackone-secures-e17-6m/)
-
-## Titans of AI
-
-- OpenAI CEO Sam Altman called for societal humility and caution about AI’s vast potential during a Senate Commerce hearing on U.S. competitiveness. - [Yahoo Finance](https://finance.yahoo.com/news/sam-altman-says-cant-wrap-105353681.html)
-- Among major chatbots, only Musk-owned Grok favored Elon Musk for leading AI safety, while others supported Sam Altman and suggested collaboration between the two. - [Business Insider](https://www.businessinsider.com/elon-musk-vs-sam-altman-grok-chatgpt-comparison-advance-ai-2025-5)
-- Anthropic co-founder Jack Clark forecasts modest AI-driven growth, predicts slow AGI adoption in physical sectors, and highlights alignment and regulatory challenges. - [conversationswithtyler.com](https://conversationswithtyler.com/episodes/jack-clark/)
-- Sam Altman invited Elon Musk to reconcile their differences and collaborate on advancing artificial general intelligence despite past public feuds. - [NDTV](https://www.ndtv.com/world-news/sam-altman-extends-olive-105353681.html)
+- Microsoft’s ADeLe framework predicts and explains AI model performance by assessing 18 cognitive and knowledge abilities, achieving 88% accuracy across benchmarks. - [Microsoft](https://www.microsoft.com/en-us/research/blog/predicting-and-explaining-ai-model-performance-a-new-approach-to-evaluation/)
+- No-code AI platforms enable users to create software via simple prompts, boosting productivity but raising concerns around security, IP, and technical debt. - [Forbes](https://www.forbes.com/councils/forbestechcouncil/2025/05/12/why-every-cto-should-be-planning-for-no-code-ai/)
+- Generative AI uses models like GANs and transformers to create new content across text, images, and music, but faces challenges like misinformation, bias, and deepfakes. - [Tom's Guide](https://www.tomsguide.com/ai/what-is-generative-ai)
+- Feature selection techniques—wrappers, filters, and embedded methods—reduce dimensionality and improve model performance through structured subset generation, evaluation, and validation. - [Hacker Noon](https://hackernoon.com/how-to-select-the-right-features-for-better-machine-learning-results)
 
 ## Other News
 
-- Baidu's patented AI system aims to translate animal sounds and behaviors into human language by analyzing biological signals, though the technology remains in early research stages. - [NDTV](https://www.ndtv.com/science/this-ai-tool-may-help-translate-your-dogs-barks-into-human-language-8380049)
-- An AI-controlled greenhouse in Ontario automates lettuce production to cut imports, optimize growth conditions, and employ sustainable methods, raising questions about automation’s social impacts. - [CBC](https://www.cbc.ca/news/canada/machine-lettuce-1.7528860)
-- Researchers argue AI can personalize math learning, monitor student emotions, and support socio-emotional outcomes, advocating ethical governance and data privacy in education. - [Nature](https://www.nature.com/articles/s41539-025-00315-4)
-- A French startup’s 3 mm neurosurgical robot navigates curved brain pathways guided by AI and MRI for precise biopsies and drug delivery, with human trials planned. - [Fox News](https://www.foxnews.com/tech/rice-sized-robot-could-make-brain-surgery-safer-less-invasive)
-- SoundCloud now allows its content for AI model training under safeguards, implements no-AI tags, and plans opt-out options, reflecting industry shifts in music AI policy. - [Tech in Asia](https://www.techinasia.com/news/soundcloud-updates-terms-on-ai-training-for-content)
-- The U.S. Treasury is reviewing Benchmark’s $500 million investment in Chinese startup Manus AI for compliance with 2023 restrictions amid heightened US-China tech tensions. - [Tech in Asia](https://www.techinasia.com/news/us-reviews-vc-firms-investment-in-chinese-ai-startup-manus)
-- OpenAI’s Sam Altman and Microsoft’s Brad Smith testified on AI policy and US-China competitiveness as an AWS survey found generative AI tops corporate technology priorities for 2025. - [GeekWire](https://www.geekwire.com/2025/ai-boom-and-d-c-hot-mics-openai-and-microsoft-go-to-washington-amazon-surveys-the-field/)
-- President Trump fired US Copyright Office head Shira Perlmutter after her report questioned AI’s use of copyrighted materials, prompting criticism over political interference. - [CBS News](https://www.cbsnews.com/news/trump-fires-director-of-u-s-copyright-office-shira-perlmutter-sources/)
+- Worldcoin’s Orbs scan iris patterns to issue World IDs for cryptocurrency distribution, raising privacy concerns despite claims of encrypted user-only data storage. - [The Street](https://www.thestreet.com/technology-1/openai-founders-newest-project-could-destroy-your-privacy)
+- Google’s Gemini AI will let Honor phone users convert still images into 5-second videos using the Veo 2 model, with daily free use limits and subscription plans expected. - [BGR](https://bgr.com/tech/gemini-ai-will-soon-be-able-to-turn-any-photo-into-a-video/)
+- Excel’s Macro Recorder captures user actions as VBA code, while ChatGPT optimizes and enhances macros with dynamic variables and error handling for workflow automation. - [Geeky Gadgets](https://www.geeky-gadgets.com/excel-macro-recorder-automation/)
+- Embeddings transform text into numerical vectors representing semantic meaning, enabling document comparison and recommendations using models like Gemini and Voyage AI. - [technicalwriting.dev](https://technicalwriting.dev/ml/embeddings/overview.html)
+- Meta is recruiting former Pentagon officials for AI and VR roles to pursue government contracts, leveraging security clearances and Washington communications expertise. - [Live Mint](https://www.livemint.com/companies/news/meta-offers-ex-pentagon-officials-jobs-as-big-tech-firm-aims-to-sell-ai-services-to-us-government-report-11746967186138.html)
+- Authors Emily Bender and Alex Hanna argue that AI is often misrepresented, highlighting labor and environmental harms while calling for critical evaluation of AI claims. - [Business Insider](https://www.businessinsider.com/the-ai-con-emily-bender-alex-hanna-ai-hype-2025-5)
+- Artists like Refik Anadol and teamLab use AI to co-create dynamic artworks, prompting debates on authorship, copyright, and the ethical integration of AI in the art world. - [Observer](https://observer.com/2025/05/ai-in-contemporary-art-creativity-authorship-refik-anadol/)
+- SORA is a decentralized economic system on Polkadot, featuring democratic governance via sortition and a token bonding curve to stabilize supply within a borderless financial ecosystem. - [Hacker Noon](https://hackernoon.com/meet-sora-hackernoon-company-of-the-week)
+- Users can paste YouTube transcripts into ChatGPT for concise video summaries, saving time and avoiding ads, though automatic transcript retrieval remains inconsistent. - [BGR](https://bgr.com/tech/how-i-watch-youtube-with-chatgpt-even-though-it-cant-stream-videos/)

@@ -13,6 +13,7 @@ import math
 import asyncio
 from typing import List, Type, TypeVar, Dict, Any  # , TypedDict, Annotated,
 from pathlib import Path
+import os
 
 from pydantic import BaseModel, Field
 import pandas as pd
@@ -43,9 +44,10 @@ from langchain_core.prompts import (ChatPromptTemplate,)
 # SystemMessagePromptTemplate, HumanMessagePromptTemplate)
 
 from ainb_utilities import log
-from ainb_const import (MAX_INPUT_TOKENS, TENACITY_RETRY,
-                        CANONICAL_SYSTEM_PROMPT, CANONICAL_USER_PROMPT,
-                        SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT)
+from ainb_const import (MAX_INPUT_TOKENS, TENACITY_RETRY,)
+from ainb_prompts import (
+    CANONICAL_SYSTEM_PROMPT, CANONICAL_USER_PROMPT,
+    SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT)
 
 T = TypeVar('T')
 
@@ -294,38 +296,59 @@ def sfetch_all_summaries(aidf, model):
     Raises:
         Exception: If there is an error during the asynchronous processing of the articles.
 
-    TODO: can make a more generic version
-    pass in prompt, model, output class
-    pass in df with id and value(s)
-    pass in optional function dict to call on each column
-    get the column names, apply function if provided, apply template using those names
+
 
     """
+
     log("Fetching summaries for all articles")
     tasks = []
 
     prompt_template = ChatPromptTemplate.from_messages(
         [("system", SUMMARIZE_SYSTEM_PROMPT),
-         ("user", SUMMARIZE_USER_PROMPT)]
+            ("user", SUMMARIZE_USER_PROMPT)]
     )
     parser = StrOutputParser()
     chain = prompt_template | model | parser
+    log(f"Attempting to fetch summaries for {len(aidf)} articles")
+
+    count_valid, count_no_path, count_no_content = 0, 0, 0
     pdb.set_trace()
     for row in aidf.itertuples():
         path, rowid = row.path, row.id
+        article_str = ""
+        if not path:
+            count_no_path += 1
+            log(f"No path for {rowid}")
+            continue
+
+        # check if path exists
+        if not os.path.exists(path):
+            log(f"Invalid path for {rowid}")
+            count_no_path += 1
+            continue
+
         article_str = normalize_html(path)
+        if len(article_str.strip()) == 0 or article_str.startswith("no content"):
+            log(f"No content for {rowid}")
+            count_no_content += 1
+            continue
+
+        # valid article to summarize
+        count_valid += 1
         log(f"Queuing {rowid}: {article_str[:50]}...")
-        # task = asyncio.create_task(async_langchain(
-        #     chain, {"article": article_str}, tag=rowid))
-        summary, rowid, article_len = asyncio.run(async_langchain(
+        task = asyncio.run(async_langchain(
             chain, {"article": article_str}, tag=rowid, verbose=True))
-        tasks.append((summary, rowid, article_len))
-    pdb.set_trace()
+        tasks.append(task)
+
+    log(f"{count_valid} valid articles, {count_no_path} no path, {count_no_content} no content")
 
     try:
-        for summary, rowid, article_len in tasks:
-            log(f"Summary for {rowid}: {summary}")
+        log(f"Fetching summaries for {len(tasks)} articles")
+        responses = tasks
+        log(f"Received {len(responses)} summaries")
+        for summary, rowid, article_len in responses:
+            log(f"Summary for {rowid} (length {article_len}): {summary}")
     except Exception as e:
-        log(f"Error fetching summary: {str(e)}")
-        log("tasks: ", tasks)
-    return tasks
+        log(f"Error fetching summaries: {str(e)}")
+
+    return responses
