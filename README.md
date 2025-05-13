@@ -77,7 +77,7 @@ Explore interactively in [AInewsbot.ipynb](https://github.com/druce/AInewsbot/bl
   - Fetch source pages specified in `sources.yaml` (and NewsAPI) → Extract & dedupe URLs → - Classify headlines as AI or not AI, filter previously seen
   - Scrape indivdual stories & summarize →  Embed & cluster topics, order by topic
   - Prompt LLM for newsletter → Polish / re-edit → Send email
-- `AInewsbot.sh`: Shell wrapper so you can activate the Conda env and run the pipeline on a schedule
+- `AInewsbot.sh`: Shell wrapper to activate the Conda env and run the pipeline, can schedule using cron or other task schedulers
 
 ### Configuration & Prompts
 - `sources.yaml`: List of news sources (URL, include/exclude regex, scrolling instructions, etc.).
@@ -96,7 +96,7 @@ Explore interactively in [AInewsbot.ipynb](https://github.com/druce/AInewsbot/bl
 - `articles.db`: Tracks previously fetched URLs to avoid re-fetching and presenting previously discussed articles.
 
 ### LLM Integration
-- `ainewsbot/llm.py`: LangGraph wrappers around ChatOpenAI.
+- `ainewsbot/llm.py`: LangGraph wrappers around LLM calls.
   - Take a current dataframe of news stories (~100 per day) and apply a prompt to each row asynchronously (i.e. with 100 parallel LLM calls for classificaation, topic extraction, filtering, summarization)
   - Structured JSON classification (like, is it AI-related?)
   - Topic extraction
@@ -131,7 +131,8 @@ Explore interactively in [AInewsbot.ipynb](https://github.com/druce/AInewsbot/bl
 
 - Use the provided `dotenv.txt` as a scaffold for your `.env` file.
 - For basic operation, only `OPENAI_API_KEY` is required.
-- Other supported keys (optional, for advanced features and previous experiments): News APIs, LangSmith, Google Cloud, YouTube upload, Anthropic Claude, ElevenLabs, Perplexity, Pinecone, Reddit, etc.
+- Google Cloud, ElevenLabs recommended for podcast generation.
+- Other supported keys (optional, for advanced features and previous experiments): News APIs, LangSmith, YouTube upload, Anthropic Claude, Perplexity, Pinecone, Reddit, etc.
 
 Example `.env` (minimal):
 

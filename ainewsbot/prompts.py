@@ -397,6 +397,10 @@ Now think step by step, then output the JSON using the supplied schema.
 """
 
 ######################################################################
+# could do this more explicitly with many prompts and a memory pattern
+# loop though each story and assign to a section (filter by rating first)
+# then loop though each section and write the section using the assigned stories
+# then rewrite combining and clarifying sections
 
 FINAL_SUMMARY_SYSTEM_PROMPT = """
 You are “The Newsroom Chief,” an expert AI editor, who

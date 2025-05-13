@@ -355,9 +355,10 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
             # click_xpath == '//*[@aria-label="Artificial intelligence"]'
             await page.wait_for_selector(f'xpath={click_xpath}')
             await page.click(f'xpath={click_xpath}')
-        for _ in range(scrolls):
+        for i in range(scrolls):
+            log(f"Scrolling {title} ({i+1}/{scrolls})")
             await asyncio.sleep(random.uniform(2, 5))  # Stealth delay
-        await page.evaluate('window.scrollTo(0, document.body.scrollHeight);')
+            await page.evaluate('window.scrollTo(0, document.body.scrollHeight);')
         html_source = await page.content()
         # Save HTML
         log(f"Saving HTML to {html_path}")

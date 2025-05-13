@@ -62,7 +62,7 @@ from .utilities import (log, delete_files, filter_unseen_urls_db,
 from .config import (DOWNLOAD_DIR, PAGES_DIR, SOURCECONFIG, SOURCES_EXPECTED,
                      CANONICAL_TOPICS, SQLITE_DB,
                      HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST, SOURCE_REPUTATION,
-                     SCREENSHOT_DIR)
+                     SCREENSHOT_DIR, MINIMUM_STORY_RATING)
 
 from .prompts import (
     FILTER_SYSTEM_PROMPT, FILTER_USER_PROMPT,
@@ -1100,7 +1100,7 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
         - aidf['low_quality'] \
         + aidf['elo_z'] / 2
     # filter out low rated articles
-    aidf = aidf[aidf['rating'] >= 1].copy()
+    aidf = aidf[aidf['rating'] >= MINIMUM_STORY_RATING].copy()
     log(f"articles after rating: {len(aidf)}")
     # redo bullets with topics and rating
     aidf["bullet"] = aidf.apply(make_bullet, axis=1)
