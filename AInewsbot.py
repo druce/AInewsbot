@@ -66,10 +66,10 @@ if __name__ == "__main__":
                         help='Disable web fetch, use existing HTML files in htmldata directory')
     parser.add_argument('-d', '--before-date', type=str, default='',
                         help='Force processing of articles before this date even if already processed (YYYY-MM-DD HH:MM:SS format)')
-    parser.add_argument('-b', '--browsers', type=int, default=4,
-                        help='Number of browser instances to run in parallel (default: 4)')
-    parser.add_argument('-e', '--max-edits', type=int, default=2,
-                        help='Maximum number of summary rewrites')
+    parser.add_argument('-b', '--browsers', type=int, default=N_BROWSERS,
+                        help=f'Number of browser instances to run in parallel (default: {N_BROWSERS})')
+    parser.add_argument('-e', '--max-edits', type=int, default=MAX_EDITS,
+                        help=f'Maximum number of summary rewrites (default: {MAX_EDITS})')
 
     args = parser.parse_args()
 

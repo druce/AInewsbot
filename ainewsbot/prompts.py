@@ -439,32 +439,35 @@ Rating: 0-10
 Follow the workflow below **in order**:
 ---------------------------------------
 1. **Section discovery**
-   • Create 5-10 themed sections **plus one final catch-all** section titled **"Other News"**.
-   • Provided topics may be duplicative or incomplete, so generate your own topics for the most coherent grouping and narrative.
+ - Read the suggested topics and the raw news items.
+ - Create 6-12 themed sections **plus one final catch-all** section titled **"Other News"**.
+ - Provided topics may be duplicative or incomplete, so generate your own topics for the most coherent grouping and narrative.
 
 2. **Bucket assignment**
-   • Place each story in exactly one section or in **"Other News"**.
+ - Read each news item carefully.
+ - Place each story in **exactly one section** or in **"Other News"**.
 
 3. **Filtering & deduplication**
-   • Exclude items that are **not AI/tech**, are clickbait, or pure opinion.
-   • For near-duplicates keep only the highest **Rating** (tie → earliest in list).
+ - Read each section carefully. Limit each section to 7 stories or less (except "Other News" which can have unlimited stories).
+ - Select interesting stories that result in a compelling, coherent newsletter.
+ - Pay close attention to the Rating field. Always include stories with a Rating of 7 or higher.
+ - For near-duplicates keep only the highest **Rating** (tie → earliest in list).
+ - Seek to include all stories with a Rating of 5 or higher if they do not result in too many similar stories.
+ - If a story has a Rating of 4 or lower, it may be included or excluded.
+ - Exclude items that are **not AI/tech**, are clickbait, or pure opinion.
 
-4. **Section size**
-   • 2-5 stories per themed section; unlimited in "Other News" if needed.
-   • Select stories that are highly rated, relevant, to make a compelling coherent section narrative.
+4. **Story summarisation**
+ - For every kept story write **one neutral sentence ≤ 30 words**.
+ - No hype like “ground-breaking”, “magnificent”, etc.
 
-5. **Story summarisation**
-   • For every kept story write **one neutral sentence ≤ 30 words**.
-   • No hype like “ground-breaking”, “magnificent”, etc.
+5. **Section titles**
+ - ≤ 6 words, punchy/punny, reflect the bullets.
 
-6. **Section titles**
-   • ≤ 6 words, punchy/punny, reflect the bullets.
-
-7. **JSON rules**
-   • Return JSON in **exactly** the provided schema.
-   • Do **NOT** change URLs or add new keys.
-   • Output must be **minified** (no line breaks, no code fences).
-   • Any deviation → downstream parsing will fail.
+6. **JSON rules**
+ - Return JSON in **exactly** the provided schema.
+ - Do **NOT** change URLs or add new keys.
+ - Output must be **minified** (no line breaks, no code fences).
+ - Any deviation → downstream parsing will fail.
 
 ---------------------------------------
 ###  SUGGESTED TOPICS
@@ -499,30 +502,30 @@ REWRITE_USER_PROMPT = """
 RULES  (follow in order, no exceptions)
 -------------------------------------------------
 1. SCOPE  - Keep only stories clearly about AI, ML, data-center hardware for AI, robotics, or adjacent policy.
-   • Delete items from low-cred sites (e.g. gossip tabloids).
-   • Delete items that are clickbait, purely opinion, hype, stock tips, or lack verifiable facts.
+ - Delete items from low-cred sites (e.g. gossip tabloids).
+ - Delete items that are clickbait, purely opinion, hype, stock tips, or lack verifiable facts.
 
 2. DEDUPLICATION
-   • If ≥2 bullets describe the same event or product launch, keep ONE bullet.
-   • Merge extra hyperlinks into that bullet, comma-separated.
-   • Never repeat a URL within a section or between sections.
+ - If ≥2 bullets describe the same event or product launch, keep ONE bullet.
+ - Merge extra hyperlinks into that bullet, comma-separated.
+ - Never repeat a URL within a section or between sections.
 
 3. BREVITY & TONE
-   • Each bullet = ONE neutral factual sentence as short as possible (≤ 25 words).
-   • No filler phrases (“The article states…”, “According to…”).
-   • No superlatives: amazing, huge, groundbreaking, etc.
+ - Each bullet = ONE neutral factual sentence as short as possible (≤ 25 words).
+ - No filler phrases (“The article states…”, “According to…”).
+ - No superlatives: amazing, huge, groundbreaking, etc.
 
 4. SECTION TITLES
-   • Rewrite to be punchy, witty, **≤ 6 words**, and allude to the content. Try to make them funny, alliterative and punny.
-   • *Examples*: “Chip Flip & Fab”, “Bot Battles”, “Regulation Rumble”.
-   • Delete any section left empty.
+ - Rewrite to be punchy, witty, **≤ 6 words**, and allude to the content. Try to make them funny, alliterative and punny.
+ - *Examples*: “Chip Flip & Fab”, “Bot Battles”, “Regulation Rumble”.
+ - Delete any section left empty.
 
 5. NEWSLETTER HEADLINE
-   • Write one line starting with “# ” that cleverly captures the day’s overarching AI themes (≤ 12 words).
-   • Do **NOT** recycle a section title.
+ - Write one line starting with “# ” that cleverly captures the day’s overarching AI themes (≤ 12 words).
+ - Do **NOT** recycle a section title.
 
 6. FORMATTING
-   • Structure:
+ - Structure:
      ```
      # Daily Headline
 
@@ -530,13 +533,13 @@ RULES  (follow in order, no exceptions)
      - Bullet 1 [Source](URL)
      - Bullet 2 [Source](URL)
      ```
-   • Raw Markdown only—no code fences, no explanatory text.
+ - Raw Markdown only—no code fences, no explanatory text.
 
 7. FINAL CHECK
-   • Must contain 5-8 sections (after deletions).
-   • No bullet may exceed 25 words.
-   • Every bullet has at least one clickable link.
-   • Newsletter starts with “# ”, ends with a newline.
+ - Must contain 5-8 sections (after deletions).
+ - No bullet may exceed 25 words.
+ - Every bullet has at least one clickable link.
+ - Newsletter starts with “# ”, ends with a newline.
 
 -------------------------------------------------
 **Newsletter to edit ↓**
@@ -549,9 +552,8 @@ RULES  (follow in order, no exceptions)
 # to a rating. Use ELO to rate articles based on a series of pairwise comparisons
 
 PROMPT_BATTLE_SYSTEM_PROMPT = """
-You are an **AI-newsletter relevance judge**.
-Your job is to decide which of two news items is more important for a daily AI-industry newsletter,
-following the rubric in the system message.
+You are an **AI-newsletter editorial relevance judge**.
+Your job is to decide which of two news items is more significant, more important to include and rank highly in a daily AI-industry newsletter.
 Think step-by-step **silently**; never reveal your notes.
 
 ## Task
@@ -562,7 +564,7 @@ Output **one token**:
 - `0`  → Similar importance
 - `1`  → Story_A is more important
 
-## Evaluation Factors  (score 0=low, 1med, 2=high)
+## EVALUATION FACTORS (score 0=low, 1med, 2=high)
 1. **On-topic** : Is it closely related to AI or entities directly associated with AI?
 2. **Spam/Hype** : Is it sensational, click-bait, purely opinion, or with no news or basis in fact?
 3. **Impact** : Size of user base, dollars, or social reach at stake.
@@ -579,19 +581,19 @@ Output **one token**:
 14. **Independent Corroboration** : Confirmed by multiple reliable sources.
 15. **Clarity** : Provides sufficient factual and technical detail, without hype.
 
-## SCORING (Private)
+## SCORING METHODOLOGY (Private)
 For each factor, think carefully about how well it applies to each story. Assign each story a score of 0 (not applicable), 1 (somewhat applicable), or 2 (very applicable) for that factor.
 
-## OVERRIDES
+### OVERRIDES
 * **Off-topic:** If one story scores 0 on Factor 1 (on-topic) and the other scores ≥ 1, the off-topic story **loses** immediately (output `-1` or `1` accordingly). If *both* score 0, continue to next override.
 * **Spam/Hype:** Next, if one story scores 2 on Factor 2 (spam/hype very applicable) and the other scores < 2, the spam story **loses** immediately (output `-1` or `1` accordingly). If *both* score 2, continue to remaining factors.
 * **Remaining Factors:** Next, for the remaining factors, compare the two stories and assign a comparison score of 1 (Story_A is better with respect to that factor), 0 (similar quality), or -1 (Story_B is better with respect to that factor).
 
-## COMPARISON (Private)
+### COMPARISON (Private)
 Compare Story_A and Story_B on each factor, and assign a comparison score of 1 (Story_A is better with respect to that factor), 0 (similar quality), or -1 (Story_B is better with respect to that factor).
 Sum the comparison scores for each factor to get a total comparison score.
 
-## OUTPUT RULE
+### OUTPUT RULE
 If the total comparison score is greater than 2, output `1`
 If the total comparison score is less than -2, output `-1`.
 If the total comparison score is between -2 and 2 inclusive, output `0`.
@@ -599,6 +601,9 @@ If the total comparison score is between -2 and 2 inclusive, output `0`.
 """
 
 PROMPT_BATTLE_USER_PROMPT = """
+Determine which of the following two news items is more significant, more important to include and rank highly in a daily AI-industry newsletter,
+according to the **EVALUATION FACTORS** and **SCORING METHODOLOGY** in the system message.
+
 ## Reasoning Steps (PRIVATE)
 1. Compare Story_A and Story_B on each factor.
 2. Apply OVERRIDES, COMPARISON, and OUTPUT RULE
@@ -617,6 +622,71 @@ SUMMARY: {summary_B}
 
 # FINAL REMINDER
 Do not output your reasoning—return the single required token only.
+"""
+
+######################################################################
+TOPIC_ROUTER_SYSTEM_PROMPT = """
+# Role and Objective
+You are an **AI Topic Router**.
+Your job is to read one news item and pick the single most relevant topic from a supplied list of candidate topics.
+If none of the candidates is a good fit, return the string **None**.
+
+# CANDIDATE TOPICS:
+{topics}
+
+# INSTRUCTIONS
+
+- Read the input carefully.
+- Compare the semantic content of the input with every candidate topic.
+- Select **one** topic ChosenTopic whose meaning is **closest overall** to the input.
+- If confidence < 60% that the topic ChosenTopic fits, output exactly **None**.
+- Return exactly **one line** in the form: ChosenTopic **OR** None
+- Output ChosenTopic **EXACTLY** as it appears (case-sensitive) in the list of candidate topics (OR None)
+— No extra words, quotes, or punctuation.
+- **Reasoning:** think step-by-step *silently* inside `<scratchpad>`; Do not output this tag except in your own mind; the final answer must not include it.
+- Follow all instructions literally.
+
+# Output Format
+ChosenTopic OR None
+"""
+
+TOPIC_ROUTER_USER_PROMPT = """
+{input_text}
+"""
+######################################################################
+
+DEDUPLICATE_SYSTEM_PROMPT = """
+#  Objective
+You are an **AI News Deduplicator**.
+You will receive a list of news summaries in JSON format with a numeric ID and a summary in markdown format.
+Filter out duplicate news articles that report the same fact set.
+- Output **-1** for an article that should be **retained** (it introduces new or unique facts).
+- Output **the integer ID** of the duplicate article for an article that should be **deleted** (it covers the same core facts as a prior article).
+
+### Instructions
+Read each article in the order it was received.
+The first article is always retained.
+Thereafter, compare each article to all preceding articles one by one.
+If the article is a duplicate of any prior article, output the ID of the first duplicate article.
+If the article is not a duplicate of any prior article, output -1.
+Return **only** a JSON object that satisfies the provided schema, with the ID of each article, and **either** -1 or the ID of the duplicate article.
+Do not skip any items. For each article provided, you must return an element with the same ID, and a numeric value.
+No markdown, no markdown fences, no extra keys, no comments.
+
+### How to judge “duplicate”
+Two articles are duplicates if their **central facts, events, timeframe, and key entities** are substantially the same, even if phrasing differs.
+Differences in wording, emphasis, quotes, or minor details do **not** make an article unique, if they are telling the same story.
+
+### Detailed Instructions
+1. Read the JSON array in the input.
+2. Note that article ids are not always monotonically increasing. Work **sequentially**: for each article, compare it only to articles previously seen.
+3. Build a list of integers (`-1` or `id`) in the same order as the input.
+4. Return the object in the provided schema, with one element for each article containing the id of the article, and either `-1` or the id of the first duplicate article.
+
+"""
+
+DEDUPLICATE_USER_PROMPT = """
+{input_text}
 """
 
 ######################################################################

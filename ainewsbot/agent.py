@@ -1,3 +1,4 @@
+"""Agent class for AInewsbot"""
 import argparse
 import uuid
 
@@ -227,23 +228,23 @@ class Agent:
         for event in events:
             try:
                 if event.get('summary'):
-                    print('summary created')
+                    log('summary created')
                     display(Markdown(event.get('summary').replace("$", "\\\\$")))
                 elif event.get('bullets'):
-                    print('bullets created')
+                    log('bullets created')
                     display(Markdown("\n\n".join(
                         event.get('bullets')).replace("$", "\\\\$")))
                 elif event.get('cluster_topics'):
-                    print('cluster topics created')
+                    log('cluster topics created')
                     display("\n\n".join(event.get('cluster_topics')))
                 elif event.get('AIdf'):
                     display(pd.DataFrame(event.get('AIdf')).groupby(
                         "src").count()[['id']])
                 elif event.get('sources'):
-                    print([k for k in event.get('sources').keys()])
+                    log(list(event.get('sources').keys()))
             except Exception as exc:
-                print('run exception')
-                print(exc)
+                log('run exception')
+                log(exc)
 
         return self.state
 

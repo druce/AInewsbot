@@ -1,56 +1,43 @@
-## Silicon Showdown
+## AI Policy & Regulation
 
-- South Korea will procure 10,000 Nvidia GPUs for $1.03 billion to establish a national AI computing center and foster public-private partnerships. - [Tech in Asia](https://www.techinasia.com/news/south-korea-plans-1b-nvidia-gpu-deal-boost-ai)
-- Saudi AI holding company HUMAIN selected Groq chips for inference workflows and plans to build data centers, cloud services, and an Arabic language model under CEO Tareq Amin. - [Semafor](https://www.semafor.com/article/05/13/2025/saudis-new-ai-firm-picks-us-chipmaker-groq-for-inference)
-- The U.S. will facilitate Saudi Arabia’s access to advanced AI chips despite ongoing export issues with China, strengthening strategic alliances in semiconductor supply chains. - [Bloomberg](https://www.bloomberg.com/news/articles/2025-05-13/us-to-boost-saudi-access-to-ai-chips-even-as-china-issues-linger)
-- Apple and Broadcom are co-developing the Baltra server processor with custom AI accelerators and high-bandwidth memory for large-scale AI and big data workloads, slated for 2027. - [GizChina](https://www.gizchina.com/2025/05/12/apple-teams-up-with-broadcom-to-develop-powerful-ai-server-chip/)
+- The Trump administration rescinded a Biden-era rule limiting AI chip exports to 100+ countries, planning a replacement rule to allow trusted partners while restricting adversaries. - [ABC News](https://abcnews.go.com/Technology/wireStory/trump-administration-rescinds-curbs-ai-chip-exports-foreign-121789951)
+- Chinese officials will more actively oversee AI data centers and specialized chips, aiming to strengthen government control over critical AI infrastructure. - [The Information](https://www.theinformation.com/articles/china-tightens-control-ai-data-centers)
+- Pope Leo XIV prioritized addressing AI risks to human dignity, justice, and labor in his inaugural address, emphasizing responsibility alongside AI’s potential. - [The New York Times](https://www.nytimes.com/2025/05/15/world/europe/pope-leo-artificial-intelligence.html)
+- An article argues that global AI regulation is essential to mitigate existential risks but is challenged by varied national priorities and rapid technological advances. - [Hacker Noon](https://hackernoon.com/can-we-regulate-ai-global-challenges-and-existential-stakes-for-humanity)
+- House Republicans included a ten-year ban on state and local AI regulation in the Budget Reconciliation bill, preempting existing and future state-level AI laws. - [Tom's Hardware](https://www.tomshardware.com/tech-industry/artificial-intelligence/the-gop-wants-to-deregulate-ai-provision-in-budget-reconciliation-bill-blocks-state-governments-from-meddling-for-10-years)
 
-## Robots Still Need Humans
+## Mega AI Deals
 
-- Amazon found its 'Stow' and 'Pick' warehouse robots achieved around 85–91% success but still lag humans in speed and reliability, prompting further machine vision improvements. - [The Register](https://www.theregister.com/2025/05/13/amazon_robots_make_progress_picking/)
-- Chinese companies like AgiBot are deploying AI-powered humanoid robots for manufacturing tasks, backed by $20 billion government support and plans for a new trillion-yuan robotics fund. - [Tech in Asia](https://www.techinasia.com/news/chinese-ai-humanoid-robots-set-to-transform-manufacturing)
+- OpenAI expanded its CoreWeave partnership with a new $4 billion cloud deal to secure additional GPU capacity for its AI services. - [Bloomberg](https://www.bloomberg.com/news/articles/2025-05-15/openai-expands-coreweave-tie-up-with-new-4-billion-cloud-deal)
+- Qualcomm and HUMAIN agreed to develop state-of-the-art AI data centers in Saudi Arabia, integrating Qualcomm’s processors with HUMAIN’s Arabic language models. - [TechPowerUp](https://www.techpowerup.com/336772/qualcomm-humain-to-develop-state-of-the-art-ai-data-centers)
+- Nvidia and AMD shares rose after securing multibillion-dollar AI chip supply deals with Humain, driven by a $10 billion Middle East data center initiative. - [The Economic Times](https://economictimes.indiatimes.com/news/international/us/nvidia-and-amd-shares-jump-leaving-deepseek-impact-behind-heres-what-happened-and-what-investors-should-know/articleshow/121168726.cms)
+- AMD and HUMAIN formed a $10 billion strategic partnership to deploy AMD-based AI computing centers across Saudi Arabia and the US over the next five years. - [TechPowerUp](https://www.techpowerup.com/336769/amd-humain-reveal-formation-of-usd-10-billion-strategic-collab-aimed-at-advancing-global-ai)
 
-## AI Rules & Roadmaps
+## AI Infrastructure & Cloud
 
-- An open letter from AI experts warns that proposed UK copyright amendments could impose unworkable reporting requirements on AI services, undermining the ongoing Data Use and Access Bill consultation. - [Forbes](https://www.forbes.com/sites/philipsalter/2025/05/12/dont-rush-copyright-changes-that-could-damage-uks-ai-future/)
-- The U.S. Copyright Office ruled that using large volumes of copyrighted works for commercial AI training exceeds fair use, emphasizing factors like purpose, lawfulness, and output similarity. - [yro.slashdot.org](https://yro.slashdot.org/story/25/05/12/0425233/us-copyright-office-to-ai-companies-fair-use-isnt-commercial-use-of-vast-troves-of-copyrighted-works)
-- The FDA is testing generative AI tools, including cderGPT developed with OpenAI, to accelerate scientific reviews in drug approvals, though details on safeguards and standards remain limited. - [www.medianama.com](https://www.medianama.com/2025/05/223-fda-explores-ai-for-drug-approvals-faces-oversight-questions/)
-- The UAE’s GETS 2025 summit convened global stakeholders to advance ethical governance frameworks for AI, quantum computing, and Web3, also launching the UAE Public Prosecution’s AI strategy. - [Globe Newswire](https://www.globenewswire.com/news-release/2025/05/12/3078872/0/en/UAE-Hosts-Landmark-Summit-to-Chart-a-New-Era-in-Emerging-Tech-Governance.html)
+- NVIDIA’s Blackwell GPUs and Dynamo platform optimize AI factories, boosting energy efficiency and throughput for large-scale data processing and inference. - [NVIDIA Blogs](https://blogs.nvidia.com/blog/revenue-potential-ai-factories/)
+- Nvidia’s H100 and H200 GPUs outperform Google’s TPU V6E in capacity, throughput, scalability, and cost per token across large-scale AI workloads. - [Geeky Gadgets](https://www.geeky-gadgets.com/tpu-vs-gpu-ai-hardware-compared-2025/)
+- Tencent reported a 13 percent revenue increase, attributing gains to AI investments in gaming and advertising, while noting potential impacts from US chip controls. - [PYMNTS](https://www.pymnts.com/earnings/2025/tencent-says-ai-spending-is-yielding-results/)
 
-## New Neural Blueprints
+## Startup Spotlight
 
-- Tokyo-based startup Sakana introduced Continuous Thought Machines, an AI architecture with variable neuron timelines and short-term memory that adapts reasoning depth for flexible tasks. - [venturebeat.com](https://venturebeat.com/ai/sakana-introduces-new-ai-architecture-continuous-thought-machines-to-make-models-reason-with-less-guidance-like-human-brains/)
-- Researchers proposed TransMLA, converting existing language models to Multi-head Latent Attention post-training to reduce KV cache size and improve inference without losing expressiveness. - [arxiv.org](https://arxiv.org/abs/2502.07864)
-- MIT and collaborators are developing NANDA, a decentralized AI network aiming to reduce reliance on centralized platforms by leveraging hybrid incentive models for privacy-sensitive applications. - [Forbes](https://www.forbes.com/sites/johnwerner/2025/05/13/make-a-decentralized-internet-with-ai-nanda-is-coming/)
-- Carnegie Mellon’s LegoGPT generates 3D, physically stable Lego designs from text prompts, validated with robots and human tests, and released open-source under an MIT license. - [www.gadgets360.com](https://www.gadgets360.com/ai/news/legogpt-ai-model-physically-stable-lego-structure-design-unveiled-researchers-8392282)
+- AI startup Hedra raised $32 million in a Series A led by Andreessen Horowitz to develop controllable character models for video, audio, and image content. - [Business Insider](https://www.businessinsider.com/ai-generative-video-image-hedra-startup-raise-a16z-pitch-deck-2025-5)
+- HackerNoon highlighted NachoNacho, Moveo.AI, and Zenerate as regional Startup of the Week winners in SaaS, conversational AI, and real estate technology. - [Hacker Noon](https://hackernoon.com/meet-nachonacho-moveoai-and-zenerate-hackernoon-startups-of-the-week)
+- llm-min.txt compresses technical documentation by 90–97 percent using Gemini models, enabling efficient context ingestion for LLM coding assistants. - [GitHub](https://github.com/marv1nnnnn/llm-min.txt)
 
-## Enterprise Agents on the Rise
+## AI Ethics & Society
 
-- Goldman Sachs developed five in-house AI tools on its GS AI Platform, including a chatbot, data query assistant, and code copilot, reporting up to 20% efficiency gains. - [Business Insider](https://www.businessinsider.com/goldman-sachs-ai-uses-5-tools-employees-2025-5)
-- Finance leaders are deploying autonomous AI agents across processes like record-to-report and compliance, aiming to address talent shortages and optimize costs with new governance models. - [Forbes](https://www.forbes.com/sites/jimdeloach/2025/05/13/empowering-finance-integrating-agentic-ai-into-the-talent-model/)
-- Perplexity AI is in late-stage talks to raise $500 million at a $14 billion valuation, positioning itself as an AI-powered search challenger handling 20 million daily queries. - [Tech in Asia](https://www.techinasia.com/news/perplexity-seeks-500m-funding-14b-valuation)
-- The global AI agents market is forecast to reach $216.8 billion by 2035, driven by adoption in customer service, healthcare, and finance and specialization in virtual assistants. - [Globe Newswire](https://www.globenewswire.com/news-release/2025/05/12/3078843/28124/en/AI-Agents-Market-Report-2025-Ready-to-Deploy-AI-Agents-Capture-Market-Share-Customize-Solutions-on-the-Rise.html)
+- A student demanded a tuition refund after discovering her professor used ChatGPT to generate lecture notes despite banning AI, prompting debate on AI use transparency in education. - [Futurism](https://futurism.com/student-professor-chatgpt-tuition)
+- Meta is paying $50 an hour for people to record facial expressions and dialogue to train virtual avatars, highlighting the growing human role in AI model development. - [Business Insider](https://www.businessinsider.com/what-your-price-training-ai-models-chatbots-meta-dilemma-2025-5)
 
-## AI in Health & Drugs
+## Product Features
 
-- Intrepid Labs launched its Valiant platform combining AI and robotics to shorten drug formulation from months to days, backed by $11 million in funding and pharma partnerships. - [financialpost.com](https://financialpost.com/pmn/business-wire-news-releases-pmn/intrepid-labs-launches-to-transform-drug-formulation-with-ai-and-autonomous-labs)
-- The UK NHS trained Foresight on 57 million anonymized health records using LLaMA 2 to predict disease risk and hospitalizations, raising ongoing privacy concerns. - [www.zmescience.com](https://www.zmescience.com/science/news-science/nhs-foresight-ai-health-prediction/)
-
-## Smart Assistants & OS
-
-- Google’s NotebookLM, powered by Gemini, added Audio Overviews, interactive mind maps, and automated FAQs to help users organize and review complex information. - [CNET](https://www.cnet.com/tech/services-and-software/googles-notebooklm-is-the-ai-you-need-to-make-sense-of-your-information-overload/#ftag=CAD-01-10aai3d)
-- OpenAI’s ChatGPT Deep Research feature now integrates with GitHub to analyze repositories and generate cited summaries, available globally in beta for paid users. - [www.gadgets360.com](https://www.gadgets360.com/ai/news/chatgpt-deep-research-feature-github-connect-repositories-openai-rolling-out-8394423)
-- Sam Altman described plans for a subscription-based AI 'operating system' with custom models built on users’ digital lives, though technical and privacy details remain aspirational. - [The Register](https://www.theregister.com/2025/05/13/openai_ceo_altman_no_plans/)
-- Truecaller introduced AI-powered Message IDs to verify business SMS with on-device models and green check marks, filtering spam while preserving user privacy across 31 countries. - [www.gadgets360.com](https://www.gadgets360.com/apps/news/truecaller-ai-powered-message-id-verified-business-8393889)
-
-## Peering Over Privacy
-
-- Law enforcement agencies are deploying Veritone’s Track to monitor individuals by attributes like clothing and hair, circumventing facial recognition bans and raising civil liberties concerns. - [Technology Review](https://www.technologyreview.com/2025/05/12/1116295/how-a-new-type-of-ai-is-helping-police-skir t-facial-recognition-bans/)
-- ChatGPT’s 'Temporary Chat' feature prevents conversations from training AI models for up to 30 days, with options to disable data sharing under user data controls settings. - [ZDNet](https://www.zdnet.com/article/worried-about-chatgpt-saving-your-chat-data-dont-be-just-click-this-one-button/)
+- Google added AI-powered TalkBack in Android and Chrome, enabling image and content queries, plus improved captions and OCR for better accessibility on Android 15+ and desktop Chrome. - [TechCrunch](https://techcrunch.com/2025/05/15/google-rolls-out-new-ai-and-accessibility-features-to-android-and-chrome/)
 
 ## Other News
 
-- In Arizona, Christopher Pelkey’s family used a generative AI avatar to deliver a message from their late loved one during sentencing, raising ethical questions about AI in legal proceedings. - [Phone Arena](https://www.phonearena.com/news/family-uses-ai-to-present-message-from-loved-one_id170277)
-- Legal AI startup Harvey, valued at $3 billion, reported $70 million ARR at major firms and is expanding beyond OpenAI to support multiple models and deep workflow customization. - [Business Insider](https://www.businessinsider.com/what-harvey-is-doing-to-win-the-legal-ai-race-it-inadvertently-started-2025-5)
-- IIT Madras launched admissions for its BTech in AI program, selecting 50 students via JEE Advanced, focusing on AI fundamentals, internships, and electives across vision and speech technologies. - [Times of India](https://timesofindia.indiatimes.com/city/mumbai/iit-madras-launches-admissions-for-elite-btech-in-ai-aims-to-shape-global-tech-leaders/articleshow/121105996.cms)
-- Armada.AI expanded its Technopark operations in India, adding 90 R&D engineers and partnering with Starlink to optimize connectivity for industries in remote areas. - [thehindubusinessline.com](https://www.thehindubusinessline.com/info-tech/us-based-ai-edge-computing-firm-armadaai-expand-operations-in-technopark/article69566589.ece)
+- UK ministers plan to remove an amendment requiring AI firms to disclose copyrighted content use in a data bill via a parliamentary procedure. - [biztoc.com](https://biztoc.com/x/5ab6afab6b3a4b53)
+- A study found AI agents can collaboratively decide and influence each other, forming group biases and raising complexities for AI regulation. - [Sky News](https://news.sky.com/story/ais-can-make-collective-decisions-and-influence-each-other-says-new-study-13367824)
+- Experts recommend explainable AI methods, human oversight, and audit trails to enhance transparency and accountability in black-box AI systems. - [Forbes](https://www.forbes.com/councils/forbestechcouncil/2025/05/14/improving-transparency-in-black-box-ai-expert-strategies-that-work/)
+- The Trump administration sought AI deals with Saudi Arabia and UAE, prompting tension with China hawks over shifting geopolitical alliances in AI. - [Bloomberg](https://www.bloomberg.com/news/articles/2025-05-15/trump-s-rush-to-cut-ai-deals-in-saudi-arabia-and-uae-opens-rift-with-china-hawks)
+- A report forecasts the Connected Car Solutions market to grow to $148.6 billion by 2030, driven by AI, connectivity, and regulatory mandates for vehicle cybersecurity. - [Globe Newswire](https://www.globenewswire.com/news-release/2025/05/14/3081346/28124/en/Connected-Car-Solutions-Strategic-Business-Intelligence-Report-2024-2030-Increasing-Focus-on-Driver-Safety-and-Assistance-Growing-Consumer-Demand-for-Infotainment-Systems.html)

@@ -93,6 +93,13 @@ class TopicSpecList(BaseModel):
     items: List[TopicSpec] = Field(description="List of TopicSpec")
 
 
+class SingleTopicSpec(BaseModel):
+    """SingleTopicSpec class for structured output of story topic"""
+    id: int = Field(description="The id of the story")
+    topic: str = Field(
+        description="The topic covered in the story")
+
+
 class CanonicalTopicSpec(BaseModel):
     """CanonicalTopicSpec class for structured output of canonical topics"""
     id: int = Field(description="The id of the story")
@@ -553,8 +560,8 @@ def normalize_html(path: Path | str) -> str:
 
     # remove special tokens, have found in artiles about tokenization
     # All OpenAI special tokens follow the pattern <|something|>
-    SPECIAL_TOKEN_RE = re.compile(r"<\|\w+\|>")
-    plaintext = SPECIAL_TOKEN_RE.sub("", plaintext)
+    special_token_re = re.compile(r"<\|\w+\|>")
+    plaintext = special_token_re.sub("", plaintext)
     visible_text = title_str + og_title + og_desc + plaintext
     visible_text = trunc_tokens(
         visible_text, model='gpt-4o', maxtokens=MAX_INPUT_TOKENS)

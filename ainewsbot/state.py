@@ -49,8 +49,8 @@ from langgraph.errors import NodeInterrupt
 from .llm import (paginate_df, process_dataframes, fetch_all_summaries,
                   filter_page_async, filter_df, filter_df_rows,
                   get_all_canonical_topic_results, clean_topics,
-                  Stories, TopicSpecList, TopicHeadline, TopicCategoryList, Sites,
-                  Newsletter
+                  Stories, TopicSpecList, TopicHeadline, TopicCategoryList, SingleTopicSpec,
+                  Sites, Newsletter
                   )
 # from ainb_sllm import (
 #     sfetch_all_summaries, sfilter_page_async)
@@ -76,8 +76,10 @@ from .prompts import (
     TOP_CATEGORIES_SYSTEM_PROMPT, TOP_CATEGORIES_USER_PROMPT,
     FINAL_SUMMARY_SYSTEM_PROMPT, FINAL_SUMMARY_USER_PROMPT,
     REWRITE_SYSTEM_PROMPT, REWRITE_USER_PROMPT,
-    SITE_NAME_PROMPT,
+    TOPIC_ROUTER_SYSTEM_PROMPT, TOPIC_ROUTER_USER_PROMPT,
     PROMPT_BATTLE_SYSTEM_PROMPT, PROMPT_BATTLE_USER_PROMPT,
+    DEDUPLICATE_SYSTEM_PROMPT, DEDUPLICATE_USER_PROMPT,
+    SITE_NAME_PROMPT,
 )
 
 
@@ -117,8 +119,15 @@ def make_bullet(row, include_topics=True):
     summary = "\n\n" + str(row.summary) if hasattr(row, "summary") else ""
     topic_str = ""
     if include_topics:
-        topic_str = "\n\nTopics: " + \
-            str(row.topic_str) if hasattr(row, "topic_str") else ""
+        # add cluster_topic_str to beginning of topics in bullet if not other
+        if hasattr(row, "cluster_name") and row.cluster_name is not None and row.cluster_name.lower() not in ["", "other", "none"]:
+            topic_str = "\n\nTopics: " + row.cluster_name
+        if hasattr(row, "topic_str") and row.topic_str:
+            if topic_str:
+                topic_str += ", "
+            else:
+                topic_str = "\n\nTopics: "
+            topic_str += str(row.topic_str)
     rating = f"\n\nRating: {max(row.rating, 0):.2f}" if hasattr(
         row, "rating") else ""
     return f"[{title} - {site_name}]({actual_url}){topic_str}{rating}{summary}\n\n"
@@ -145,8 +154,8 @@ def fn_initialize(state: AgentState) -> AgentState:
         try:
             state['sources'] = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
-            print("fn_initialize")
-            print(exc)
+            log("fn_initialize")
+            log(exc)
 
     log(f"Initialized {len(state['sources'])} items in sources from {SOURCECONFIG}")
 
@@ -318,8 +327,8 @@ def fn_verify_download(state: AgentState) -> AgentState:
 #     # Encode received results
 #     results = json.loads(response.text.encode())
 #     if response.status_code != 200:
-#         print('ERROR: API call failed.')
-#         print(results)
+#         log('ERROR: API call failed.')
+#         log(results)
 
 #     # merge into existing df
 #     newscatcher_df = pd.DataFrame(results['articles'])[['title', 'link']]
@@ -371,8 +380,8 @@ def fn_verify_download(state: AgentState) -> AgentState:
 #     # need to do 4 times with 4 pages of 25 each, concatenate 4 dfs or merge 4 times
 #     # # Encode received results
 #     if response.status_code != 200:
-#         print('ERROR: API call failed.')
-#         print(response)
+#         log('ERROR: API call failed.')
+#         log(response)
 #     results = json.loads(response.text.encode())
 
 #     # # merge into existing df
@@ -396,7 +405,7 @@ def fn_extract_newsapi(state: AgentState) -> AgentState:
     https://newsapi.org/docs/get-started
     from newsapi import NewsApiClient
     """
-    NEWS_API_KEY = os.environ['NEWSAPI_API_KEY']
+    news_api_key = os.environ['NEWSAPI_API_KEY']
     aidf = pd.DataFrame(state['AIdf'])
 
     page_size = 100
@@ -413,15 +422,15 @@ def fn_extract_newsapi(state: AgentState) -> AgentState:
         'from': formatted_date,
         'language': 'en',
         'sortBy': 'relevancy',
-        'apiKey': NEWS_API_KEY,
+        'apiKey': news_api_key,
         'pageSize': 100
     }
 
     # Make API call with headers and params
     response = requests.get(baseurl, params=params, timeout=60)
     if response.status_code != 200:
-        print('ERROR: API call failed.')
-        print(response.text)
+        log('ERROR: API call failed.')
+        log(response.text)
 
     data = response.json()
     newsapi_df = pd.DataFrame(data['articles'])
@@ -509,8 +518,8 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
     except Exception as exc:
         pass
         # error expected, no need to print
-        # print("fn_filter_urls")
-        # print(exc)
+        # log("fn_filter_urls")
+        # log(exc)
 
     # merge returned df with isAI column into original df on id column
     aidf = pd.merge(aidf, filter_df, on="id", how="outer")
@@ -618,11 +627,6 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
     Returns:
         AgentState: The updated state of the agent with the extracted and selected topics stored in state['AIdf'].
     """
-
-    # TODO: could add a quality rating for stories based on site reputation, length, complexity of story
-    # could then add the quality rating to the summaries and tell the prompt to favor high-quality stories
-    # could put summaries into vector store and retrieve stories by topic. but then you will have to deal
-    # with duplicates across categories, ask the prompt to dedupe
 
     langchain.verbose = True
     aidf = pd.DataFrame(state['AIdf'])
@@ -862,8 +866,8 @@ def fn_download_pages(state: AgentState) -> AgentState:
         except Exception as exc:
             pass
             # error expected, no need to print
-            # print("fn_download_pages")
-            # print(exc)
+            # log("fn_download_pages")
+            # log(exc)
         aidf = pd.merge(aidf, pages_df[["id", "path"]], on='id', how="inner")
     state["AIdf"] = aidf.to_dict(orient='records')
     # Pickle AIdf to AIdf.pkl
@@ -891,7 +895,7 @@ def fn_summarize_pages(state: AgentState, model_medium) -> AgentState:
         # responses = sfetch_all_summaries(aidf, model=model_medium)
     except Exception as e:
         log("Error fetching summaries")
-        print(e)
+        log(e)
     log(f"Received {len(responses)} summaries")
     # pdb.set_trace()
     response_dict = {}
@@ -1211,6 +1215,78 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
 
     log(f"Composing summary using {str(type(model_high))}")
     aidf = pd.DataFrame(state["AIdf"])
+    aidf['cluster_name'] = aidf['cluster_name'].fillna('')
+    aidf["prompt_input"] = aidf.apply(
+        lambda row: f"{row['title_topic_str']}\n\n{row['summary']}", axis=1)
+
+    # make copy of aidf with rows where column 'cluster_name' is null or empty string
+    aidf_temp = aidf.loc[aidf['cluster_name'].str.len() == 0].copy()
+    router_system_prompt = TOPIC_ROUTER_SYSTEM_PROMPT.format(
+        topics=state["topics_str"])
+    # gets a df back
+    routed_topics = asyncio.run(
+        filter_df_rows(aidf_temp,
+                       model_high,
+                       router_system_prompt,
+                       TOPIC_ROUTER_USER_PROMPT,
+                       "cluster_name",
+                       "prompt_input",
+                       output_class=SingleTopicSpec,
+                       output_class_label="topic")
+    )
+
+    # copy routed topics back to aidf
+    aidf.loc[aidf.index.isin(routed_topics.index),
+             "cluster_name"] = routed_topics["cluster_name"]
+
+    # get unique cluster names and sort them
+    cluster_df = aidf["cluster_name"].value_counts().reset_index()
+    cluster_df.columns = ["cluster_name", "count"]
+    log(cluster_df.to_dict(orient='records'))
+
+    deduped_dfs = []
+    for cluster_name in cluster_df["cluster_name"]:
+        tmpdf = aidf.loc[aidf["cluster_name"] == cluster_name].sort_values(
+            "rating", ascending=False).copy()
+        if len(tmpdf) > 1:  # at least 2 to dedupe
+            log(f"Deduping cluster: {cluster_name}")
+            # apply filter_df to tmpdf using DEDUPLICATE_SYSTEM_PROMPT and DEDUPLICATE_USER_PROMPT
+            # need a class to output
+            deduped_dfs.append(
+                filter_df(tmpdf,
+                          model_high,
+                          DEDUPLICATE_SYSTEM_PROMPT,
+                          DEDUPLICATE_USER_PROMPT,
+                          "dupe_id",
+                          "prompt_input",
+                          "topic"))
+    # concatenate deduped_dfs into a single df
+    deduped_df = pd.concat(deduped_dfs)
+    # merge dupe_id into aidf
+    try:
+        aidf = aidf.drop("dupe_id", axis=1)
+    except:
+        pass
+    aidf = pd.merge(aidf, deduped_df[["id", "dupe_id"]], on="id", how="left")
+    # count number of rows in aidf where dupe_id is >0 and group by dupe_id
+    dupe_counts = aidf.loc[aidf['dupe_id'] > 0].groupby('dupe_id').size()
+    log(dupe_counts)
+    # for each dupe_id in dupe_counts, add the count to the rating of that id
+    for dupe_id in dupe_counts.index:
+        aidf.loc[aidf['id'] == dupe_id, 'rating'] += dupe_counts[dupe_id]
+
+    # drop rows where dupe_id is >= 0 (keep rows where dupe_id is -1, ie unique)
+    aidf = aidf.loc[aidf['dupe_id'] < 0]
+    # trim to < 10
+    aidf['rating'] = aidf['rating'].clip(lower=0, upper=10)
+    log(f"After deduping: {len(aidf)} rows")
+
+    # sort by cluster and rating
+    aidf = aidf.sort_values(
+        by=['cluster_name', 'rating'], ascending=[True, False])
+
+    # recompute bullets with updated ratings and cluster_name
+    aidf["bullet"] = aidf.apply(make_bullet, axis=1)
     bullet_str = "\n~~~\n".join(aidf['bullet'])
     cat_str = state['topics_str']
 
@@ -1229,6 +1305,8 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
             log(f"Markdown content successfully saved to {filename}.")
     except Exception as e:
         log(f"An error occurred: {e}")
+
+    state['AIdf'] = aidf.to_dict(orient='records')
 
     return state
 

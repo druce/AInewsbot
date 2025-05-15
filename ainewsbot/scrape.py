@@ -241,6 +241,12 @@ async def perform_human_like_actions(page):
 
 
 async def worker(queue, browser, results):
+    """Worker function for asynchronous url processing
+    fetch URLs from queue until empty,
+    calling fetch_url using browser, append to results.
+    multiple asynchronous workers are appending to 1 results array
+    which I guess is OK but maybe each should just return results"""
+
     log("Launching worker")
 
     ignore_list = ["www.bloomberg.com", "bloomberg.com",
