@@ -5,6 +5,8 @@
 
 A Python pipeline for **AI news gathering → topic clustering → summarization → newsletter & podcast creation**. Used for [skynetandchill.com](https://www.skynetandchill.com/).
 
+![output](https://github.com/druce/AInewsbot/blob/main/news.png?raw=true)
+
 ## Table of Contents
 
 - [Purpose](#1-purpose)
