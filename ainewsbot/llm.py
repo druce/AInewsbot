@@ -75,8 +75,9 @@ class Stories(BaseModel):
 
 # alternatively could only define Story, but no Stories
 # then we pass output_class to filter_page where we then define a class as a list of output_class
-# class ItemList(BaseModel):
-#     __root__: List[output_class] = Field(description="List of objects")
+# class ItemList(RootModel[list[Story or int]]):
+#     """List of Story / story indexes"""
+#     pass
 # and use ItemList as the output class for .with_structured_output
 # a little cleaner, no pairs of classes or items field, but not worth changing now
 

@@ -9,6 +9,8 @@ import os
 from urllib.parse import urljoin, urlparse
 import random
 import time
+import datetime
+from dateutil import parser as date_parser
 
 import requests
 from bs4 import BeautifulSoup
@@ -248,7 +250,7 @@ async def worker(queue, browser, results):
     which I guess is OK but maybe each should just return results"""
 
     log("Launching worker")
-
+    # for now, skip these domains since I don't want to log in and potentially get my account blocked
     ignore_list = ["www.bloomberg.com", "bloomberg.com",
                    "wsj.com", "www.wsj.com"]
 
@@ -265,7 +267,8 @@ async def worker(queue, browser, results):
             queue.task_done()
         else:
             try:
-                results.append((idx, url, title, await fetch_url(url, title, browser, destination=PAGES_DIR)))
+                html_path, last_updated = await fetch_url(url, title, browser, destination=PAGES_DIR)
+                results.append((idx, url, title, html_path, last_updated))
             finally:
                 queue.task_done()
 
@@ -281,7 +284,7 @@ async def fetch_queue(queue, concurrency):
     Returns:
         list: A list of tuples containing (index, url, title, result) for each processed URL.
     """
-    # for now, skip these domains since I don't want to log in and potentially get my account blocked
+
     async with async_playwright() as p:
         log("Launching browser")
         browser = await get_browser(p)
@@ -319,7 +322,9 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
         initial_sleep (float): The number of seconds to wait after the page has loaded before clicking.
 
     Returns:
-        str: The path to the downloaded file.
+        tuple: (html_path, last_updated_time) where:
+            html_path (str): The path to the downloaded file.
+            last_updated_time (str or None): The last update time of the page.
 
     # should add retry functionality, re-enable screenshots
     """
@@ -334,7 +339,7 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
         # check if file already exists, don't re-download
         if os.path.exists(html_path):
             log(f"File already exists: {html_path}")
-            return html_path
+            return html_path, None
 
         # if file does not exist, download
         # rate limit per domain
@@ -352,7 +357,7 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
             _domain_last_access[domain] = time.monotonic()
 
         page = await browser_context.new_page()
-        await page.goto(url, timeout=60000)
+        response = await page.goto(url, timeout=60000)
         await asyncio.sleep(initial_sleep+random.uniform(2, 5))
         await perform_human_like_actions(page)
         if click_xpath:
@@ -365,7 +370,75 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
             log(f"Scrolling {title} ({i+1}/{scrolls})")
             await asyncio.sleep(random.uniform(2, 5))  # Stealth delay
             await page.evaluate('window.scrollTo(0, document.body.scrollHeight);')
+            # kludge for Feedly
+            # should pass a div name like #feedlyFrame
+            scrolldiv = "#feedlyFrame"
+            await page.evaluate("""
+                const el = document.querySelector('%s');
+                if (el) {
+                    el.scrollTop = el.scrollHeight;
+                } else {
+                    window.scrollTo(0, document.body.scrollHeight);
+                }
+            """ % scrolldiv)
+
         html_source = await page.content()
+
+        # Determine last updated time, first try meta tags
+        last_updated = None
+        soup_meta = BeautifulSoup(html_source, "html.parser")
+        meta_selectors = [
+            ("property", "article:published_time"),
+            ("property", "og:published_time"),
+            ("property", "article:modified_time"),
+            ("property", "og:updated_time"),
+            ("name", "pubdate"),
+            ("name", "publish_date"),
+            ("name", "Last-Modified"),
+            ("name", "lastmod"),
+        ]
+        for attr, val in meta_selectors:
+            tag = soup_meta.find("meta", attrs={attr: val})
+            if tag and tag.get("content"):
+                last_updated = tag["content"]
+                log(
+                    f"Found last updated time from meta tag {attr}={val}: {last_updated}")
+                break
+
+        if not last_updated:
+            time_tag = soup_meta.find("time", datetime=True)
+            if time_tag and time_tag.get("datetime"):
+                last_updated = time_tag["datetime"]
+                log(f"Found last updated time from time tag: {last_updated}")
+
+        # Check HTTP Last-Modified header
+        if not last_updated:
+            if response and response.headers.get("last-modified"):
+                last_updated = response.headers.get("last-modified")
+                log(
+                    f"Found last updated time from HTTP header: {last_updated}")
+
+        # Fallback to document.lastModified
+        if not last_updated:
+            try:
+                last_updated = await page.evaluate("document.lastModified")
+                log(
+                    f"Found last updated time from document.lastModified: {last_updated}")
+            except:
+                last_updated = None
+
+        # Validate and normalize last_updated to Zulu datetime
+        if last_updated and isinstance(last_updated, str):
+            try:
+                dt = date_parser.parse(last_updated)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=datetime.timezone.utc)
+                dt_utc = dt.astimezone(datetime.timezone.utc)
+                last_updated = dt_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+            except Exception as e:
+                log(f"Could not parse last_updated '{last_updated}': {e}")
+                last_updated = None
+
         # Save HTML
         log(f"Saving HTML to {html_path}")
         with open(html_path, 'w', encoding='utf-8') as file:
@@ -374,15 +447,15 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
         # Save screenshot for video
         # screenshot_path = f"{SCREENSHOT_DIR}/{title}.png"
         # await page.screenshot(path=screenshot_path)
-        return html_path
+        return html_path, last_updated
     except Exception as exc:
         log(f"Error fetching {url}: {exc}")
-        return None
+        return None, None
 
 
 async def fetch_source(source_dict, browser_context=None):
     """
-    Fetches a landing page using get_url_playwright and parameters defined in sources.yaml.
+    Fetches a landing page using fetch_url and parameters defined in sources.yaml.
     source_dict is the landing page parameters loaded from sources.yaml.
     Updates source_dict['latest'] with the path to the downloaded file.
 
@@ -406,9 +479,9 @@ async def fetch_source(source_dict, browser_context=None):
 
     log(f"Starting fetch_source {url}, {title}")
 
-    # Open the page
-    file_path = await fetch_url(url, title, browser_context,
-                                click_xpath, scrolls, initial_sleep)
+    # Open the page and fetch the HTML
+    file_path, _ = await fetch_url(url, title, browser_context,
+                                   click_xpath, scrolls, initial_sleep)
     source_dict['latest'] = file_path
     return (sourcename, file_path)
 

@@ -235,7 +235,8 @@ CANONICAL_TOPICS = [
 ]
 
 ######################################################################
-
+# arbitrary, could start with e.g. Alexa rank, Google PageRank, Cloudflare Radar rank, SimilarWeb traffic, SEMrush, Ahrefs, Moz, Majestic, etc.
+# don't really need 0s, can just .get() and default to 0
 SOURCE_REPUTATION = {
     'Reddit': 0,
     'aitoolsclub.com': 0,
@@ -377,12 +378,10 @@ SOURCE_REPUTATION = {
     'www.theguardian.com': 1,
     'www.usatoday.com': 1,
     'www.windowscentral.com': 1,
-    'Ars Technica': 2,
     'Business Insider': 2,
     'HackerNoon': 2,
     'Techmeme': 2,
     'Techpresso': 2,
-    'The Register': 2,
     'The Verge': 2,
     'WaPo Tech': 2,
     'arstechnica.com': 2,
@@ -394,7 +393,6 @@ SOURCE_REPUTATION = {
     'financialpost.com': 2,
     'futurism.com': 2,
     'gizmodo.com': 2,
-    'go.theregister.com': 2,
     'hackernoon.com': 2,
     'markets.businessinsider.com': 2,
     'news.yahoo.com': 2,
@@ -414,14 +412,17 @@ SOURCE_REPUTATION = {
     'www.technologyreview.com': 2,
     'www.theatlantic.com': 2,
     'www.theinformation.com': 2,
-    'www.theregister.com': 2,
-    'www.theverge.com': 2,
     'www.tomsguide.com': 2,
     'www.tomshardware.com': 2,
     'www.washingtonpost.com': 2,
     'www.wired.com': 2,
     'www.yahoo.com': 2,
     'www.zdnet.com': 2,
+    'www.theverge.com': 3,
+    'www.theregister.com': 3,
+    'The Register': 3,
+    'go.theregister.com': 3,
+    'Ars Technica': 3,
     'Bloomberg Tech': 4,
     'FT Tech': 4,
     'NYT Tech': 4,

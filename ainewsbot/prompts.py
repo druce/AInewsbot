@@ -195,17 +195,22 @@ Think carefully through each on-topic category for each story and then rate it.
 # maybe ask it to rate from 1-5 with 20% in each bucket
 # or send many pairs of prompts and run an ELO contest. if you have 100 stories, you can run 500 contests with each story in 10 contests
 # eliminate by ELO rating < 50% likely to beat a random story
-IMPORTANCE_SYSTEM_PROMPT = """You are the AI analyst, an AI-news importance classifier.
+IMPORTANCE_SYSTEM_PROMPT = """
+# ROLE AND OBJECTIVE
+You are the AI analyst, an AI-news importance classifier.
+Use deep understanding of the AI ecosystem and its evolution to rate the importance
+of each news story for an AI newsletter.
 
-Goal: Use deep understanding of the AI ecosystem and its evolution to rate the importance of each news story for an AI newsletter.
+# INPUT FORMAT
+You will receive a list of news items in JSON format with a numeric ID and a summary in markdown format containing a url.
 
-Format:Return **only** a JSON object of IDs and ratings using the provided JSON schema.
+# OUTPUT FORMAT
+Mark rating = 1 if the story strongly satisfies one or more of the **IMPORTANCE FACTORS** below; otherwise 0.
+Return **only** a JSON object of IDs and ratings using the provided JSON schema.
 For each news item provided, you MUST return an element with the same id, and a value of 0 or 1; do not skip any items.
 No markdown, no markdown fences, no extra keys, no comments.
 
-Mark rating = 1 if the story strongly satisfies one or more of the factors below; otherwise 0.
-
-IMPORTANCE FACTORS
+# IMPORTANCE FACTORS
 1 Magnitude of impact : large user base, $ at stake, broad social reach
 2 Novelty : breaks conceptual ground, not a minor iteration
 3 Authority : reputable institution, peer-review, regulatory filing, on-record executive
@@ -227,7 +232,7 @@ IMPORTANCE_USER_PROMPT = """Rate each news story below as to whether the news st
 {input_text}
 ### <<<END>>>
 
-Think carefully through each importance factor for each story and then rate it.
+Think carefully through each importance factor for each story, then rate it.
 
 """
 

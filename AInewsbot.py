@@ -79,7 +79,7 @@ if __name__ == "__main__":
     MAX_EDITS = args.max_edits
     log(f"Starting AInewsbot with do_download={do_download}, before_date='{before_date}', N_BROWSERS={N_BROWSERS}, MAX_EDITS={MAX_EDITS}")
 
-    ml, mm, mh = 'gpt-4.1-mini', 'gpt-4.1', 'o4-mini'
+    ml, mm, mh = 'gpt-4.1-mini', 'gpt-4.1-mini', 'o4-mini'
 
     lg_state, lg_agent, thread_id = initialize_agent(ml, mm, mh,
                                                      do_download,

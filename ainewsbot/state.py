@@ -19,7 +19,7 @@ Key Features:
 import os
 import re
 import pickle
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import Counter, defaultdict
 import asyncio
 from typing import TypedDict
@@ -31,7 +31,7 @@ import yaml
 import markdown
 
 import requests
-
+import tldextract
 from IPython.display import display  # , Audio
 
 import numpy as np
@@ -491,6 +491,9 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
 
     # # dedupe identical headlines
     # # filter similar titles differing by type of quote or something
+    # TODO: deduplicate by e.g. > 98% cosine similarity on embedding
+    # 0.98 Levenshtein distance
+
     aidf['title'] = aidf['title'].apply(unicode_to_ascii)
     aidf['title_clean'] = aidf['title'].map(lambda s: " ".join(s.split()))
     aidf = aidf.sort_values("src").groupby("title_clean").first().reset_index(
@@ -569,6 +572,7 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
     query = "select * from sites"
     sites_df = pd.read_sql_query(query, conn)
     sites_dict = {row.hostname: row.site_name for row in sites_df.itertuples()}
+    domains_dict = {row.hostname: row.domain for row in sites_df.itertuples()}
     conn.close()
 
     # get clean site_name
@@ -584,20 +588,27 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
                                                    SITE_NAME_PROMPT,
                                                    Sites, model=model_low))
         # update site_dict from responses
-        new_urls = []
+        new_hostnames = []
         for r in responses:
-            if r.url.startswith('https://'):
-                r.url = r['url'][8:]
-            elif r.url.startswith('http://'):
-                r.url = r['url'][7:]
-            new_urls.append(r['url'])
-            sites_dict[r['url']] = r.site_name
-            log(f"Looked up {r['url']} -> {r['site_name']}")
+            parsed_url = urlparse(r.url)
+            hostname = parsed_url.hostname
+            new_hostnames.append(hostname)
+            sites_dict[hostname] = r.site_name
+            log(f"Looked up {r.url} -> {r.site_name}")
+            registered_domain = ""
+            extracted = tldextract.extract(hostname)
+            if extracted.domain and extracted.suffix:
+                registered_domain = f"{extracted.domain}.{extracted.suffix}"
+                log(f"Looked up {hostname} -> {registered_domain}")
+                domains_dict[hostname] = registered_domain
+
         # update sites table with new names
-        for url in new_urls:
-            sqlstr = "INSERT OR IGNORE INTO sites (hostname, site_name) VALUES (?, ?);"
-            log(f"Updated {url} -> {sites_dict[url]}")
-            conn.execute(sqlstr, (url, sites_dict[url]))
+        for new_hostname in new_hostnames:
+            sqlstr = "INSERT OR IGNORE INTO sites (hostname, site_name, domain) VALUES (?, ?, ?);"
+            log(
+                f"Updated {new_hostname} -> {sites_dict[new_hostname]} ({domains_dict[new_hostname]})")
+            conn.execute(
+                sqlstr, (new_hostname, sites_dict[new_hostname], domains_dict[new_hostname]))
             conn.commit()
         # reapply to AIdf with updated sites
         aidf['site_name'] = aidf['hostname'].apply(
@@ -854,21 +865,22 @@ def fn_download_pages(state: AgentState) -> AgentState:
 
     log(
         f"Saving HTML files using async concurrency= {state['n_browsers']}")
-    # pdb.set_trace()
+    # TODO: update this to get age of page in days for recency bonus
     saved_pages = asyncio.run(fetch_queue(queue, state['n_browsers']))
 
     pages_df = pd.DataFrame(saved_pages)
     if len(pages_df):
-        pages_df.columns = ['id', 'url', 'title', 'path']
+        pages_df.columns = ['id', 'url', 'title', 'path', 'last_updated']
 
         try:  # for idempotency
-            aidf = aidf.drop(columns=['path'])
+            aidf = aidf.drop(columns=['path', 'last_updated'])
         except Exception as exc:
             pass
             # error expected, no need to print
             # log("fn_download_pages")
             # log(exc)
-        aidf = pd.merge(aidf, pages_df[["id", "path"]], on='id', how="inner")
+        aidf = pd.merge(
+            aidf, pages_df[["id", "path", "last_updated"]], on='id', how="inner")
     state["AIdf"] = aidf.to_dict(orient='records')
     # Pickle AIdf to AIdf.pkl
     aidf.to_pickle("AIdf.pkl")
@@ -1045,7 +1057,7 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     # AI is good at yes or no questions, not necessarily at converting understanding
     # to a rating. Use ELO to rate articles based on a series of pairwise comparisons
     log("running ELO rating")
-    n_rounds = math.ceil(math.log2(len(aidf))) * 2
+    n_rounds = max(2, math.ceil(math.log(len(aidf))*2.5-2))
     elo_ranking_dict = {i: 1000 for i in aidf["id"]}
     battle_history_dict = {}
     k_factor = 32
@@ -1056,7 +1068,7 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     chain = prompt | model_medium | StrOutputParser()
     log(f"number of rounds: {n_rounds}")
     for i in range(n_rounds):
-        log(f"running ELO round {i}")
+        log(f"running ELO round {i+1} of {n_rounds}")
         pairs = run_elo_round(elo_ranking_dict, battle_history_dict)
         if not pairs:
             break
@@ -1092,17 +1104,32 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     aidf["elo_z"] = (aidf["elo"] - aidf["elo"].mean()) / \
         aidf["elo"].std(ddof=0)
 
+    # add points for freshness
+    aidf["age"] = (datetime.now(timezone.utc) -
+                   pd.to_datetime(aidf['last_updated']))
+    aidf["age"] = aidf["age"].dt.total_seconds() / (24 * 60 * 60)
+    aidf["age"] = aidf["age"].clip(lower=0)  # no negative dates
+    # only consider articles from the last week
+    aidf = aidf[aidf["age"] < 7].copy()
+    k = np.log(2)  # 1/2 after 1 day
+    # 1 point at age 0, 0 at age 1, -0.5 at age 2, -1 at age infinity
+    aidf["recency_score"] = 2 * np.exp(-k * aidf["age"]) - 1
+
+    # could test if the prompts bias for/against certain types of stories, adjust the prompts, or boost ratings if they match those topics
+
     # len < 100 -> 0
     # len > 10000 -> 2
     # in between log10(x) - 2
     aidf['adjusted_len'] = np.log10(aidf['article_len']) - 2
     aidf['adjusted_len'] = aidf['adjusted_len'].clip(lower=0, upper=2)
+
     aidf['rating'] = aidf['reputation'] \
         + aidf['adjusted_len'] \
         + aidf['on_topic'] \
         + aidf['importance'] \
         - aidf['low_quality'] \
-        + aidf['elo_z'] / 2
+        + aidf['elo_z'] / 2 \
+        + aidf['recency_score']
     # filter out low rated articles
     aidf = aidf[aidf['rating'] >= MINIMUM_STORY_RATING].copy()
     log(f"articles after rating: {len(aidf)}")
