@@ -41,7 +41,8 @@ TENACITY_RETRY = 5  # Maximum 5 attempts
 SOURCECONFIG = "sources.yaml"
 SOURCES_EXPECTED = 16
 MIN_TITLE_LEN = 28
-MINIMUM_STORY_RATING = 2
+MINIMUM_STORY_RATING = 2.5
+MAX_STORIES = 100
 # MAXPAGELEN = 50
 
 HOSTNAME_SKIPLIST = ['finbold.com']
@@ -59,6 +60,11 @@ MODEL_FAMILY = {'gpt-4o-2024-11-20': 'openai',
                 'models/gemini-2.0-flash': 'google',
                 'models/gemini-1.5-pro-latest': 'google',
                 'models/gemini-1.5-pro': 'google',
+                'claude-sonnet-4-20250514': 'anthropic',
+                'claude-sonnet-4': 'anthropic',
+                'claude-opus-4-20250514': 'anthropic',
+                'claude-opus-4': 'anthropic',
+                'claude-3-5-haiku': 'anthropic',
                 }
 
 CANONICAL_TOPICS = [
@@ -430,6 +436,7 @@ SOURCE_REPUTATION = {
     'news.bloomberglaw.com': 4,
     'www.bloomberg.com': 4,
     'www.ft.com': 4,
+    'ft.com': 4,
     'www.nytimes.com': 4,
     'www.wsj.com': 4,
 }

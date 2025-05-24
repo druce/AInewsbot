@@ -267,8 +267,9 @@ async def worker(queue, browser, results):
             queue.task_done()
         else:
             try:
-                html_path, last_updated = await fetch_url(url, title, browser, destination=PAGES_DIR)
-                results.append((idx, url, title, html_path, last_updated))
+                html_path, last_updated, final_url = await fetch_url(url, title, browser, destination=PAGES_DIR)
+                results.append(
+                    (idx, final_url, title, html_path, last_updated))
             finally:
                 queue.task_done()
 
@@ -322,9 +323,10 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
         initial_sleep (float): The number of seconds to wait after the page has loaded before clicking.
 
     Returns:
-        tuple: (html_path, last_updated_time) where:
+        tuple: (html_path, last_updated_time, final_url) where:
             html_path (str): The path to the downloaded file.
             last_updated_time (str or None): The last update time of the page.
+            final_url (str): The final URL after any redirects.
 
     # should add retry functionality, re-enable screenshots
     """
@@ -339,7 +341,7 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
         # check if file already exists, don't re-download
         if os.path.exists(html_path):
             log(f"File already exists: {html_path}")
-            return html_path, None
+            return html_path, None, url
 
         # if file does not exist, download
         # rate limit per domain
@@ -437,7 +439,9 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
                 last_updated = dt_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
             except Exception as e:
                 log(f"Could not parse last_updated '{last_updated}': {e}")
-                last_updated = None
+                # set to 1 day ago
+                last_updated = (datetime.datetime.now(
+                    datetime.timezone.utc) - datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         # Save HTML
         log(f"Saving HTML to {html_path}")
@@ -447,10 +451,12 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
         # Save screenshot for video
         # screenshot_path = f"{SCREENSHOT_DIR}/{title}.png"
         # await page.screenshot(path=screenshot_path)
-        return html_path, last_updated
+        # Get the final URL after any redirects
+        final_url = page.url
+        return html_path, last_updated, final_url
     except Exception as exc:
         log(f"Error fetching {url}: {exc}")
-        return None, None
+        return None, None, None
 
 
 async def fetch_source(source_dict, browser_context=None):
@@ -480,8 +486,8 @@ async def fetch_source(source_dict, browser_context=None):
     log(f"Starting fetch_source {url}, {title}")
 
     # Open the page and fetch the HTML
-    file_path, _ = await fetch_url(url, title, browser_context,
-                                   click_xpath, scrolls, initial_sleep)
+    file_path, _, _ = await fetch_url(url, title, browser_context,
+                                      click_xpath, scrolls, initial_sleep)
     source_dict['latest'] = file_path
     return (sourcename, file_path)
 

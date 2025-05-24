@@ -41,7 +41,7 @@ import trafilatura
 # import langchain
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.language_models import BaseLanguageModel
+from langchain_core.language_models import BaseLanguageModel, BaseChatModel
 # from langchain_google_genai import ChatGoogleGenerativeAI
 # from langchain_anthropic import ChatAnthropic
 # from langchain_core.messages import BaseMessage, AnyMessage, SystemMessage, HumanMessage, ToolMessage
@@ -181,7 +181,6 @@ class Newsletter(BaseModel):
 # utility functions
 ##############################################################################
 
-
 # def count_tokens(s):
 #     """
 #     Counts the number of tokens in a given string.
@@ -269,13 +268,17 @@ def paginate_df(input_df: pd.DataFrame,
     wait=wait_exponential(multiplier=1, min=2, max=128),
     retry=retry_if_exception_type(Exception),
     before_sleep=lambda retry_state: log(
-        f"Attempt {retry_state.attempt_number}: {retry_state.outcome.exception()}, tag: {retry_state.args[1].get('tag', '')}")
+        f"Attempt {retry_state.attempt_number}: {retry_state.outcome.exception()}, tag: {retry_state.args[1].get('tag', '')}"),
+    reraise=True,  # Make sure to re-raise the final exception after all retries are exhausted
 )
 async def async_langchain(chain, input_dict, tag="", label="article", verbose=False):
     #     async with sem:
-    """call langchain asynchronously with ainvoke
-    includes a reference tag
-    so if we gather 100 responses we can match them up with the input, retry if needed"""
+    """
+    call langchain asynchronously with ainvoke
+    adds retry via tenacity decorator
+    also adds a reference tag so if we gather 100 async responses we can match them up with the input
+    also returns the length of a chosen input item like "article" which we are summarizing (admittedly hacky)
+    """
     if verbose:
         print(f"async_langchain: {tag}, {input_dict}")
     # Call the chain asynchronously
@@ -296,77 +299,36 @@ async def async_langchain(chain, input_dict, tag="", label="article", verbose=Fa
     wait=wait_exponential(multiplier=1, min=2, max=128),
     retry=retry_if_exception_type(Exception),
     before_sleep=lambda retry_state: log(
-        f"Retrying after {retry_state.outcome.exception()}, attempt {retry_state.attempt_number}")
+        f"Attempt {retry_state.attempt_number}: {retry_state.outcome.exception()}, tag: {retry_state.args[1].get('tag', '')}"),
+    reraise=True,  # Make sure to re-raise the final exception after all retries are exhausted
 )
-async def filter_page_async_id(
-    input_df: pd.DataFrame,
-    system_prompt: str,
-    user_prompt: str,
-    output_class: Type[T],
-    model: ChatOpenAI,
-    input_vars: Dict[str, Any] = None,
-    item_list_field: str = "items",
-    item_id_field: str = "id",
-    opening_delimiter: str = "### <<<DATASET>>>",
-    closing_delimiter: str = "### <<<END>>>\nThink silently, then respond with the JSON only.",
-) -> T:
+async def async_langchain_with_probs(chain, input_dict, tag="", verbose=False):
+    #     async with sem:
     """
-    similar to filter_page_async but checks ids in the response
-    Process a single dataframe asynchronously.
-    apply system_prompt to input_df converted to JSON per output_class type schema,
-    supplying additional input_vars, and returning a variable of type output_class
+    similar to async_langchain, but expects chain from model.bind(logprobs=True) and a prompt for 1 token only
+    returns tag token and prob of token returned
+    call langchain asynchronously with ainvoke
+    adds retry via tenacity decorator
+    also adds a reference tag so if we gather 100 async responses we can match them up with the input
     """
-    if opening_delimiter:
-        user_prompt += "\n" + opening_delimiter + "\n"
-    user_prompt += "{input_text}"
-    if closing_delimiter:
-        user_prompt += "\n" + closing_delimiter
-
-    prompt_template = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("user", user_prompt)
-    ])
-
-    # Create the chain
-    chain = prompt_template | model.with_structured_output(output_class)
-
-    # Convert DataFrame to JSON
-    input_text = input_df.to_json(orient='records', indent=2)
-    input_dict = {"input_text": input_text}
-    if input_vars is not None:
-        input_dict.update(input_vars)
-    # input_prompt = prompt_template.format_messages(**input_dict)
-    # print(input_prompt)
-    # print(input_text)
-
+    if verbose:
+        print(f"async_langchain_with_probs: {tag}, {input_dict}")
     # Call the chain asynchronously
     response = await chain.ainvoke(input_dict)
-    # response = chain.invoke(input_dict)
 
-    # check ids in response
-    if item_list_field:
-        if hasattr(response, item_list_field):
-            response_list = getattr(response, item_list_field)
-            if item_id_field:
-                sent_ids = [
-                    item_id for item_id in input_df[item_id_field].to_list()]
+    if verbose:
+        print(f"async_langchain: {tag} response: {response}")
 
-                received_ids = [getattr(r, item_id_field)
-                                for r in response_list]
-                difference = set(sent_ids) - set(received_ids)
-                if difference:
-                    log(f"missing items: {str(difference)}")
-                    raise ValueError(
-                        f"No {item_id_field} found in the results")
+    content = response.content
+    logprob = response.response_metadata["logprobs"]["content"][0]
+    prob = 2 ** logprob['logprob']
 
-    # print(response)
-    return response  # instance of output_class
+    return content, prob, tag
 
 
 ##############################################################################
 # functions to process dataframes
 ##############################################################################
-
 @retry(
     stop=stop_after_attempt(TENACITY_RETRY),  # Maximum 8 attempts
     # Wait 2^x * multiplier seconds between retries
@@ -383,7 +345,7 @@ async def filter_page_async(
     model: ChatOpenAI,
     input_vars: Dict[str, Any] = None,
     opening_delimiter: str = "### <<<DATASET>>>",
-    closing_delimiter: str = "### <<<END>>>###\nThink silently, then respond with the JSON only.",
+    closing_delimiter: str = "### <<<END>>>###\nThink carefully, then respond with the JSON only.",
 ) -> T:
     """
     Process a single dataframe asynchronously.
@@ -415,10 +377,102 @@ async def filter_page_async(
     # print(input_prompt)
     # print(input_text)
 
-    # Call the chain asynchronously
-    response = await chain.ainvoke(input_dict)
+    try:
+        response = await chain.ainvoke(input_dict)
+    except asyncio.TimeoutError as e:
+        log(f"Timeout error in filter_page_async: {str(e)}")
+        raise
+    except Exception as e:
+        if 'timeout' in str(e).lower():
+            log(f"Probable timeout in filter_page_async: {str(e)}")
+        else:
+            log(f"Error in filter_page_async: {str(e)}")
+        raise
 
     return response  # Should be an instance of output_class
+
+
+@retry(
+    stop=stop_after_attempt(TENACITY_RETRY),  # Maximum 5 attempts
+    # Wait 2^x * multiplier seconds between retries
+    wait=wait_exponential(multiplier=1, min=2, max=128),
+    retry=retry_if_exception_type(Exception),
+    before_sleep=lambda retry_state: log(
+        f"Retrying after {retry_state.outcome.exception()}, attempt {retry_state.attempt_number}"),
+    reraise=True,  # Make sure to re-raise the final exception
+)
+async def filter_page_async_id(
+    input_df: pd.DataFrame,
+    system_prompt: str,
+    user_prompt: str,
+    output_class: Type[T],
+    model: ChatOpenAI,
+    input_vars: Dict[str, Any] = None,
+    item_list_field: str = "items",
+    item_id_field: str = "id",
+    opening_delimiter: str = "### <<<DATASET>>>",
+    closing_delimiter: str = "### <<<END>>>\nThink carefully, then respond with the JSON only.",
+) -> T:
+    """
+    similar to filter_page_async but checks ids in the response
+    Process a single dataframe asynchronously.
+    apply system_prompt to input_df converted to JSON per output_class type schema,
+    supplying additional input_vars, and returning a variable of type output_class
+    """
+    if opening_delimiter:
+        user_prompt += "\n" + opening_delimiter + "\n"
+    user_prompt += "{input_text}"
+    if closing_delimiter:
+        user_prompt += "\n" + closing_delimiter
+
+    prompt_template = ChatPromptTemplate.from_messages([
+        ("system", system_prompt),
+        ("user", user_prompt)
+    ])
+
+    # Create the chain
+    chain = prompt_template | model.with_structured_output(output_class)
+
+    # Convert DataFrame to JSON
+    input_text = input_df.to_json(orient='records', indent=2)
+    input_dict = {"input_text": input_text}
+    if input_vars is not None:
+        input_dict.update(input_vars)
+    # input_prompt = prompt_template.format_messages(**input_dict)
+    # print(input_prompt)
+    # print(input_text)
+
+    # Call the chain asynchronously
+    try:
+        response = await chain.ainvoke(input_dict)
+    except asyncio.TimeoutError as e:
+        log(f"Timeout error in filter_page_async_id: {str(e)}")
+        raise
+    except Exception as e:
+        if 'timeout' in str(e).lower():
+            log(f"Probable timeout in filter_page_async_id: {str(e)}")
+        else:
+            log(f"Error in filter_page_async_id: {str(e)}")
+        raise
+
+    # check ids in response
+    if item_list_field:
+        if hasattr(response, item_list_field):
+            response_list = getattr(response, item_list_field)
+            if item_id_field:
+                sent_ids = [
+                    item_id for item_id in input_df[item_id_field].to_list()]
+
+                received_ids = [getattr(r, item_id_field)
+                                for r in response_list]
+                difference = set(sent_ids) - set(received_ids)
+                if difference:
+                    log(f"missing items: {str(difference)}")
+                    raise ValueError(
+                        f"No {item_id_field} found in the results")
+
+    # print(response)
+    return response  # instance of output_class
 
 
 async def process_dataframes(dataframes: List[pd.DataFrame],
@@ -824,3 +878,78 @@ def clean_topics(row):
     combined = [s.replace("Ai", "AI") for s in combined]
 
     return combined
+
+
+async def filter_df_rows_with_probability(aidf: pd.DataFrame,
+                                          model: BaseChatModel,
+                                          system_prompt: str,
+                                          user_prompt: str,
+                                          output_column: str,
+                                          input_column: str,
+                                          input_column_rename: str = "",
+                                          mapper_func: Callable = None) -> pd.DataFrame:
+    """
+    Generic filter for a dataframe using a prompt that returns 1/0 probability.
+
+    Given a dataframe of article information, create a new column with the
+    probability of "1" from a prompt. Rows are sent individually. The prompt should
+    return either "1" or "0" as a single token, and this function extracts the
+    probability of the "1" token.
+
+    Args:
+        aidf (pd.DataFrame): The DataFrame containing article information.
+        model: The ChatAnthropic language model that supports returning probabilities
+        system_prompt (str): The system prompt to use
+        user_prompt (str): The user prompt to use
+        output_column (str): The name of the new column to create
+        input_column (str): The name of the column containing the text to apply the prompt to
+        input_column_rename (str, optional): The name to give the input column. Defaults to "".
+        mapper_func (Callable, optional): A function to apply to the input column. Defaults to None.
+
+    Returns:
+        pd.DataFrame: The original DataFrame with a new column containing 1/0 probabilities.
+    """
+    log(f"Starting {output_column} probability filter")
+    qdf = aidf[['id', input_column]].copy()
+    if input_column_rename:
+        qdf = qdf.rename(columns={input_column: input_column_rename})
+    else:
+        input_column_rename = input_column
+    if mapper_func:
+        qdf[input_column_rename] = qdf[input_column_rename].apply(
+            mapper_func, axis=1)
+
+    prompt_template = ChatPromptTemplate.from_messages(
+        [("system", system_prompt),
+         ("user", user_prompt)]
+    )
+
+    # Configure model to return logprobs for probability extraction
+    chain = prompt_template | model.bind(logprobs=True, top_logprobs=1)
+
+    tasks = []
+    for row in qdf.itertuples():
+        input_str = getattr(row, input_column_rename)
+        log(f"Queuing {row.id}: {input_str[:50]}...")
+        task = asyncio.create_task(async_langchain_with_probs(
+            chain, {"input_text": input_str}, tag=row.id, verbose=False))
+        tasks.append(task)
+
+    try:
+        log(f"Fetching responses for {len(tasks)} articles")
+        responses = await asyncio.gather(*tasks)
+        log(f"Received {len(responses)} responses")
+    except Exception as e:
+        log(f"Error fetching responses: {str(e)}")
+
+    # Extract response, probabilities from responses
+    response_dict = {}
+    for response, prob, rowid in responses:
+        if response == "1":
+            response_dict[rowid] = min(1.0, round(prob, 2))
+        else:
+            response_dict[rowid] = max(0.0, round(1 - prob, 2))
+
+    aidf[output_column] = aidf["id"].map(response_dict.get)
+
+    return aidf

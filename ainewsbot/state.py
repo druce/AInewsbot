@@ -16,6 +16,7 @@ Key Features:
 - Modular design for easy customization and extension of the pipeline.
 """
 # import pdb
+from sklearn.metrics.pairwise import cosine_similarity
 import os
 import re
 import pickle
@@ -47,7 +48,7 @@ from langgraph.errors import NodeInterrupt
 # import subprocess
 
 from .llm import (paginate_df, process_dataframes, fetch_all_summaries,
-                  filter_page_async, filter_df, filter_df_rows,
+                  filter_page_async, filter_df, filter_df_rows, filter_df_rows_with_probability,
                   get_all_canonical_topic_results, clean_topics,
                   Stories, TopicSpecList, TopicHeadline, TopicCategoryList, SingleTopicSpec,
                   Sites, Newsletter
@@ -469,6 +470,12 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
     Returns:
         AgentState: The updated state of the agent with the filtered URLs stored in state["AIdf"].
 
+    # TODO: probably best way to filter unseen urls would be to keep the full text in a vector database
+    # or at least the embedding, then do a similarity search to find duplicates, like if you've seen
+    # something with 95% cosine similarity previously then skip it
+
+    # if keeping all articles, then should also store whether it was AI-related (currently in sqlite)
+    # and whether it was used in daily summary, to be able to train on it
     """
     # filter to URL not previously seen
     aidf = pd.DataFrame(state['AIdf'])
@@ -632,6 +639,9 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
     """
     Extracts and selects topics for each headline in the state['AIdf'] dataframe, scrubs them, and stores them back in the dataframe.
 
+    TODO: uses a complex LLM extraction prompt. An alternative is something like
+    Research topic extraction models and APIs
+
     Args:
         state (AgentState): The current state of the agent.
 
@@ -762,6 +772,16 @@ def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
     Returns:
     AgentState: The updated state of the agent.
 
+    TODO:
+    Retrain UMAP model on summary embeddings (current model was trained on headlines only)
+    Use HDBSCAN instead of DBSCAN
+    Research clustering APIs , like Cohere's
+    response = co.embed(
+        texts=[f"{a['title']} {a['summary']}" for a in articles],
+        model="embed-english-v3.0",
+        input_type="clustering"
+    )
+
     """
     aidf = pd.DataFrame(state['AIdf'])
 
@@ -854,6 +874,13 @@ def fn_download_pages(state: AgentState) -> AgentState:
 
     Returns:
         AgentState: The updated state of the agent with the downloaded pages' pathnames stored in the `state["AIdf"]` DataFrame.
+
+
+    TODO: Here should put the full normalized text in vector db
+    check for duplicates (if BEFORE_DATE defined, then only before that date)
+    use something like cosine similarity > .95 to dedupe
+    delete dupes from aidf and reset index
+
     """
     log("Queuing URLs for scraping")
     aidf = pd.DataFrame(state['AIdf'])
@@ -879,6 +906,13 @@ def fn_download_pages(state: AgentState) -> AgentState:
             # error expected, no need to print
             # log("fn_download_pages")
             # log(exc)
+        # TODO: in the case of e.g. Google News url return is the redirected url
+        # so we need to update the url in AIdf, domain, site name
+        # potentially it is a url we already have, so need to dedupe before merge
+        # and then only keep ids in pages_df[["id", "url"]].groupby("url").first()
+        # and then merge
+        # potentially it is a name we haven't seen before at all so may need to look it up, add to sites
+
         aidf = pd.merge(
             aidf, pages_df[["id", "path", "last_updated"]], on='id', how="inner")
     state["AIdf"] = aidf.to_dict(orient='records')
@@ -953,6 +987,10 @@ def run_elo_round(elo_ranking_dict, battle_history_dict):
 
     return ordered_pairs
 
+# TODO: top max_stories by mmr
+# TODO: efficient elo battles and bradley terry
+# redo query from sites and match up to config
+
 
 async def elo_battle(aidf, id1, id2, chain, max_retries=3):
     """
@@ -1026,6 +1064,44 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     for these semantic understanding tasks, o4-mini seems like the one to use based on cookbook doc
     but it takes 5 minutes per elo round and is expensive
     so for now, use gpt-4.1-mini
+
+    TODO: research best practice for selecting top docs for RAG
+    ELO is working OK, but can be made more efficient
+    possibly send more than 2 articles per battle
+    if you sent 8 articles and ask it to pick best 4, you get 16 battles
+    for each article chosen in top 4 it's beating the 4 at the bottom
+    if you sent 4 articles and tell it to rank them, you get 6 battles
+    the number of rounds can be optimized
+    you can get more info by battling similar and similarly ranked articles
+    currently a lot of rounds picking random opponents
+    can possibly weight the ELO higher than it currently
+
+    Basically these 2 functions re-implement a reranker
+    could use e.g.
+    results = co.rerank(
+        model="rerank-english-v3.0",
+        query=query,  # e.g. "What is the best AI news article per these factors"
+        documents=documents,
+        top_n=top_n,
+        return_documents=True
+    )
+
+    for the first part where we ask yes/no questions, we could use Claude models
+    since even recent models output logits/probabilities. Then you can say, what
+    is the joint probability of not spam, important, relevant.
+
+    for the second part where we do the ELO ranking, we can continue to use OpenAI models
+    however it will be much more efficient if we start by collecting batches of 8 articles
+    and ask it to rank them. This will yield 8x7=56 battles per batch.
+    Then after 4 rounds, draw randomly from unpicked articles from same quartile
+    e.g. if < 8 remaining stop (maybe put them all in a short batch)
+    find all articles in same quartile window
+    if < 8 in quartile, expand to all
+    draw 8 random articles from expanded set
+    run the battle, insert all pairwise comparisons into battle history
+    after all battles in round, run Elo or Bradley-Terry to update ratings
+
+
     """
     aidf = pd.DataFrame(state['AIdf']).fillna({
         'article_len': 1,
@@ -1036,21 +1112,35 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     })
     log(f"Calculating article rating for {len(aidf)} articles")
 
+    aidf['input_str'] = aidf['title'] + "\n" + aidf['summary']
+
     # low quality articles
-    aidf = filter_df(aidf, model_medium, LOW_QUALITY_SYSTEM_PROMPT,
-                     LOW_QUALITY_USER_PROMPT, "low_quality", "bullet", "summary")
+    aidf = asyncio.run(filter_df_rows_with_probability(aidf,
+                                                       model=model_medium,
+                                                       system_prompt=LOW_QUALITY_SYSTEM_PROMPT,
+                                                       user_prompt=LOW_QUALITY_USER_PROMPT,
+                                                       output_column='low_quality',
+                                                       input_column="input_str"))
     counts = aidf["low_quality"].value_counts().to_dict()
     log(f"low quality articles: {counts}")
 
     # on topic articles
-    aidf = filter_df(aidf, model_medium, ON_TOPIC_SYSTEM_PROMPT,
-                     ON_TOPIC_USER_PROMPT, "on_topic", "bullet", "summary")
+    aidf = asyncio.run(filter_df_rows_with_probability(aidf,
+                                                       model=model_medium,
+                                                       system_prompt=ON_TOPIC_SYSTEM_PROMPT,
+                                                       user_prompt=ON_TOPIC_USER_PROMPT,
+                                                       output_column='on_topic',
+                                                       input_column="input_str"))
     counts = aidf["on_topic"].value_counts().to_dict()
     log(f"on topic articles: {counts}")
 
     # important articles
-    aidf = filter_df(aidf, model_medium, IMPORTANCE_SYSTEM_PROMPT,
-                     IMPORTANCE_USER_PROMPT, "importance", "bullet", "summary")
+    aidf = asyncio.run(filter_df_rows_with_probability(aidf,
+                                                       model=model_medium,
+                                                       system_prompt=IMPORTANCE_SYSTEM_PROMPT,
+                                                       user_prompt=IMPORTANCE_USER_PROMPT,
+                                                       output_column='importance',
+                                                       input_column="input_str"))
     counts = aidf["importance"].value_counts().to_dict()
     log(f"important articles: {counts}")
 
@@ -1061,6 +1151,20 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     elo_ranking_dict = {i: 1000 for i in aidf["id"]}
     battle_history_dict = {}
     k_factor = 32
+    page_size = 5
+    # for r_i in range(n_rounds):
+    #     log(f"running ELO round {r_i+1} of {n_rounds}")
+    #     copy aidf to aidf_elo, just id and title + summary
+    #     shuffle aidf_elo
+    #     paginate aidf_elo in batches of page_size
+    #     for each batch,
+    #         run ranking via prompt
+    #         update battle_history_dict
+    #         for row in itertuples:
+    #             this row lost to all previous rows
+    #     run bradford_terry
+    #     normalize and weight the ratings
+
     prompt = ChatPromptTemplate.from_messages([
         ("system", PROMPT_BATTLE_SYSTEM_PROMPT),
         ("user", PROMPT_BATTLE_USER_PROMPT)
@@ -1105,6 +1209,9 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
         aidf["elo"].std(ddof=0)
 
     # add points for freshness
+    yesterday = (datetime.now(timezone.utc)
+                 - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    aidf['last_updated'] = aidf['last_updated'].fillna(yesterday)
     aidf["age"] = (datetime.now(timezone.utc) -
                    pd.to_datetime(aidf['last_updated']))
     aidf["age"] = aidf["age"].dt.total_seconds() / (24 * 60 * 60)
@@ -1128,7 +1235,7 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
         + aidf['on_topic'] \
         + aidf['importance'] \
         - aidf['low_quality'] \
-        + aidf['elo_z'] / 2 \
+        + aidf['elo_z'] \
         + aidf['recency_score']
     # filter out low rated articles
     aidf = aidf[aidf['rating'] >= MINIMUM_STORY_RATING].copy()
@@ -1185,9 +1292,57 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     return state
 
 
+def mmr(doc_embeddings, relevance_scores, lambda_param=0.5, top_k=50):
+    """MMR (Maximal Marginal Relevance) algorithm for selecting a diverse set of documents.
+    Combines normalized score and novelty vs previous items
+
+    Args:
+        doc_embeddings (_type_): _description_
+        relevance_scores (_type_): _description_
+        lambda_param (float, optional): _description_. Defaults to 0.5.
+        top_k (int, optional): _description_. Defaults to 20.
+
+    Returns:
+        _type_: _description_
+    """
+    selected = []
+    candidates = list(range(len(doc_embeddings)))
+
+    while len(selected) < top_k and candidates:
+        if not selected:
+            # Start with highest scoring document
+            idx = np.argmax(relevance_scores)
+            selected.append(idx)
+            candidates.remove(idx)
+            continue
+
+        scores = []
+        for idx in candidates:
+            sim_to_query = relevance_scores[idx]
+            sim_to_selected = max(cosine_similarity(
+                [doc_embeddings[idx]],
+                [doc_embeddings[i] for i in selected]
+            )[0])
+            mmr_score = lambda_param * sim_to_query - \
+                (1 - lambda_param) * sim_to_selected
+            scores.append((mmr_score, idx))
+
+        # Select candidate with highest MMR score
+        _, best_idx = max(scores)
+        selected.append(best_idx)
+        candidates.remove(best_idx)
+
+    return selected
+
+
 def fn_propose_topics(state: AgentState, model_high: any) -> AgentState:
     """
     ask LLM to analyze for top categories
+
+    TODO: re-order aidf by semantic sort of bucket names and then by semantic sort within each bucket
+    send at most e.g. 50 articles to compose step using max marginal relevance
+    combines normalized score and novelty vs previous items
+
     """
     log(f"Proposing topic clusters using {str(type(model_high))}")
 

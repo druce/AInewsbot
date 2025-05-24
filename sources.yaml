@@ -28,7 +28,7 @@ Feedly AI:
   - ^https://feedly.com
   - ^https://s1.feedly.com
   - ^https://blog.feedly.com
-  scroll: 4   # page down 4 times for infinite scroll
+  scroll: 3   # page down times for infinite scroll
   initial_sleep: 20
   title: Feedly_AI
   url: https://feedly.com/i/aiFeeds?options=eyJsYXllcnMiOlt7InBhcnRzIjpbeyJpZCI6Im5scC9mL3RvcGljLzMwMDAifV0sInNlYXJjaEhpbnQiOiJ0ZWNobm9sb2d5IiwidHlwZSI6Im1hdGNoZXMiLCJzYWxpZW5jZSI6ImFib3V0In1dLCJidW5kbGVzIjpbeyJ0eXBlIjoic3RyZWFtIiwiaWQiOiJ1c2VyLzYyZWViYjlmLTcxNTEtNGY5YS1hOGM3LTlhNTdiODIwNTMwOC9jYXRlZ29yeS9HYWRnZXRzIn1dfQ

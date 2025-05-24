@@ -1,50 +1,38 @@
-## Agent-ic Revolution
+## ChatGPT Goes Physical
 
-- GitHub Copilot’s new agent feature can autonomously implement tasks on repositories, iterating on output and inferring unspecified tasks within secure environments requiring human approval. - [The Register](https://www.theregister.com/2025/05/19/github_copilot_angles_for_promotion/)
-- GitHub’s AI coding agent automatically fixes bugs, adds features, and improves documentation by cloning repositories, making changes in virtual environments, and documenting its reasoning for developer review. - [The Verge](https://www.theverge.com/news/669339/github-ai-coding-agent-fix-bugs)
-- Copilot Agent introduces asynchronous code testing, allowing it to autonomously check, test, iterate, and update code in repositories without constant human prompting, using Model Context Protocol for external data retrieval. - [VentureBeat](https://venturebeat.com/ai/github-copilot-evolves-into-autonomous-agent-with-asynchronous-code-testing/)
-- At Build 2025, Microsoft highlighted a doubling in AI agent usage and unveiled new autonomous features in GitHub Copilot, Microsoft 365, and Azure, plus integration of xAI’s Grok models. - [Business Insider](https://www.businessinsider.com/microsoft-build-keynote-2025-ai-agent-use-doubled-2025-5)
-- Microsoft’s Copilot Studio now supports multi-agent collaboration on business tasks, WhatsApp integration, Python analytics, and direct desktop application interactions via its new computer use feature. - [VentureBeat](https://venturebeat.com/ai/microsoft-just-taught-its-ai-agents-to-talk-to-each-other-and-it-could-transform-how-we-work/)
-- At Build 2025, Microsoft introduced over 50 AI tools—including Azure AI Foundry Agent Service, Windows AI Foundry, and Copilot Chat—aimed at enabling developers to create autonomous web agents. - [VentureBeat](https://venturebeat.com/ai/microsoft-announces-over-50-ai-tools-to-build-the-agentic-web-at-build-2025/)
+- Former Apple designer Jony Ive and OpenAI CEO Sam Altman are developing a screenless, pocket-sized AI companion device expected by 2027. - [Business Insider](https://www.businessinsider.com/jony-ive-device-openai-io-guesses-sam-altman-chatgpt-2025-5)
+- OpenAI CFO Sarah Friar said the company's $6.4B acquisition of an AI hardware startup aims to drive a new computing era and boost ChatGPT subscriptions. - [CNBC](https://www.cnbc.com/2025/05/22/openai-cfo-says-ai-hardware-boost-chatgpt-in-new-era-of-computing-.html)
 
-## Dev Tools Unleashed
+## ChatGPT Power-Ups
 
-- Microsoft Discovery is an AI-powered enterprise platform that accelerates scientific R&D, discovering a PFAS-free coolant in 200 hours and offering a natural language Copilot interface for complex simulations. - [VentureBeat](https://venturebeat.com/ai/microsoft-just-launched-an-ai-that-discovered-a-new-chemical-in-200-hours-instead-of-years/)
-- Microsoft is adding support for the open-source Model Context Protocol to Windows with a secure registry for AI agents, previewing Windows AI Foundry to streamline on-device AI model integration. - [The Verge](https://www.theverge.com/news/669298/microsoft-windows-ai-foundry-mcp-support)
-- Microsoft’s new experimental Edge APIs let web apps access on-device AI models like Phi-4-mini for text generation and summarization, with plans to propose them as web standards. - [The Verge](https://www.theverge.com/news/669528/microsoft-ai-edge-browser-web-app-build-apis)
-- Microsoft’s Windows AI Foundry introduces Foundry Local, enabling AI models to run on-device using ONNX Runtime on Windows and macOS with a command-line interface for local model management. - [TechCrunch](https://techcrunch.com/2025/05/19/microsoft-gives-its-ai-dev-tools-for-windows-a-fresh-coat-of-paint/)
-- Starburst Data’s new Enterprise and Galaxy updates simplify distributed data access for AI with Lakeside architecture, vector embedding workflows, and an AI agent for natural-language data queries. - [SiliconANGLE](https://siliconangle.com/2025/05/19/starburst-targets-ai-bottlenecks-smarter-data-access-governance/)
-- Microsoft Fabric now integrates CosmosDB and open-sourced DiskANN vector search, enabling unified data and analytics for AI workloads and serving 70% of the Fortune 500. - [VentureBeat](https://venturebeat.com/ai/70-of-the-fortune-500-already-use-microsoft-fabric-and-its-now-getting-even-more-features-including-cosmosdb-support/)
-- Microsoft launched NLWeb, an open project that adds AI-powered chatbots to websites via a conversational interface supporting various models through the Model Context Protocol. - [TechCrunch](https://techcrunch.com/2025/05/19/nlweb-is-microsofts-project-to-bring-more-chatbots-to-webpages/)
+- OpenAI upgraded its Operator autonomous web browsing agent from GPT-4o to the o3 model for ChatGPT Pro subscribers, improving accuracy, task completion, and safety features. - [VentureBeat](https://venturebeat.com/ai/openai-updates-operator-to-o3-making-its-200-monthly-chatgpt-subscription-more-enticing/)
 
-## AI's Power Play
+## Agents Unleashed
 
-- AI data centers’ 24/7 power demands are driving new natural-gas plants, potentially locking in fossil fuel use for decades and challenging US clean energy goals. - [Technology Review](https://www.technologyreview.com/2025/05/20/1116272/ai-natural-gas-data-centers-energy-power-plants/)
-- Nevada’s Tahoe Reno Industrial Center is becoming a major data hub, with proposed gigawatts of power and billions of gallons of water consumption raising environmental and tribal concerns. - [Technology Review](https://www.technologyreview.com/2025/05/20/1116287/ai-data-centers-nevada-water-reno-computing-environmental-impact/)
-- Nvidia’s RTX PRO server combines eight RTX PRO 6000 GPUs for x86 workloads alongside agentic AI, offering 800 Gbps GPU interconnects and compatibility with Kubernetes and major hypervisors. - [The Register](https://www.theregister.com/2025/05/19/nvidia_rtx_pro_servers/)
-- Experts warn that EMPs, cyberattacks, and AI-driven threats could cripple the US power grid, highlighting inconsistent preparedness and embedded foreign communication modules. - [Fox News](https://www.foxnews.com/politics/americas-power-grid-ready-next-attack-experts-warn-emps-cyber-threats-ai-could-cripple-us)
+- Microsoft plans to turn Windows into an agentic AI platform with NLWeb, while OpenAI acquires an AI device startup and Google adds shopping features powered by Gemini. - [Google News](https://news.google.com/rss/articles/CBMivgFBVV95cUxOa0U5Vlo1UUFtTV9hUnN5NG1vZzM2bHNRQzFYUkRJV3U2UFl1Wko1d0wxbmZRUVpoemtpZnBpSjJlMXJCTjJTelFSNUZkWDRjSDdMTWVSQW9QVEEtalZtdGw2bWRRa28wRHlhVFFVbS05QUtiWk1OZjNCRlNqeXRuMmZuRkV4UFNQa0dwaXpRZGI3RzAyalBBRmN0TTN1eW5zRW9VeDIyU0FodFVOOE9WNE90WEdpc2FONUJsWl9R)
+- At Build 2025, Microsoft highlighted its agentic AI strategy and updated Azure AI Studio, Copilot Studio, and AI Foundry tools for autonomous task automation across cloud services. - [Google News](https://news.google.com/rss/articles/CBMihAFBVV95cUxNN3BXMEpPU0hFNTg1TnRLcXZ3aDd4SmNOOEZEdzlCVlhVblVYS0paZ3JzalYtdmVyVWhwV0VDSzVlaWNndkRaODVLS2NpbFRoTzREUGdKQV96ZmE0Z3NNN3dGbGJuMlM0ZEExSVFsUFNrYWZDQ0VtOXNkRVVyN0tKR1Q3b2Y)
 
-## Searching the AI Web
+## LLM Showdown
 
-- Google released NotebookLM mobile for Android, iOS, and iPadOS, offering AI-generated summaries and offline audio overviews ahead of its Google I/O event. - [The Verge](https://www.theverge.com/news/669828/google-releases-its-notebooklm-mobile-app)
-- Google I/O 2025 will emphasize AI advancements like new Gemini features, extended reality updates, and minimal hardware announcements, focusing on software and XR developments. - [The Verge](https://www.theverge.com/news/669304/google-io-2025-how-to-watch-expect-livestream-ai-android-xr)
-- Microsoft CTO Kevin Scott outlined an open-source natural language search approach using the Model Context Protocol to enable distributed, agentic web search beyond centralized indexes. - [The Verge](https://www.theverge.com/decoder-podcast-with-nilay-patel/669409/microsoft-cto-kevin-scott-interview-ai-natural-language-search-openai)
+- Microsoft released the Model Context Protocol in Azure, Anthropic launched Claude 4 with extended runtimes and top coding performance, and Google debuted AI Mode to synthesize search results. - [VentureBeat](https://venturebeat.com/ai/the-3-biggest-bombshells-from-this-weeks-ai-extravaganza/)
 
-## Ethics Under Fire
+## Chatbot Politics
 
-- A study found GPT-4 was over 64% more persuasive than humans in debates when using personal data, raising concerns over AI-driven disinformation campaigns. - [The Register](https://www.theregister.com/2025/05/19/when_llms_get_personal_info/)
-- New Orleans police secretly used live facial recognition cameras for two years, potentially violating local regulations before city officials halted the program. - [The Washington Post](https://www.washingtonpost.com/business/2025/05/19/live-facial-recognition-police-new-orleans/)
-- The Take It Down Act makes sharing nonconsensual explicit deepfakes illegal, requiring platforms to remove such images within 48 hours and granting victims clear legal recourse. - [CNN](https://www.cnn.com/2025/05/19/tech/ai-explicit-deepfakes-trump-sign-take-it-down-act)
+- Rep. Marjorie Taylor Greene criticized Elon Musk’s chatbot Grok for alleged left-leaning bias after it questioned her Christian beliefs and referenced her QAnon ties. - [Business Insider](https://www.businessinsider.com/marjorie-taylor-greene-grok-left-leaning-2025-5)
 
-## Voice Actors vs AI
+## Regulation & Scrutiny
 
-- SAG-AFTRA filed an unfair labor practice charge against Llama Productions for using an AI-generated Darth Vader voice in Fortnite without union negotiation, citing contract violations. - [Ars Technica](https://arstechnica.com/ai/2025/05/fortnites-ai-darth-vader-spawns-unfair-labor-practice-charge-from-voice-union/)
-
-## Global AI Race
-
-- Nvidia CEO Jensen Huang praised Chinese AI researchers as ‘world-class’ and criticized export restrictions, advocating for US companies to compete in China’s market. - [Business Insider](https://www.businessinsider.com/nvidia-ceo-jensen-huang-says-chinese-ai-researchers-world-class-2025-5)
-- A CSET report warns China could overtake the US in AGI development through state-backed initiatives, extensive compute power, and neuroscience-based AI approaches. - [Newsweek](https://www.newsweek.com/ai-wuhan-china-us-covid-2073005)
+- The U.S. Department of Justice is investigating whether Google’s acquisition of Character.AI violates antitrust laws amid growing scrutiny of major AI partnerships. - [biztoc.com](https://biztoc.com/x/e213dbdf5ace0784)
+- Publishers accuse Google’s AI Mode for Search of using their content without fair compensation, prompting media groups to call for DOJ intervention. - [tech.slashdot.org](https://tech.slashdot.org/story/25/05/23/209232/googles-ai-mode-is-the-definition-of-theft-publishers-say)
 
 ## Other News
 
-- Microsoft integrated Entra, Defender, and Purview into Azure AI Foundry and Copilot Studio to provide agent identities, threat alerts, and real-time compliance for AI applications. - [SiliconANGLE](https://siliconangle.com/2025/05/19/microsoft-expands-ai-platform-security-new-identity-protection-threat-alerts-data-governance/)
+- Google co-founder Sergey Brin said AI models can perform better under threats, sparking concerns about adversarial prompts and AI ethics. - [Lifehacker](https://lifehacker.com/tech/googles-co-founder-says-ai-performs-best-when-you-threaten-it)
+- Pace University used AI-generated voices to read graduates’ names at commencement via QR codes, prompting mixed reactions over its personal touch. - [New York Post](https://nypost.com/2025/05/23/tech/college-grads-shocked-as-names-are-read-at-commencement-by-ai-what-a-beautiful-personal-touch/)
+- An AI experiment simulated Supreme Court opinions on birthright citizenship cases, predicting rulings on nationwide injunctions and illustrating algorithmic legal reasoning. - [Google News](https://news.google.com/rss/articles/CBMipwFBVV95cUxNZEVNWmVNdGttUjNrNnVDUl9WV1F6eG1KcmFJWm42cXNxcFJ3cFJFWVdZSHFsTzNPanlnMU16aFd3RnA5LWxlRTRnNXp3cU9XVkhBRFpLb19Vd2xid0dnblhuSHRHOS1RU3dpTTNXY0E4ckRFYmtMYy0teFZENl9xX3FVc1Y5V05Vd2tFdXhEUm1tNms3U1NhSVhFRGFvUW9OQzkzX2lKOA)
+- A U.S. executive order targets lower drug prices through Most-Favored-Nation pricing, while regulatory reforms and AI-driven R&D aims to reduce costs and boost innovation. - [Forbes](https://www.forbes.com/sites/aldenabbott/2025/05/22/regulatory-reform-and-ai-could-help-lower-drug-prices/)
+- Nvidia’s DGX B200 node set a record of 1,038 tokens per second per user with Meta’s Llama 4 Maverick, enabled by Blackwell GPUs and software optimizations. - [Google News](https://news.google.com/rss/articles/CBMi0wFBVV95cUxOeWswNEUxaG55RTh6TEsxdEFqZ0NfNFI1NExHSExOa2hPc2E2ei1uNnV5NUdaSGhKOExjRFZFWm0wb2trc3hRekFZem43dEJvS00ybk54X0ZkekkwSDB0TUFmd3ZmOVUyZFBfY2pneVFYYjVhMWJhQzIxcmNiV2xwSnlhblpZeTNzTXFGY1Y1c1ZmWTJiUllZd196Mnl5RDd0RHRLUGZDY1VxTnB2UTZ1R1FZUFl0a2I2bzBhaExmQXFKX25udi1zMHE0SWNROEU4Z3lR)
+- A survey found 93% of U.S. adults visited AI-related webpages in March 2025, though only half engaged with in-depth AI content monthly. - [Google News](https://news.google.com/rss/articles/CBMirgFBVV95cUxNVzd1Mkt0d3JqWnBCdVlmcU84RVpvUk05SHpCRGhJT2JYdm5zYjJyUk8tWDk3WVRIbXNtdmxzZXZmX25xWmpMbkZacldPNGRIZnFEd0NLdzFZZ2hNMGxiT3lvazd0WnJyM2tiZlowdUM2dVVYd0ZPQU1lTWRZTDlYMldDOEpyOS1UQkxNRUFZX2lxRmN5eGZpaEFaRXF2ZF8zcVBxOGNRLThmeFhXa1E)
+- A study comparing AI models and human chemists on 2,700 tasks found AI outperformed in efficiency but often overconfident on challenging questions. - [Google News](https://news.google.com/rss/articles/CBMiygFBVV95cUxOd0ljMzc4STRBclN2LVNLSElWUkl5RVJHZWI5UDNpTWJjcjl0OVFZYzU0anc5cnRXcE1ZNXlDYzNRT1Y4MU1LUW4wMVVXQURwTWFPM3YxNGVRdzZtdF9vZHB1U3hld0otWURYYVBoZVF2R0pxNTlSRGxiUlNXRDlhSHdhTTZvY001VE8tU0tVYUlGMGVZVmthd1B0VElsVkRrVVR6X2xfZW1OVjRiZTRpLVU2VUc0cDBBS3pYTUg4SDVWSmRrczdQODBn)
+- Sergey Brin acknowledged Google Glass’s past failures and said Android XR smart glasses should succeed thanks to generative AI and improved partnerships. - [hothardware.com](https://hothardware.com/news/sergey-brin-talks-google-glass-failure-and-why-android-xr-is-different)
+- AI chatbots are pressuring Google’s search dominance, leading the company to pursue new AI innovations after previous setbacks. - [Google News](https://news.google.com/rss/articles/CBMicEFVX3lxTE5MZmZQWGpiT2s2ZDdCZUpHSXJPU2JKV2NnUEp2RTJKdHlMMUZOemRsazVIY1RpeFBGRWFHY3ZYaWU3LWg2T0FTR05WRThDelRzcUUtSlRrVG1Id240OWtHZVlGOGhSY0VuYUpuR090b0g)

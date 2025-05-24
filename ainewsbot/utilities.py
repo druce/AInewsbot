@@ -20,6 +20,7 @@ from scipy.optimize import linear_sum_assignment
 
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_anthropic import ChatAnthropic
 
 from .config import (SQLITE_DB, REQUEST_TIMEOUT,
                      MODEL_FAMILY)
@@ -82,6 +83,8 @@ def get_model(model_name):
             return ChatOpenAI(model=model_name, request_timeout=REQUEST_TIMEOUT)
         elif model_type == 'google':
             return ChatGoogleGenerativeAI(model=model_name, request_timeout=REQUEST_TIMEOUT, verbose=True)
+        elif model_type == 'anthropic':
+            return ChatAnthropic(model=model_name, verbose=True)
     else:
         log(f"Unknown model {model_name}")
         return None
