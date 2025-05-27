@@ -17,7 +17,6 @@ from .state import (AgentState,
                     fn_initialize,
                     fn_download_sources,
                     fn_extract_urls,
-                    fn_verify_download,
                     # fn_extract_newscatcher,
                     fn_extract_newsapi,
                     fn_filter_urls,
@@ -77,43 +76,39 @@ class Agent:
         self.model_high = get_model(state["model_high"])
 
         graph_builder = StateGraph(AgentState)
-        graph_builder.add_node("initialize", self.initialize_config)
-        graph_builder.add_node("download_sources", self.download_sources)
-        graph_builder.add_node("extract_web_urls", self.extract_web_urls)
-        graph_builder.add_node("verify_download", self.verify_download)
-        graph_builder.add_node("extract_newsapi_urls",
-                               self.extract_newsapi_urls)
-        graph_builder.add_node("filter_urls", self.filter_urls)
-        graph_builder.add_node("download_pages", self.download_pages)
-        graph_builder.add_node("summarize_pages", self.summarize_pages)
-        graph_builder.add_node("topic_analysis", self.topic_analysis)
-        graph_builder.add_node("topic_clusters", self.topic_clusters)
-        graph_builder.add_node("rate_articles", self.rate_articles)
-        graph_builder.add_node("propose_topics", self.propose_topics)
-        graph_builder.add_node("compose_summary", self.compose_summary)
-        graph_builder.add_node("rewrite_summary", self.rewrite_summary)
-        graph_builder.add_node("send_mail", self.send_mail)
+        graph_builder.add_node("Initialize", self.initialize_config)
+        graph_builder.add_node("Download sources", self.download_sources)
+        graph_builder.add_node("Extract URLs", self.extract_web_urls)
+        graph_builder.add_node("Initial rank / filter", self.filter_urls)
+        graph_builder.add_node("Download pages", self.download_pages)
+        graph_builder.add_node("Summarize pages", self.summarize_pages)
+        graph_builder.add_node("Topic extraction", self.topic_analysis)
+        graph_builder.add_node("Topic clustering", self.topic_clusters)
+        graph_builder.add_node("Rerank", self.rate_articles)
+        graph_builder.add_node(
+            "Propose newsletter topics", self.propose_topics)
+        graph_builder.add_node("Compose summary", self.compose_summary)
+        graph_builder.add_node("Polish summary", self.rewrite_summary)
+        graph_builder.add_node("Send email", self.send_mail)
 
-        graph_builder.add_edge(START, "initialize")
-        graph_builder.add_edge("initialize", "download_sources")
-        graph_builder.add_edge("download_sources", "extract_web_urls")
-        graph_builder.add_edge("extract_web_urls", "verify_download")
-        graph_builder.add_edge("verify_download", "extract_newsapi_urls")
-        graph_builder.add_edge("extract_newsapi_urls", "filter_urls")
-        graph_builder.add_edge("filter_urls", "download_pages")
-        graph_builder.add_edge("download_pages", "summarize_pages")
-        graph_builder.add_edge("summarize_pages", "topic_analysis")
-        graph_builder.add_edge("topic_analysis", "topic_clusters")
-        graph_builder.add_edge("topic_clusters", "rate_articles")
-        graph_builder.add_edge("rate_articles", "propose_topics")
-        graph_builder.add_edge("propose_topics", "compose_summary")
-        graph_builder.add_edge("compose_summary", "rewrite_summary")
-        graph_builder.add_conditional_edges("rewrite_summary",
+        graph_builder.add_edge(START, "Initialize")
+        graph_builder.add_edge("Initialize", "Download sources")
+        graph_builder.add_edge("Download sources", "Extract URLs")
+        graph_builder.add_edge("Extract URLs", "Initial rank / filter")
+        graph_builder.add_edge("Initial rank / filter", "Download pages")
+        graph_builder.add_edge("Download pages", "Summarize pages")
+        graph_builder.add_edge("Summarize pages", "Rerank")
+        graph_builder.add_edge("Rerank", "Topic extraction")
+        graph_builder.add_edge("Topic extraction", "Topic clustering")
+        graph_builder.add_edge("Topic clustering", "Propose newsletter topics")
+        graph_builder.add_edge("Propose newsletter topics", "Compose summary")
+        graph_builder.add_edge("Compose summary", "Polish summary")
+        graph_builder.add_conditional_edges("Polish summary",
                                             self.is_revision_complete,
-                                            {"incomplete": "rewrite_summary",
-                                             "complete": "send_mail",
+                                            {"incomplete": "Polish summary",
+                                             "complete": "Send email",
                                              })
-        graph_builder.add_edge("send_mail", END)
+        graph_builder.add_edge("Send email", END)
 
         # human in the loop should check web pages downloaded ok, and edit proposed categories
         # self.conn = sqlite3.connect('lg_checkpointer.db')
@@ -138,11 +133,6 @@ class Agent:
         self.state = fn_extract_urls(state)
         return self.state
 
-    def verify_download(self, state: AgentState) -> AgentState:
-        """verify we found news stories from all sources"""
-        self.state = fn_verify_download(state)
-        return self.state
-
     # def extract_newscatcher_urls(self, state: AgentState) -> AgentState:
     #     """extract newscatcher urls"""
     #     try:
@@ -165,9 +155,10 @@ class Agent:
         self.state = fn_filter_urls(state, model)
         return self.state
 
-    def download_pages(self, state: AgentState) -> AgentState:
+    def download_pages(self, state: AgentState, model_str: str = "") -> AgentState:
         """download individual news pages and save text"""
-        self.state = fn_download_pages(state)
+        model = get_model(model_str) if model_str else self.model_low
+        self.state = fn_download_pages(state, model)
         return self.state
 
     def summarize_pages(self, state: AgentState, model_str: str = "") -> AgentState:

@@ -12,14 +12,12 @@ based on the filtered and summarized articles.
 The module is designed to be used by the AInewsbot script to generate a newsletter and podcast
 based on the latest AI news.
 """
-# import pdb
+import pdb
 import os
 import math
-import re
 # import aiohttp
 import asyncio
 from typing import List, Type, TypeVar, Dict, Any, Callable  # , TypedDict, Annotated,
-from pathlib import Path
 
 from pydantic import BaseModel, Field
 import pandas as pd
@@ -31,11 +29,8 @@ from tenacity import (
     retry_if_exception_type
 )
 
-import tiktoken
 # import openai
 # from openai import OpenAI
-from bs4 import BeautifulSoup
-import trafilatura
 
 
 # import langchain
@@ -50,13 +45,14 @@ from langchain_core.prompts import (ChatPromptTemplate,)
 # SystemMessagePromptTemplate, HumanMessagePromptTemplate)
 
 from .utilities import log
-from .config import (TENACITY_RETRY, MAX_INPUT_TOKENS,)
+from .config import (TENACITY_RETRY)
 from .prompts import (
     CANONICAL_SYSTEM_PROMPT, CANONICAL_USER_PROMPT,
-    SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT
+    SUMMARIZE_SYSTEM_PROMPT, SUMMARIZE_USER_PROMPT,
 )
 ##############################################################################
 # pydantic classes used to get structured outputs from LLM
+# TODO: move to own file
 ##############################################################################
 
 # so we can pass types to functions
@@ -156,6 +152,17 @@ class NewsArticle(BaseModel):
         return f"- {self.summary} - [{self.src}]({self.url})"
 
 
+class StoryOrder(BaseModel):
+    """StoryOrder class for generic structured output rating"""
+    id: int = Field(description="The id of the story")
+
+
+class StoryOrderList(BaseModel):
+    """List of StoryOrder for structured output"""
+    items: List[StoryOrder] = Field(
+        description="List of StoryOrder")
+
+
 class Section(BaseModel):
     """Section class for structured output filtering"""
     section_title: str = Field(description="The title of the section")
@@ -196,19 +203,6 @@ class Newsletter(BaseModel):
 #     # enc = tiktoken.get_encoding('o200k_base')
 #     assert enc.decode(enc.encode("hello world")) == "hello world"
 #     return len(enc.encode(s))
-
-
-def trunc_tokens(long_prompt, model='gpt-4o', maxtokens=MAX_INPUT_TOKENS):
-    """return prompt string, truncated to maxtokens"""
-    # Initialize the encoding for the model you are using, e.g., 'gpt-4'
-    encoding = tiktoken.encoding_for_model(model)
-
-    # Encode the prompt into tokens, truncate, and return decoded prompt
-    tokens = encoding.encode(long_prompt)
-    tokens = tokens[:maxtokens]
-    truncated_prompt = encoding.decode(tokens)
-
-    return truncated_prompt
 
 
 def paginate_df(input_df: pd.DataFrame,
@@ -351,6 +345,7 @@ async def filter_page_async(
     Process a single dataframe asynchronously.
     apply input_prompt to input_df converted to JSON per output_class type schema,
     supplying additional input_vars, and returning a variable of type output_class
+    TODO: call async_langchain and just use the retry decorator there, add structurd output option
     """
     # print(user_prompt)
     if opening_delimiter:
@@ -460,8 +455,7 @@ async def filter_page_async_id(
         if hasattr(response, item_list_field):
             response_list = getattr(response, item_list_field)
             if item_id_field:
-                sent_ids = [
-                    item_id for item_id in input_df[item_id_field].to_list()]
+                sent_ids = input_df[item_id_field].to_list()
 
                 received_ids = [getattr(r, item_id_field)
                                 for r in response_list]
@@ -540,87 +534,6 @@ async def process_dataframes(dataframes: List[pd.DataFrame],
         return flat_list
     else:
         log(f"no {item_list_field} in result, returning raw results")
-
-
-def normalize_html(path: Path | str) -> str:
-    """
-    Clean and extract text content from an HTML file, including titles and social media metadata.
-
-    Args:
-        path (Path | str): Path to the HTML file to process
-
-    Returns:
-        - str: Extracted and cleaned text content, or empty string if processing fails
-
-    The function extracts:
-        - Page title from <title> tag
-        - Social media titles from OpenGraph and Twitter meta tags
-        - Social media descriptions from OpenGraph and Twitter meta tags
-        - Main content using trafilatura library
-
-    All extracted content is concatenated and truncated to MAX_INPUT_TOKENS length.
-    """
-
-    try:
-        with open(path, 'r', encoding='utf-8') as file:
-            html_content = file.read()
-    except Exception as exc:
-        log(f"Error: {str(exc)}")
-        log(f"Skipping {path}")
-        return ""
-
-    # Parse the HTML content using trafilatura
-    soup = BeautifulSoup(html_content, 'html.parser')
-
-    try:
-        # Try to get the title from the <title> tag
-        title_tag = soup.find("title")
-        title_str = "Page title: " + title_tag.string.strip() + \
-            "\n" if title_tag and title_tag.string else ""
-    except Exception as exc:
-        log(str(exc), "clean_html page_title")
-
-    try:
-        # Try to get the title from the Open Graph meta tag
-        og_title_tag = soup.find("meta", property="og:title")
-        if not og_title_tag:
-            og_title_tag = soup.find(
-                "meta", attrs={"name": "twitter:title"})
-        og_title = og_title_tag["content"].strip(
-        ) + "\n" if og_title_tag and og_title_tag.get("content") else ""
-        og_title = "Social card title: " + og_title if og_title else ""
-    except Exception as exc:
-        log(str(exc), "clean_html og_title")
-
-    try:
-        # get summary from social media cards
-        og_desc_tag = soup.find("meta", property="og:description")
-        if not og_desc_tag:
-            # Extract the Twitter description
-            og_desc_tag = soup.find(
-                "meta", attrs={"name": "twitter:description"})
-        og_desc = og_desc_tag["content"] + "\n" if og_desc_tag else ""
-        og_desc = 'Social card description: ' + og_desc if og_desc else ""
-    except Exception as exc:
-        log(str(exc), "clean_html og_desc")
-
-    # Get text and strip leading/trailing whitespace
-    log(title_str + og_title + og_desc, "clean_html")
-    plaintext = ""
-    try:
-        plaintext = trafilatura.extract(html_content)
-        plaintext = plaintext.strip() if plaintext else ""
-    except Exception as exc:
-        log(str(exc), "clean_html trafilatura")
-
-    # remove special tokens, have found in artiles about tokenization
-    # All OpenAI special tokens follow the pattern <|something|>
-    special_token_re = re.compile(r"<\|\w+\|>")
-    plaintext = special_token_re.sub("", plaintext)
-    visible_text = title_str + og_title + og_desc + plaintext
-    visible_text = trunc_tokens(
-        visible_text, model='gpt-4o', maxtokens=MAX_INPUT_TOKENS)
-    return visible_text
 
 
 def filter_df(aidf: pd.DataFrame,
@@ -792,26 +705,32 @@ async def fetch_all_summaries(aidf, model):
 
     count_valid, count_no_path, count_no_content = 0, 0, 0
     for row in aidf.itertuples():
-        path, rowid = row.path, row.id
+        text_path, rowid = row.text_path, row.id
         article_str = ""
-        if not path:
+        if not text_path:
             count_no_path += 1
-            log(f"No path for {rowid}")
+            log(f"No text_path for {rowid}")
             continue
 
         # check if path exists
-        if not os.path.exists(path):
+        if not os.path.exists(text_path):
             log(f"Invalid path for {rowid}")
             count_no_path += 1
             continue
 
-        article_str = normalize_html(path)
-        if len(article_str.strip()) == 0 or article_str.startswith("no content"):
-            log(f"No content for {rowid}")
+        # read the file
+        try:
+            with open(text_path, 'r', encoding='utf-8') as f:
+                article_str = f.read()
+        except Exception as e:
+            log(f"Error reading file {text_path}: {str(e)}")
             count_no_content += 1
             continue
 
-        # valid article to summarize
+        if not article_str:
+            count_no_content += 1
+            continue
+
         count_valid += 1
         log(f"Queuing {rowid}: {article_str[:50]}...")
         task = asyncio.create_task(async_langchain(
@@ -926,10 +845,12 @@ async def filter_df_rows_with_probability(aidf: pd.DataFrame,
 
     # Configure model to return logprobs for probability extraction
     chain = prompt_template | model.bind(logprobs=True, top_logprobs=1)
-
     tasks = []
     for row in qdf.itertuples():
         input_str = getattr(row, input_column_rename)
+        if not input_str:
+            log(f"No input for {row.id}")
+            continue
         log(f"Queuing {row.id}: {input_str[:50]}...")
         task = asyncio.create_task(async_langchain_with_probs(
             chain, {"input_text": input_str}, tag=row.id, verbose=False))

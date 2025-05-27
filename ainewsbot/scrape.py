@@ -7,24 +7,31 @@ import asyncio
 import re
 import os
 from urllib.parse import urljoin, urlparse
+import pdb
+import json
+
 import random
 import time
 import datetime
 from dateutil import parser as date_parser
+from pathlib import Path
+import tiktoken
 
 import requests
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 from playwright_stealth import stealth_async
 
+import trafilatura
+
 from .utilities import log
 from .config import (DOWNLOAD_DIR, PAGES_DIR, FIREFOX_PROFILE_PATH,  # SCREENSHOT_DIR,
-                     MIN_TITLE_LEN, SLEEP_TIME)
+                     MIN_TITLE_LEN, SLEEP_TIME, TEXT_DIR, MAX_INPUT_TOKENS)
 
 # Global state for per-domain rate limiting
 _domain_locks = {}
 _domain_last_access = {}
-_RATE_LIMIT_SECONDS = 30
+_RATE_LIMIT_SECONDS = 15
 
 
 def get_og_tags(url):
@@ -125,6 +132,104 @@ def sanitize_filename(filename):
     trunc_len = 255 - len(datestr) - len(sep) - len(".html") - 1
     filename = filename[:trunc_len]
     return filename
+
+
+def trunc_tokens(long_prompt, model='gpt-4o', maxtokens=MAX_INPUT_TOKENS):
+    """return prompt string, truncated to maxtokens"""
+    # Initialize the encoding for the model you are using, e.g., 'gpt-4'
+    encoding = tiktoken.encoding_for_model(model)
+
+    # Encode the prompt into tokens, truncate, and return decoded prompt
+    tokens = encoding.encode(long_prompt)
+    tokens = tokens[:maxtokens]
+    truncated_prompt = encoding.decode(tokens)
+
+    return truncated_prompt
+
+
+def normalize_html(path: Path | str) -> str:
+    """
+    Clean and extract text content from an HTML file, including titles and social media metadata.
+
+    Args:
+        path (Path | str): Path to the HTML file to process
+
+    Returns:
+        - str: Extracted and cleaned text content, or empty string if processing fails
+
+    The function extracts:
+        - Page title from <title> tag
+        - Social media titles from OpenGraph and Twitter meta tags
+        - Social media descriptions from OpenGraph and Twitter meta tags
+        - Main content using trafilatura library
+
+    All extracted content is concatenated and truncated to MAX_INPUT_TOKENS length.
+    """
+
+    try:
+        with open(path, 'r', encoding='utf-8') as file:
+            html_content = file.read()
+    except Exception as exc:
+        log(f"Error: {str(exc)}")
+        log(f"Skipping {path}")
+        return ""
+
+    # Parse the HTML content using trafilatura
+    soup = BeautifulSoup(html_content, 'html.parser')
+
+    try:
+        # Try to get the title from the <title> tag
+        title_tag = soup.find("title")
+        title_str = "Page title: " + title_tag.string.strip() + \
+            "\n" if title_tag and title_tag.string else ""
+    except Exception as exc:
+        title_str = ""
+        log(str(exc), "clean_html page_title")
+
+    try:
+        # Try to get the title from the Open Graph meta tag
+        og_title_tag = soup.find("meta", property="og:title")
+        if not og_title_tag:
+            og_title_tag = soup.find(
+                "meta", attrs={"name": "twitter:title"})
+        og_title = og_title_tag["content"].strip(
+        ) + "\n" if og_title_tag and og_title_tag.get("content") else ""
+        og_title = "Social card title: " + og_title if og_title else ""
+    except Exception as exc:
+        og_title = ""
+        log(str(exc), "clean_html og_title")
+
+    try:
+        # get summary from social media cards
+        og_desc_tag = soup.find("meta", property="og:description")
+        if not og_desc_tag:
+            # Extract the Twitter description
+            og_desc_tag = soup.find(
+                "meta", attrs={"name": "twitter:description"})
+        og_desc = og_desc_tag.get("content").strip() + \
+            "\n" if og_desc_tag else ""
+        og_desc = 'Social card description: ' + og_desc if og_desc else ""
+    except Exception as exc:
+        og_desc = ""
+        log(str(exc), "clean_html og_desc")
+
+    # Get text and strip leading/trailing whitespace
+    log(title_str + og_title + og_desc, "clean_html")
+    try:
+        plaintext = trafilatura.extract(html_content)
+        plaintext = plaintext.strip() if plaintext else ""
+    except Exception as exc:
+        plaintext = html_content
+        log(str(exc), "clean_html trafilatura")
+
+    # remove special tokens, have found in artiles about tokenization
+    # All OpenAI special tokens follow the pattern <|something|>
+    special_token_re = re.compile(r"<\|\w+\|>")
+    plaintext = special_token_re.sub("", plaintext)
+    visible_text = title_str + og_title + og_desc + plaintext
+    visible_text = trunc_tokens(
+        visible_text, model='gpt-4o', maxtokens=MAX_INPUT_TOKENS)
+    return visible_text
 
 
 async def get_browser(p):
@@ -252,6 +357,7 @@ async def worker(queue, browser, results):
     log("Launching worker")
     # for now, skip these domains since I don't want to log in and potentially get my account blocked
     ignore_list = ["www.bloomberg.com", "bloomberg.com",
+                   "cnn.com", "www.cnn.com",
                    "wsj.com", "www.wsj.com"]
 
     while True:
@@ -270,6 +376,8 @@ async def worker(queue, browser, results):
                 html_path, last_updated, final_url = await fetch_url(url, title, browser, destination=PAGES_DIR)
                 results.append(
                     (idx, final_url, title, html_path, last_updated))
+            except Exception as exc:
+                log(f"Error fetching {url}: {exc}")
             finally:
                 queue.task_done()
 
@@ -286,11 +394,11 @@ async def fetch_queue(queue, concurrency):
         list: A list of tuples containing (index, url, title, result) for each processed URL.
     """
 
+    results = []
     async with async_playwright() as p:
         log("Launching browser")
         browser = await get_browser(p)
 
-        results = []
         log("Launching workers")
         tasks = [asyncio.create_task(worker(queue, browser, results))
                  for _ in range(concurrency)]
@@ -385,7 +493,11 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
             """ % scrolldiv)
 
         html_source = await page.content()
-
+        if page.url != url:
+            log(f"Page URL redirected from {url} to {page.url}")
+        # break if page.url domain is google.com
+        if urlparse(url).netloc == "news.google.com":
+            log(f"Google News page: {page.url}")
         # Determine last updated time, first try meta tags
         last_updated = None
         soup_meta = BeautifulSoup(html_source, "html.parser")
@@ -407,11 +519,24 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
                     f"Found last updated time from meta tag {attr}={val}: {last_updated}")
                 break
 
-        if not last_updated:
-            time_tag = soup_meta.find("time", datetime=True)
-            if time_tag and time_tag.get("datetime"):
-                last_updated = time_tag["datetime"]
-                log(f"Found last updated time from time tag: {last_updated}")
+        # if not last_updated:
+        #     time_tag = soup_meta.find("time", datetime=True)
+        #     if time_tag and time_tag.get("datetime"):
+        #         last_updated = time_tag["datetime"]
+        #         log(f"Found last updated time from time tag: {last_updated}")
+
+        # for substack
+        # Find all JSON-LD script blocks
+        for script in soup_meta.find_all('script', type='application/ld+json'):
+            try:
+                data = json.loads(script.string)
+                if data.get('@type') == 'NewsArticle':
+                    last_updated = data.get('datePublished')
+                    log(
+                        f"Found script last updated time from script datePublished: {last_updated}")
+                    break
+            except Exception as e:
+                continue
 
         # Check HTTP Last-Modified header
         if not last_updated:
@@ -445,14 +570,23 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
 
         # Save HTML
         log(f"Saving HTML to {html_path}")
+        # if the file already exists, delete it
         with open(html_path, 'w', encoding='utf-8') as file:
             file.write(html_source)
-        await page.close()
+
         # Save screenshot for video
         # screenshot_path = f"{SCREENSHOT_DIR}/{title}.png"
         # await page.screenshot(path=screenshot_path)
         # Get the final URL after any redirects
-        final_url = page.url
+        # Try to get canonical URL from the HTML source
+        canonical_tag = soup_meta.find("link", rel="canonical")
+        if canonical_tag and canonical_tag.get("href"):
+            final_url = canonical_tag["href"]
+        else:
+            final_url = page.url
+
+        await page.close()
+
         return html_path, last_updated, final_url
     except Exception as exc:
         log(f"Error fetching {url}: {exc}")

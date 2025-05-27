@@ -17,6 +17,7 @@ playwright-stealth
 openai
 tiktoken
 python-dotenv
+aiofiles
 atproto
 pillow
 pygraphviz
@@ -28,6 +29,7 @@ yapf
 # alpha-vantage
 newsapi-python
 trafilatura
+choix
 langchain
 langchain-community
 langchain-core

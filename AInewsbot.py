@@ -42,8 +42,8 @@ langchain.verbose = True
 
 nest_asyncio.apply()  # needed for asyncio.run to work under langgraph
 
-# defaults if called via import and not __main__
-N_BROWSERS = 8
+# defaults
+N_BROWSERS = 12
 MAX_EDITS = 2
 
 

@@ -15,16 +15,19 @@ Key Features:
 - Use of machine learning models for clustering, topic extraction, and content summarization.
 - Modular design for easy customization and extension of the pipeline.
 """
-# import pdb
-from sklearn.metrics.pairwise import cosine_similarity
+import pdb
 import os
 import re
 import pickle
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from collections import Counter, defaultdict
 import asyncio
-from typing import TypedDict
+import aiofiles
+
+from typing import TypedDict, List, Tuple, Dict
 from urllib.parse import urlparse
+
 import sqlite3
 import random
 import math
@@ -37,9 +40,18 @@ from IPython.display import display  # , Audio
 
 import numpy as np
 import pandas as pd
+
 from sklearn.cluster import DBSCAN
+from sklearn.metrics.pairwise import cosine_similarity
+
+import choix
 
 from openai import OpenAI
+from openai import AsyncOpenAI
+
+import chromadb
+from chromadb.config import Settings
+from chromadb.utils import embedding_functions
 
 import langchain
 from langchain_core.output_parsers import StrOutputParser
@@ -48,20 +60,23 @@ from langgraph.errors import NodeInterrupt
 # import subprocess
 
 from .llm import (paginate_df, process_dataframes, fetch_all_summaries,
-                  filter_page_async, filter_df, filter_df_rows, filter_df_rows_with_probability,
+                  filter_page_async, filter_df, filter_page_async_id,
+                  filter_df_rows, filter_df_rows_with_probability,
                   get_all_canonical_topic_results, clean_topics,
                   Stories, TopicSpecList, TopicHeadline, TopicCategoryList, SingleTopicSpec,
-                  Sites, Newsletter
+                  Sites, StoryOrderList, Newsletter
                   )
 # from ainb_sllm import (
 #     sfetch_all_summaries, sfilter_page_async)
 # from ainb_sllm import sfetch_all_summaries
 from .scrape import (
-    parse_file, fetch_queue, fetch_source_queue)
+    parse_file, fetch_queue, fetch_source_queue, normalize_html,)
 from .utilities import (log, delete_files, filter_unseen_urls_db,
                         nearest_neighbor_sort, send_gmail, unicode_to_ascii)
-from .config import (DOWNLOAD_DIR, PAGES_DIR, SOURCECONFIG, SOURCES_EXPECTED,
-                     CANONICAL_TOPICS, SQLITE_DB,
+from .config import (DOWNLOAD_DIR, TEXT_DIR, CHROMA_DB_PATH,
+                     SOURCECONFIG, SOURCES_EXPECTED,
+                     CANONICAL_TOPICS, SQLITE_DB, COSINE_DISTANCE_THRESHOLD,
+                     CHROMA_DB_COLLECTION, CHROMA_DB_EMBEDDING_FUNCTION,
                      HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST, SOURCE_REPUTATION,
                      SCREENSHOT_DIR, MINIMUM_STORY_RATING)
 
@@ -78,7 +93,7 @@ from .prompts import (
     FINAL_SUMMARY_SYSTEM_PROMPT, FINAL_SUMMARY_USER_PROMPT,
     REWRITE_SYSTEM_PROMPT, REWRITE_USER_PROMPT,
     TOPIC_ROUTER_SYSTEM_PROMPT, TOPIC_ROUTER_USER_PROMPT,
-    PROMPT_BATTLE_SYSTEM_PROMPT, PROMPT_BATTLE_USER_PROMPT,
+    PROMPT_BATTLE_SYSTEM_PROMPT5, PROMPT_BATTLE_USER_PROMPT5,
     DEDUPLICATE_SYSTEM_PROMPT, DEDUPLICATE_USER_PROMPT,
     SITE_NAME_PROMPT,
 )
@@ -115,7 +130,7 @@ def make_bullet(row, include_topics=True):
     # rowid = str(row.id) + ". " if hasattr(row, "id") else ""
     title = row.title if hasattr(row, "title") else ""
     site_name = row.site_name if hasattr(row, "site_name") else ""
-    actual_url = row.actual_url if hasattr(row, "actual_url") else ""
+    final_url = row.final_url if hasattr(row, "final_url") else ""
     # bullet = "\n\n" + row.bullet if hasattr(row, "bullet") else ""
     summary = "\n\n" + str(row.summary) if hasattr(row, "summary") else ""
     topic_str = ""
@@ -131,7 +146,7 @@ def make_bullet(row, include_topics=True):
             topic_str += str(row.topic_str)
     rating = f"\n\nRating: {max(row.rating, 0):.2f}" if hasattr(
         row, "rating") else ""
-    return f"[{title} - {site_name}]({actual_url}){topic_str}{rating}{summary}\n\n"
+    return f"[{title} - {site_name}]({final_url}){topic_str}{rating}{summary}\n\n"
 
 
 def fn_initialize(state: AgentState) -> AgentState:
@@ -149,6 +164,13 @@ def fn_initialize(state: AgentState) -> AgentState:
         yaml.YAMLError: If there is an error while loading the YAML file.
 
     """
+    if state.get("do_download"):
+        # empty download directories
+        log("Deleting existing files")
+        delete_files(DOWNLOAD_DIR)
+        # delete_files(PAGES_DIR)
+        # loop through directory, grab name, delete if > 60 days old
+        delete_files(SCREENSHOT_DIR)
 
     #  load sources to scrape from sources.yaml
     with open(SOURCECONFIG, "r", encoding="utf-8") as stream:
@@ -187,19 +209,16 @@ def fn_download_sources(state: AgentState) -> AgentState:
         AgentState: The updated state of the agent.
     """
 
+    # scrape HTML files from sources
     if state.get("do_download"):
-        # empty download directories
-        delete_files(DOWNLOAD_DIR)
-        delete_files(PAGES_DIR)
-        delete_files(SCREENSHOT_DIR)
-
         # save each file specified from sources
         log(
             f"Saving HTML files using async concurrency= {state['n_browsers']}")
         # Create a queue for multiprocessing and populate it
         queue = asyncio.Queue()
         for item in state.get("sources").values():
-            asyncio.run(queue.put(item))
+            if item['type'] == "html":
+                asyncio.run(queue.put(item))
 
         results = asyncio.run(fetch_source_queue(queue, state['n_browsers']))
 
@@ -247,15 +266,16 @@ def fn_extract_urls(state: AgentState) -> AgentState:
     log("Parsing html files")
     all_urls = []
     for sourcename, sourcedict in state['sources'].items():
-        filename = sourcedict.get('latest')
-        if not filename:
-            log(f"no filename found for {sourcename}")
-            continue
+        if sourcedict['type'] == "html":
+            filename = sourcedict.get('latest')
+            if not filename:
+                log(f"no filename found for {sourcename}")
+                continue
 
-        log(sourcename + ' -> ' + filename)
-        links = parse_file(state['sources'][sourcename])
-        log(f"{len(links)} links found")
-        all_urls.extend(links)
+            log(sourcename + ' -> ' + filename)
+            links = parse_file(state['sources'][sourcename])
+            log(f"{len(links)} links found")
+            all_urls.extend(links)
 
     log(f"Saved {len(all_urls)} links")
 
@@ -270,29 +290,42 @@ def fn_extract_urls(state: AgentState) -> AgentState:
         .reset_index(drop=False)
         .rename(columns={"index": "id"})
     )
+
+    function_dict = {
+        # "GNews": fn_extract_gnews,
+        # "Newscatcher": fn_extract_newscatcher,
+        "fn_extract_newsapi": fn_extract_newsapi,
+    }
+    log("Parsing APIs")
     state['AIdf'] = aidf.to_dict(orient='records')
+    for sourcename, sourcedict in state['sources'].items():
+        if sourcedict['type'] == "rest":
+            fn_name = sourcedict.get('function_name')
+            # look up function in sources dict
+            fn = function_dict[fn_name]
+            state = fn(state)
 
-    return state
-
-
-def fn_verify_download(state: AgentState) -> AgentState:
-    """
-    Verify all sources downloaded by checking src present in AIdf
-    If there is a bot block the html file might be present but have no valid links
-    """
+    # Verify all sources downloaded by checking src present in AIdf
+    # if we get a bot block the html file might be present but have no valid links
     sources_downloaded = len(
         pd.DataFrame(state["AIdf"]).groupby("src").count()[['id']])
     missing_sources = SOURCES_EXPECTED-sources_downloaded
-
     if missing_sources:
         log(
             f"verify_download failed, found {SOURCES_EXPECTED} sources in AIdf, {missing_sources} missing")
-        str_missing = str(set(state["sources"].keys(
-        )) - set(pd.DataFrame(state["AIdf"]).groupby("src").count()[['id']].index))
-        log(f"Missing sources: {str_missing}")
+        set_found = set(pd.DataFrame(state["AIdf"]).groupby(
+            "src").count()[['id']].index)
+        set_missing = set(state["sources"].keys(
+        )) - set_found
+        log(f"Missing sources: {set_missing}")
+        for sourcename in set_missing:
+            print(
+                f"Download {sourcename} manually: {state['sources'][sourcename]['url']}")
+
         raise NodeInterrupt(
-            f"{missing_sources} missing sources: {str_missing}")
+            f"{missing_sources} missing sources: {set_missing}")
     log(f"verify_download passed, found {SOURCES_EXPECTED} sources in AIdf, {missing_sources} missing")
+
     return state
 
 
@@ -458,6 +491,63 @@ def fn_extract_newsapi(state: AgentState) -> AgentState:
     return state
 
 
+def fix_missing_site_names(aidf: pd.DataFrame, model_low) -> pd.DataFrame:
+    """
+    Update the site_name and domain columns in the aidf DataFrame
+    based on the sites table in the SQLite database.
+    If any site names are missing, populate them using OpenAI.
+    """
+    conn = sqlite3.connect('articles.db')
+    query = "select * from sites"
+    sites_df = pd.read_sql_query(query, conn)
+    sites_dict = {row.hostname: row.site_name for row in sites_df.itertuples()}
+    domains_dict = {row.hostname: row.domain for row in sites_df.itertuples()}
+
+    # get clean site_name
+    aidf['site_name'] = aidf['hostname'].apply(
+        lambda hostname: sites_dict.get(hostname, ""))
+
+    # if any missing clean site names, populate them using OpenAI
+    missing_site_names = len(aidf.loc[aidf['site_name'] == ""])
+    if missing_site_names:
+        log(f"Asking OpenAI for {missing_site_names} missing site names")
+        responses = asyncio.run(process_dataframes(paginate_df(aidf[["url"]]),
+                                                   "",
+                                                   SITE_NAME_PROMPT,
+                                                   Sites, model=model_low))
+        # update site_dict from responses
+        new_hostnames = []
+        for r in responses:
+            parsed_url = urlparse(r.url)
+            hostname = parsed_url.hostname
+            new_hostnames.append(hostname)
+            sites_dict[hostname] = r.site_name
+            log(f"Looked up {r.url} -> {r.site_name}")
+            registered_domain = ""
+            extracted = tldextract.extract(hostname)
+            if extracted.domain and extracted.suffix:
+                registered_domain = f"{extracted.domain}.{extracted.suffix}"
+                log(f"Looked up {hostname} -> {registered_domain}")
+                domains_dict[hostname] = registered_domain
+
+        # update sites table with new names
+        for new_hostname in new_hostnames:
+            sqlstr = "INSERT OR IGNORE INTO sites (hostname, site_name, domain) VALUES (?, ?, ?);"
+            log(
+                f"Updated {new_hostname} -> {sites_dict[new_hostname]} ({domains_dict[new_hostname]})")
+            conn.execute(
+                sqlstr, (new_hostname, sites_dict[new_hostname], domains_dict[new_hostname]))
+            conn.commit()
+        # reapply to AIdf with updated sites, default to hostname if not found
+        conn.close()
+        aidf['site_name'] = aidf['hostname'].apply(
+            lambda hostname: sites_dict.get(hostname, hostname))
+    else:
+        log("No missing site names")
+    conn.close()
+    return aidf
+
+
 def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
     """
     Filters the URLs in state["AIdf"] to include only those that have not been previously seen,
@@ -519,7 +609,7 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
     ))
 
     # should return a list of Story
-    filter_df = pd.DataFrame([
+    out_df = pd.DataFrame([
         {"id": story.id, "isAI": story.isAI}
         for story in results
     ])
@@ -532,7 +622,7 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
         # log(exc)
 
     # merge returned df with isAI column into original df on id column
-    aidf = pd.merge(aidf, filter_df, on="id", how="outer")
+    aidf = pd.merge(aidf, out_df, on="id", how="outer")
     log(aidf.columns)
     # set hostname based on actualurl
     # ideally resolve redirects but Google News blocks
@@ -570,61 +660,9 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
 
     log(f"Found {len(aidf)} AI headlines")
 
-    # update actual URLs for Google News redirects
-    # I think Google changed something so this no longer works, instead of a 301 redirct
-    # get a javascript page that redirects. Also tomorrow we might see different URLs for same stories
-    # AIdf = get_google_news_redirects(AIdf)
-
-    conn = sqlite3.connect('articles.db')
-    query = "select * from sites"
-    sites_df = pd.read_sql_query(query, conn)
-    sites_dict = {row.hostname: row.site_name for row in sites_df.itertuples()}
-    domains_dict = {row.hostname: row.domain for row in sites_df.itertuples()}
-    conn.close()
-
-    # get clean site_name
-    aidf['site_name'] = aidf['hostname'].apply(
-        lambda hostname: sites_dict.get(hostname, hostname))
-
-    # if any missing clean site names, populate them using OpenAI
-    missing_site_names = len(aidf.loc[aidf['site_name'] == ""])
-    if missing_site_names:
-        log(f"Asking OpenAI for {missing_site_names} missing site names")
-        responses = asyncio.run(process_dataframes(paginate_df(aidf[["url"]]),
-                                                   "",
-                                                   SITE_NAME_PROMPT,
-                                                   Sites, model=model_low))
-        # update site_dict from responses
-        new_hostnames = []
-        for r in responses:
-            parsed_url = urlparse(r.url)
-            hostname = parsed_url.hostname
-            new_hostnames.append(hostname)
-            sites_dict[hostname] = r.site_name
-            log(f"Looked up {r.url} -> {r.site_name}")
-            registered_domain = ""
-            extracted = tldextract.extract(hostname)
-            if extracted.domain and extracted.suffix:
-                registered_domain = f"{extracted.domain}.{extracted.suffix}"
-                log(f"Looked up {hostname} -> {registered_domain}")
-                domains_dict[hostname] = registered_domain
-
-        # update sites table with new names
-        for new_hostname in new_hostnames:
-            sqlstr = "INSERT OR IGNORE INTO sites (hostname, site_name, domain) VALUES (?, ?, ?);"
-            log(
-                f"Updated {new_hostname} -> {sites_dict[new_hostname]} ({domains_dict[new_hostname]})")
-            conn.execute(
-                sqlstr, (new_hostname, sites_dict[new_hostname], domains_dict[new_hostname]))
-            conn.commit()
-        # reapply to AIdf with updated sites
-        aidf['site_name'] = aidf['hostname'].apply(
-            lambda hostname: sites_dict.get(hostname, hostname))
-    else:
-        log("No missing site names")
+    aidf = fix_missing_site_names(aidf, model_low)
 
     # drop banned slop sites
-
     aidf = aidf.loc[~aidf["hostname"].str.lower().isin(HOSTNAME_SKIPLIST)]
     aidf = aidf.loc[~aidf["site_name"].str.lower().isin(SITE_NAME_SKIPLIST)]
 
@@ -864,7 +902,7 @@ def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
 # scrape individual pages
 
 
-def fn_download_pages(state: AgentState) -> AgentState:
+def fn_download_pages(state: AgentState, model_low) -> AgentState:
     """
     Uses several Playwright browser sessions to download all the pages referenced in the
     state["AIdf"] DataFrame and store their pathnames.
@@ -876,12 +914,8 @@ def fn_download_pages(state: AgentState) -> AgentState:
         AgentState: The updated state of the agent with the downloaded pages' pathnames stored in the `state["AIdf"]` DataFrame.
 
 
-    TODO: Here should put the full normalized text in vector db
-    check for duplicates (if BEFORE_DATE defined, then only before that date)
-    use something like cosine similarity > .95 to dedupe
-    delete dupes from aidf and reset index
-
     """
+
     log("Queuing URLs for scraping")
     aidf = pd.DataFrame(state['AIdf'])
 
@@ -892,29 +926,132 @@ def fn_download_pages(state: AgentState) -> AgentState:
 
     log(
         f"Saving HTML files using async concurrency= {state['n_browsers']}")
-    # TODO: update this to get age of page in days for recency bonus
     saved_pages = asyncio.run(fetch_queue(queue, state['n_browsers']))
-
+    # pdb.set_trace()
     pages_df = pd.DataFrame(saved_pages)
     if len(pages_df):
         pages_df.columns = ['id', 'url', 'title', 'path', 'last_updated']
+    openai_ef = embedding_functions.OpenAIEmbeddingFunction(
+        model_name=CHROMA_DB_EMBEDDING_FUNCTION,
+        api_key=os.getenv("OPENAI_API_KEY")
+    )
 
-        try:  # for idempotency
-            aidf = aidf.drop(columns=['path', 'last_updated'])
+    if not os.path.exists(CHROMA_DB_PATH):
+        os.makedirs(CHROMA_DB_PATH)
+        # Create a Chroma vector store in CHROMA_DB_PATH if it does not exist
+        client = chromadb.PersistentClient(
+            path=CHROMA_DB_PATH, settings=Settings(allow_reset=True))
+        # Create collection if it doesn't exist
+        if CHROMA_DB_COLLECTION not in [c.name for c in client.list_collections()]:
+            client.create_collection(
+                CHROMA_DB_COLLECTION, embedding_function=openai_ef)
+
+    client = chromadb.PersistentClient(
+        path=CHROMA_DB_PATH, settings=Settings(allow_reset=True))
+    # Create a Chroma vector store in CHROMA_DB_PATH if it does not exist
+    collection = client.get_or_create_collection(CHROMA_DB_COLLECTION,
+                                                 embedding_function=openai_ef,
+                                                 )
+
+    # Loop through pages_df rows, open each file, normalize text, and store in ChromaDB
+    text_path_dict = {}
+    for row in pages_df.itertuples():
+        try:
+            html_path = row.path
+            if not html_path or not os.path.exists(html_path):
+                log(f"File {html_path} does not exist")
+                continue
+            # normalize the html file
+            normalized_text = normalize_html(html_path)
+            # query for potential duplicates among documents created before before_date
+            # note that if before_date is set, won't check duplicates from this run
+            before_date = state.get("before_date")
+            where_filter = {}
+            if before_date:
+                naive_dt = datetime.strptime(before_date, '%Y-%m-%d %H:%M')
+                eastern_dt = naive_dt.replace(
+                    tzinfo=ZoneInfo("America/New_York"))
+                ts = eastern_dt.timestamp()
+                where_filter = {"created": {"$lt": ts}}
+            results = collection.query(
+                query_texts=[normalized_text],
+                n_results=1,
+                include=["distances"],
+                where=where_filter if where_filter else None
+            )
+            if results.get('distances') \
+                and results['distances'] \
+                and results['distances'][0] \
+                and any(
+                    dist for dist in results['distances'][0]
+                if dist < COSINE_DISTANCE_THRESHOLD
+            ):
+                log(f"Skipping {html_path} as it is too similar to an existing document")
+                continue
+
+            # get the file name from html_path without the extension
+            file_name = os.path.splitext(os.path.basename(html_path))[0]
+            # get today's date as 2024-05-01
+            today = datetime.now().strftime("%Y-%m-%d")
+            OUTPUT_DIR = os.path.join(TEXT_DIR, today)
+            if not os.path.exists(OUTPUT_DIR):
+                os.makedirs(OUTPUT_DIR)
+            text_path = os.path.join(OUTPUT_DIR, f'{file_name}.txt')
+            text_path_dict[row.id] = text_path
+            log(f"Saving text to {text_path}")
+            with open(text_path, 'w', encoding='utf-8') as f:
+                f.write(normalized_text)
+        except Exception as e:
+            log(f"Error processing {html_path}: {e}")
+
+    # rename url column to final_url
+    pages_df = pages_df.rename(columns={'url': 'final_url'})
+
+    try:  # for idempotency in merge
+        aidf = aidf.drop(
+            columns=['path', 'last_updated', 'text_path', 'final_url'])
+    except Exception as exc:
+        pass
+        # error expected, no need to print
+        # log("fn_download_pages")
+        # log(exc)
+
+    # pdb.set_trace()
+    pages_df['text_path'] = pages_df['id'].apply(
+        lambda id: text_path_dict.get(id, ""))
+    aidf = pd.merge(
+        aidf, pages_df[["id", "path", "text_path", "final_url", "last_updated"]], on='id', how="inner")
+
+    aidf.loc[aidf['url'] != aidf["final_url"], "site_name"] = ""
+    aidf = fix_missing_site_names(aidf, model_low)
+
+    log("Upserting text into ChromaDB with current datetime")
+    for row in aidf.itertuples():
+        try:
+            # Upsert into ChromaDB
+            # Use current time as timestemp eg e.g. 1716596820.981331
+            ts = datetime.now(timezone.utc).timestamp()
+            text_path = row.text_path
+            if text_path and os.path.exists(text_path):
+                # Read the text file
+                with open(text_path, 'r', encoding='utf-8') as f:
+                    text_str = f.read()
+                collection.upsert(
+                    documents=[text_str],
+                    ids=[text_path],
+                    metadatas=[{
+                        "url": row.final_url,
+                        "site_name": row.site_name,
+                        "hostname": row.hostname,
+                        "title": row.title,
+                        "path": text_path,
+                        "created": ts
+                    }]
+                )
         except Exception as exc:
-            pass
-            # error expected, no need to print
-            # log("fn_download_pages")
-            # log(exc)
-        # TODO: in the case of e.g. Google News url return is the redirected url
-        # so we need to update the url in AIdf, domain, site name
-        # potentially it is a url we already have, so need to dedupe before merge
-        # and then only keep ids in pages_df[["id", "url"]].groupby("url").first()
-        # and then merge
-        # potentially it is a name we haven't seen before at all so may need to look it up, add to sites
+            log(f"Error upserting into ChromaDB: {exc}")
+            continue
 
-        aidf = pd.merge(
-            aidf, pages_df[["id", "path", "last_updated"]], on='id', how="inner")
     state["AIdf"] = aidf.to_dict(orient='records')
     # Pickle AIdf to AIdf.pkl
     aidf.to_pickle("AIdf.pkl")
@@ -957,128 +1094,133 @@ def fn_summarize_pages(state: AgentState, model_medium) -> AgentState:
     return state
 
 
-def run_elo_round(elo_ranking_dict, battle_history_dict):
+def update_ratings_with_choix(all_battles: List[Tuple[int, int]], num_items: int) -> np.ndarray:
     """
-    Run one round of an even-numbered tournament:
-      - ids: list of player IDs (ints)
-      - elo_ranking_dict: mutable dict of floats, indexed by ID
-      - battle_history_dict: dict mapping (smaller_id, larger_id) -> result (1 = smaller won, -1 = smaller lost, 0 = draw)
-      - K: Elo K‐factor (default 32)
-
-    Returns:
-      List of (id1, id2) pairs that were played this round.
-    """
-    n = len(elo_ranking_dict)
-    ids = list(elo_ranking_dict.keys())
-    n_pairs = n // 2
-    # Find a random matching of unplayed pairs
-    for _ in range(10000):
-        shuffled = ids[:]
-        random.shuffle(shuffled)
-        pairs = [(shuffled[i*2], shuffled[i*2+1])
-                 for i in range(0, n_pairs)]
-        ordered_pairs = [(min(a, b), max(a, b)) for a, b in pairs]
-        if all(p not in battle_history_dict for p in ordered_pairs):
-            break
-    else:
-        log(
-            "Couldn't find a full round of unplayed pairs after 10000 tries")
-        return []
-
-    return ordered_pairs
-
-# TODO: top max_stories by mmr
-# TODO: efficient elo battles and bradley terry
-# redo query from sites and match up to config
-
-
-async def elo_battle(aidf, id1, id2, chain, max_retries=3):
-    """
-    Conduct a single 'battle' between two stories using the provided LLM chain.
+    Use choix to compute Bradley-Terry ratings based on a series of pairwise comparisons
+    Similar to ELO but more mathematically optimal based on full hostory
+    Unlike ELO, can't update online after 1 match
 
     Args:
-        aidf (pd.DataFrame): DataFrame containing articles.
-        id1 (int): ID of the first story.
-        id2 (int): ID of the second story.
-        chain: A Prompt‐>Model‐>Parser chain that returns a string '1', '0', or '-1'.
-        max_retries (int): How many times to retry on error or invalid output.
+        all_battles: List of (winner_id, loser_id) tuples
+        num_items: Total number of items being ranked
 
     Returns:
-        int:  1 if story1 wins, -1 if story2 wins, 0 if draw.
-
-    Raises:
-        ValueError: if no valid response is obtained after max_retries.
+        Array of Bradley-Terry ratings computed by choix
     """
-    # If either summary is empty, drop both
-    headline1 = aidf.loc[id1, "title"]
-    summary1 = aidf.loc[id1, "summary"]
-    headline2 = aidf.loc[id2, "title"]
-    summary2 = aidf.loc[id2, "summary"]
+    choix_battles = [(int(winner), int(loser))
+                     for winner, loser in all_battles]
 
-    if not summary1 or not summary2:
-        summary1 = ""
-        summary2 = ""
+    try:
+        # Compute Bradley-Terry ratings using maximum likelihood estimation
+        ratings = choix.opt_pairwise(num_items, choix_battles)
+        return ratings
+    except Exception as e:
+        print(f"Warning: choix optimization failed ({e}), returning zeros")
+        return np.zeros(num_items)
 
-    payload = {
-        "headline_A": headline1,
-        "summary_A":  summary1,
-        "headline_B": headline2,
-        "summary_B":  summary2,
-    }
 
-    for attempt in range(1, max_retries + 1):
-        try:
-            raw = chain.invoke(payload)
-        except Exception as e:
-            log(f"ELO battle error ({headline1!r} vs {headline2!r}), attempt {attempt}: {e}")
-            continue
+async def run_battles(batch, model):
+    """
+    Run a batch of battles using the LLM model.
+    Gets results ranking articles, which we can send to Bradley-Terry
 
-        resp = raw.strip()
-        if resp in {"1", "0", "-1"}:
-            return int(resp), id1, id2
+    Args:
+        batch: DataFrame containing articles to be battled.
+        model: LLM model to be used for battling.
 
-        # Unexpected output—log and retry
-        log(f"Unexpected battle result '{resp}' for ({headline1!r} vs {headline2!r}), attempt {attempt}")
-
-    # If we get here, all attempts failed
-    raise ValueError(
-        f"Failed to obtain valid battle result for {headline1!r} vs {headline2!r} "
-        f"after {max_retries} attempts."
+    Returns:
+        List of (id1, id2) pairs that were played this round.
+    """
+    itemlist = await filter_page_async_id(
+        input_df=batch,
+        system_prompt=PROMPT_BATTLE_SYSTEM_PROMPT5,
+        user_prompt=PROMPT_BATTLE_USER_PROMPT5,
+        output_class=StoryOrderList,
+        model=model
     )
 
+    return [item.id for item in itemlist.items]
 
-async def run_elo_battles(aidf, pairs, chain):
-    """
-    Run a round of ELO battles between pairs of articles asynchronously.
-    """
-    tasks = [asyncio.create_task(elo_battle(
-        aidf, a, b, chain)) for a, b in pairs]
-    results = await asyncio.gather(*tasks)
 
-    return results
+async def bradley_terry(aidf, model):
+
+    log("running Bradley-Terry rating")
+
+    # arbitrary n_rounds, around 10 rounds for 100
+    N_ROUNDS = max(2, math.ceil(math.log(len(aidf))*3-2))
+    DEFAULT_BATCH_SIZE = 5
+    MIN_BATCH_SIZE = 2
+    TARGET_BATCHES = 10
+    JITTER_PERCENT = 2.5
+
+    # must ensure canonical sort because prompt will return ids in order
+    aidf = aidf.sort_values("id")
+    aidf = aidf.reset_index(drop=True)
+    aidf['id'] = aidf.index
+
+    # Initialize Bradley-Terry ratings and rankings
+    aidf['bradley_terry'] = 0.0
+    previous_rankings = aidf['bradley_terry'].rank(
+        method='min', ascending=False).astype(int)
+
+    batch_size = max(MIN_BATCH_SIZE, min(
+        DEFAULT_BATCH_SIZE, len(aidf) // TARGET_BATCHES))
+
+    all_battles = []
+    for round_num in range(1, N_ROUNDS + 1):
+        log(f"\n--- Running round {round_num}/{N_ROUNDS} ---")
+
+        # sort by current rating + jitter for balanced matchups but also some randomness
+        battle_df = aidf.copy()
+        jitter_multipliers = [
+            1 + random.uniform(-JITTER_PERCENT/100, JITTER_PERCENT/100) for _ in range(len(battle_df))]
+        battle_df['jittered_rating'] = battle_df['bradley_terry'] * \
+            jitter_multipliers
+        battle_df = battle_df.sort_values(
+            'jittered_rating', ascending=False).drop('jittered_rating', axis=1)
+        # Paginate into batches
+        batches = paginate_df(
+            battle_df[["id", "input_str"]], maxpagelen=batch_size)
+
+        # run_battles for the round (async in parallel)
+        tasks = [run_battles(batch, model) for batch in batches]
+        # append results to all_battles
+        for battle_result in await asyncio.gather(*tasks):
+            for i in range(0, len(battle_result)-1):
+                for j in range(i+1, len(battle_result)):
+                    all_battles.append((battle_result[i], battle_result[j]))
+
+        # run bradley_terry on results so far
+        aidf['bradley_terry'] = update_ratings_with_choix(
+            all_battles, len(aidf))
+        aidf["bt_z"] = (aidf["bradley_terry"] - aidf["bradley_terry"].mean()) / \
+            aidf["bradley_terry"].std(ddof=0)
+
+        new_rankings = aidf['bradley_terry'].rank(
+            method='min', ascending=False).astype(int)
+        # sum absolute changes in rankings
+        log(f"After round {round_num}/{N_ROUNDS}: ")
+        ranking_changes = (previous_rankings != new_rankings).sum()
+        log(f"Number of ranking changes: {ranking_changes}")
+        ranking_change_sum = np.abs(previous_rankings - new_rankings).sum()
+        log(f"Sum of absolute ranking changes: {ranking_change_sum}")
+        previous_rankings = new_rankings
+
+    return aidf
 
 
 def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     """
     calculate ratings for articles
-    for these semantic understanding tasks, o4-mini seems like the one to use based on cookbook doc
-    but it takes 5 minutes per elo round and is expensive
-    so for now, use gpt-4.1-mini
+    1. ask yes/no questions: low quality (spammy), on topic, importance (get probabilities from llm)
+    2. use Bradley-Terry to rate articles based on a series of pairwise comparisons using a rubric
+    3. add points for recency
+    4. add points for log length (more in-depth articles get more points)
+    5. add points for reputation
 
-    TODO: research best practice for selecting top docs for RAG
-    ELO is working OK, but can be made more efficient
-    possibly send more than 2 articles per battle
-    if you sent 8 articles and ask it to pick best 4, you get 16 battles
-    for each article chosen in top 4 it's beating the 4 at the bottom
-    if you sent 4 articles and tell it to rank them, you get 6 battles
-    the number of rounds can be optimized
-    you can get more info by battling similar and similarly ranked articles
-    currently a lot of rounds picking random opponents
-    can possibly weight the ELO higher than it currently
-
-    Basically these 2 functions re-implement a reranker
-    could use e.g.
-    results = co.rerank(
+    Basically these we implement a reranker
+    could use e.g. cohere reranker
+    results = cohere.rerank(
         model="rerank-english-v3.0",
         query=query,  # e.g. "What is the best AI news article per these factors"
         documents=documents,
@@ -1086,21 +1228,10 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
         return_documents=True
     )
 
-    for the first part where we ask yes/no questions, we could use Claude models
-    since even recent models output logits/probabilities. Then you can say, what
-    is the joint probability of not spam, important, relevant.
-
-    for the second part where we do the ELO ranking, we can continue to use OpenAI models
-    however it will be much more efficient if we start by collecting batches of 8 articles
-    and ask it to rank them. This will yield 8x7=56 battles per batch.
-    Then after 4 rounds, draw randomly from unpicked articles from same quartile
-    e.g. if < 8 remaining stop (maybe put them all in a short batch)
-    find all articles in same quartile window
-    if < 8 in quartile, expand to all
-    draw 8 random articles from expanded set
-    run the battle, insert all pairwise comparisons into battle history
-    after all battles in round, run Elo or Bradley-Terry to update ratings
-
+    for these deep semantic understanding tasks, o4-mini seems like the one to use based on cookbook doc
+    or o3 agentic reasoning model if money is no object sending in parallel
+    but o4-mini takes longer and is like 5x more expensive
+    so for now, use gpt-4.1-mini
 
     """
     aidf = pd.DataFrame(state['AIdf']).fillna({
@@ -1110,105 +1241,17 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
         'importance': 0,
         'low_quality': 0,
     })
-    log(f"Calculating article rating for {len(aidf)} articles")
+    log(f"Calculating article ratings for {len(aidf)} articles")
+    # Ensure 'title' and 'summary' are always strings
+    aidf['title'] = aidf['title'].fillna("")
+    aidf['title'] = aidf['title'].astype(str)
+    aidf['summary'] = aidf['summary'].astype(str)
+    aidf['summary'] = aidf['summary'].fillna("")
 
     aidf['input_str'] = aidf['title'] + "\n" + aidf['summary']
 
-    # low quality articles
-    aidf = asyncio.run(filter_df_rows_with_probability(aidf,
-                                                       model=model_medium,
-                                                       system_prompt=LOW_QUALITY_SYSTEM_PROMPT,
-                                                       user_prompt=LOW_QUALITY_USER_PROMPT,
-                                                       output_column='low_quality',
-                                                       input_column="input_str"))
-    counts = aidf["low_quality"].value_counts().to_dict()
-    log(f"low quality articles: {counts}")
-
-    # on topic articles
-    aidf = asyncio.run(filter_df_rows_with_probability(aidf,
-                                                       model=model_medium,
-                                                       system_prompt=ON_TOPIC_SYSTEM_PROMPT,
-                                                       user_prompt=ON_TOPIC_USER_PROMPT,
-                                                       output_column='on_topic',
-                                                       input_column="input_str"))
-    counts = aidf["on_topic"].value_counts().to_dict()
-    log(f"on topic articles: {counts}")
-
-    # important articles
-    aidf = asyncio.run(filter_df_rows_with_probability(aidf,
-                                                       model=model_medium,
-                                                       system_prompt=IMPORTANCE_SYSTEM_PROMPT,
-                                                       user_prompt=IMPORTANCE_USER_PROMPT,
-                                                       output_column='importance',
-                                                       input_column="input_str"))
-    counts = aidf["importance"].value_counts().to_dict()
-    log(f"important articles: {counts}")
-
-    # AI is good at yes or no questions, not necessarily at converting understanding
-    # to a rating. Use ELO to rate articles based on a series of pairwise comparisons
-    log("running ELO rating")
-    n_rounds = max(2, math.ceil(math.log(len(aidf))*2.5-2))
-    elo_ranking_dict = {i: 1000 for i in aidf["id"]}
-    battle_history_dict = {}
-    k_factor = 32
-    page_size = 5
-    # for r_i in range(n_rounds):
-    #     log(f"running ELO round {r_i+1} of {n_rounds}")
-    #     copy aidf to aidf_elo, just id and title + summary
-    #     shuffle aidf_elo
-    #     paginate aidf_elo in batches of page_size
-    #     for each batch,
-    #         run ranking via prompt
-    #         update battle_history_dict
-    #         for row in itertuples:
-    #             this row lost to all previous rows
-    #     run bradford_terry
-    #     normalize and weight the ratings
-
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", PROMPT_BATTLE_SYSTEM_PROMPT),
-        ("user", PROMPT_BATTLE_USER_PROMPT)
-    ])
-    chain = prompt | model_medium | StrOutputParser()
-    log(f"number of rounds: {n_rounds}")
-    for i in range(n_rounds):
-        log(f"running ELO round {i+1} of {n_rounds}")
-        pairs = run_elo_round(elo_ranking_dict, battle_history_dict)
-        if not pairs:
-            break
-        results = asyncio.run(run_elo_battles(aidf, pairs, chain))
-        for result, a, b in results:
-            # Store result
-            battle_history_dict[(a, b)] = result
-            # Convert result into scores
-            if result == 1:
-                score_a, score_b = 1.0, 0.0
-                log(f"'{aidf.loc[a, 'title']}' > '{aidf.loc[b, 'title']}'")
-            elif result == -1:
-                score_a, score_b = 0.0, 1.0
-                log(f"'{aidf.loc[b, 'title']}' > '{aidf.loc[a, 'title']}'")
-            else:
-                score_a = score_b = 0.5
-                log(f"'{aidf.loc[b, 'title']}' == '{aidf.loc[a, 'title']}'")
-
-            # Current ratings
-            rank_a = elo_ranking_dict[a]
-            rank_b = elo_ranking_dict[b]
-
-            # Expected scores
-            expected_a = 1.0 / (1.0 + 10 ** ((rank_b - rank_a) / 400))
-            expected_b = 1.0 / (1.0 + 10 ** ((rank_a - rank_b) / 400))
-
-            # Update ratings in-place
-            elo_ranking_dict[a] += k_factor * (score_a - expected_a)
-            elo_ranking_dict[b] += k_factor * (score_b - expected_b)
-
-    log("finished ELO rating")
-    aidf['elo'] = aidf['id'].map(elo_ranking_dict.get)
-    aidf["elo_z"] = (aidf["elo"] - aidf["elo"].mean()) / \
-        aidf["elo"].std(ddof=0)
-
-    # add points for freshness
+    log(f"Rating recency")
+    # add points for recency
     yesterday = (datetime.now(timezone.utc)
                  - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
     aidf['last_updated'] = aidf['last_updated'].fillna(yesterday)
@@ -1221,6 +1264,44 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     k = np.log(2)  # 1/2 after 1 day
     # 1 point at age 0, 0 at age 1, -0.5 at age 2, -1 at age infinity
     aidf["recency_score"] = 2 * np.exp(-k * aidf["age"]) - 1
+
+    # low quality articles
+    log(f"Rating spam probability")
+    aidf = asyncio.run(filter_df_rows_with_probability(aidf,
+                                                       model=model_medium,
+                                                       system_prompt=LOW_QUALITY_SYSTEM_PROMPT,
+                                                       user_prompt=LOW_QUALITY_USER_PROMPT,
+                                                       output_column='low_quality',
+                                                       input_column="input_str"))
+    counts = aidf["low_quality"].value_counts().to_dict()
+    log(f"low quality articles: {counts}")
+
+    # on topic articles
+    log(f"Rating on-topic probability")
+    aidf = asyncio.run(filter_df_rows_with_probability(aidf,
+                                                       model=model_medium,
+                                                       system_prompt=ON_TOPIC_SYSTEM_PROMPT,
+                                                       user_prompt=ON_TOPIC_USER_PROMPT,
+                                                       output_column='on_topic',
+                                                       input_column="input_str"))
+    counts = aidf["on_topic"].value_counts().to_dict()
+    log(f"on topic articles: {counts}")
+
+    # important articles
+    log(f"Rating importance probability")
+    aidf = asyncio.run(filter_df_rows_with_probability(aidf,
+                                                       model=model_medium,
+                                                       system_prompt=IMPORTANCE_SYSTEM_PROMPT,
+                                                       user_prompt=IMPORTANCE_USER_PROMPT,
+                                                       output_column='importance',
+                                                       input_column="input_str"))
+    counts = aidf["importance"].value_counts().to_dict()
+    log(f"important articles: {counts}")
+
+    # AI is good at yes or no questions, not at converting understanding to a numerical rating.
+    # Use Bradley-Terry to rate articles based on a series of pairwise comparisons
+    log("running Bradley-Terry rating using head-to-head prompt comparisons")
+    aidf = asyncio.run(bradley_terry(aidf, model=model_medium))
 
     # could test if the prompts bias for/against certain types of stories, adjust the prompts, or boost ratings if they match those topics
 
@@ -1235,10 +1316,16 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
         + aidf['on_topic'] \
         + aidf['importance'] \
         - aidf['low_quality'] \
-        + aidf['elo_z'] \
+        + aidf['bt_z'] \
         + aidf['recency_score']
-    # filter out low rated articles
+    # filter out low rated articles TODO: should use MMR
     aidf = aidf[aidf['rating'] >= MINIMUM_STORY_RATING].copy()
+
+    # sort by rating
+    aidf = aidf.sort_values('rating', ascending=False)
+    aidf = aidf.reset_index(drop=True)
+    aidf['id'] = aidf.index
+
     log(f"articles after rating: {len(aidf)}")
     # redo bullets with topics and rating
     aidf["bullet"] = aidf.apply(make_bullet, axis=1)
@@ -1246,7 +1333,7 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     # insert into db to keep a record and eventually train models on summaries
     # Only keep the columns you want to insert
     cols = ['url', 'src', 'site_name', 'hostname',
-            'title', 'actual_url', 'bullet', 'rating']
+            'title', 'final_url', 'bullet', 'rating']
     records = aidf[cols].to_records(index=False)
     rows = list(records)
 
@@ -1292,47 +1379,122 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     return state
 
 
-def mmr(doc_embeddings, relevance_scores, lambda_param=0.5, top_k=50):
-    """MMR (Maximal Marginal Relevance) algorithm for selecting a diverse set of documents.
-    Combines normalized score and novelty vs previous items
+async def get_embedding(client, item_id: str, file_path: str) -> Dict:
+    try:
+        async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
+            text = await f.read()
 
-    Args:
-        doc_embeddings (_type_): _description_
-        relevance_scores (_type_): _description_
-        lambda_param (float, optional): _description_. Defaults to 0.5.
-        top_k (int, optional): _description_. Defaults to 20.
+        # Optional truncation
+        text = text[:10_000]
 
-    Returns:
-        _type_: _description_
+        response = await client.embeddings.create(
+            input=[text],
+            model="text-embedding-3-large"
+        )
+
+        # Convert embedding to 1xN ndarray
+        embedding = np.array(response.data[0].embedding)
+
+        return {"id": item_id, "embedding": embedding}
+
+    except Exception as e:
+        print(f"Failed on id {item_id} with path {file_path}: {e}")
+        return None
+
+
+async def get_openai_embeddings_df(aidf: pd.DataFrame) -> pd.DataFrame:
+    log("get embeddings")
+    client = AsyncOpenAI()
+    tasks = []
+    skipped = []
+    for row in aidf.itertuples():
+        file_path = row.text_path
+        item_id = row.id
+
+        if not file_path or not os.path.isfile(file_path):
+            log(f"Skipping {item_id}")
+            skipped.append(item_id)
+            continue
+
+        tasks.append(get_embedding(client, item_id, file_path))
+
+    results = await asyncio.gather(*tasks)
+    results = [r for r in results if r is not None]
+
+    return pd.DataFrame(results), skipped
+
+
+def mmr_rank(
+    ratings,
+    embeddings,
+    lambda_param: float = 0.5,
+    top_k: int = 60
+) -> List:
     """
+    returns list of indices of top_k documents
+    """
+    log(f"mmr_rank with lambda={lambda_param}, top_k={top_k}")
     selected = []
-    candidates = list(range(len(doc_embeddings)))
-
+    candidates = list(range(len(embeddings)))
     while len(selected) < top_k and candidates:
-        if not selected:
-            # Start with highest scoring document
-            idx = np.argmax(relevance_scores)
-            selected.append(idx)
-            candidates.remove(idx)
+
+        if not selected:  # none yet
+            # start with highest scoring document
+            idx = np.argmax(ratings)
+            selected.append(idx)  # add to selected
+            candidates.remove(idx)  # remove from candidates
             continue
 
         scores = []
         for idx in candidates:
-            sim_to_query = relevance_scores[idx]
-            sim_to_selected = max(cosine_similarity(
-                [doc_embeddings[idx]],
-                [doc_embeddings[i] for i in selected]
-            )[0])
-            mmr_score = lambda_param * sim_to_query - \
-                (1 - lambda_param) * sim_to_selected
+            rating = ratings[idx]
+            # find most similar selected document to this doc idx
+            # first array has 1 element so we get a 1x array
+            max_sim_to_selected = cosine_similarity(
+                [embeddings[idx]],  # list with one doc embedding
+                [embeddings[i] for i in selected]
+            ).max()
+            mmr_score = lambda_param * rating - \
+                (1 - lambda_param) * max_sim_to_selected
             scores.append((mmr_score, idx))
 
         # Select candidate with highest MMR score
+        # scores is a list of (score, idx), max does lexicographic sort so we get the highest score
         _, best_idx = max(scores)
         selected.append(best_idx)
         candidates.remove(best_idx)
 
     return selected
+
+
+def mmr(aidf: pd.DataFrame,
+        lambda_param: float = 0.5,
+        top_k: int = 60
+        ):
+    """
+    returns aidf with top_k rows selected using MMR
+    """
+    log(f"Selecting top {top_k} rows using MMR (lambda={lambda_param})")
+
+    if top_k >= len(aidf):
+        log("top_k >= len(aidf), returning all rows")
+        return aidf
+
+    aidf = aidf.reset_index(drop=True)
+    aidf["id"] = aidf.index
+
+    log("Getting embeddings")
+    embedding_df, skipped = asyncio.run(get_openai_embeddings_df(aidf))
+    embedding_df["rating"] = aidf["rating"]
+    embedding_df["rating"] = embedding_df["rating"] / \
+        embedding_df["rating"].max()
+
+    mmr_list = mmr_rank(embedding_df["rating"],
+                        embedding_df["embedding"],
+                        lambda_param=lambda_param,
+                        top_k=top_k)
+    # always include all skipped articles, might be eg bloomberg and wsj
+    return aidf.iloc[skipped + mmr_list].copy()
 
 
 def fn_propose_topics(state: AgentState, model_high: any) -> AgentState:
@@ -1397,12 +1559,14 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
 
     log(f"Composing summary using {str(type(model_high))}")
     aidf = pd.DataFrame(state["AIdf"])
+    # select top 60 articles using MMR
     aidf['cluster_name'] = aidf['cluster_name'].fillna('')
     aidf["prompt_input"] = aidf.apply(
         lambda row: f"{row['title_topic_str']}\n\n{row['summary']}", axis=1)
 
     # make copy of aidf with rows where column 'cluster_name' is null or empty string
     aidf_temp = aidf.loc[aidf['cluster_name'].str.len() == 0].copy()
+    # TODO: pass topics_str as extra input to filter_df_rows
     router_system_prompt = TOPIC_ROUTER_SYSTEM_PROMPT.format(
         topics=state["topics_str"])
     # gets a df back
@@ -1434,6 +1598,7 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
             log(f"Deduping cluster: {cluster_name}")
             # apply filter_df to tmpdf using DEDUPLICATE_SYSTEM_PROMPT and DEDUPLICATE_USER_PROMPT
             # need a class to output
+            # TODO: run async
             deduped_dfs.append(
                 filter_df(tmpdf,
                           model_high,
@@ -1462,6 +1627,9 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
     # trim to < 10
     aidf['rating'] = aidf['rating'].clip(lower=0, upper=10)
     log(f"After deduping: {len(aidf)} rows")
+
+    # select top 60 articles using MMR
+    aidf = mmr(aidf, lambda_param=0.5, top_k=60)
 
     # sort by cluster and rating
     aidf = aidf.sort_values(

@@ -115,9 +115,6 @@ Return **only** a JSON object containing the title using the provided JSON schem
 TOPIC_WRITER_USER_PROMPT = """
 Create a unifying title for these headlines.
 
-### <<<HEADLINES>>>
-{input_text}
-### <<<END>>>
 """
 
 ######################################################################
@@ -245,7 +242,7 @@ Think carefully through each importance factor as it relates to the story, then 
 TOPIC_FILTER_SYSTEM_PROMPT = """
 # Role and Objective
 You are an ** expert topic classifier**.
-Given a Markdown-formatted article summary and a list of candidate topics, select ** 3-7 ** topics that best capture the article’s main themes.
+Given a Markdown-formatted article summary and a list of candidate topics, select ** 3-7 ** topics that best capture the article's main themes.
 If the article is non-substantive(e.g. empty or “no content”), return **zero ** topics.
 
 ## Instructions
@@ -263,10 +260,10 @@ Think step-by-step to find the smallest non-overlapping set of topics that spans
 ## Output Format
 Respond with the JSON object ** only ** using the supplied schema—no prose, no code fences, no trailing commas.
 """
-
+# filter_df_rows needs {input_text}
 TOPIC_FILTER_USER_PROMPT = """
+Select ** 3-7 ** topics that best capture the article's main themes.
 {input_text}
-
 """
 
 ######################################################################
@@ -296,7 +293,7 @@ TOP_CATEGORIES_USER_PROMPT = """
 - Scope: use only the supplied bullets—no external facts.
 - Title length: ≤ 5 words, Title Case.
 - Count: 10 ≤ topics ≤ 30; if fewer qualify, return all.
-- Priority: rank by(impact × frequency); break ties by higher Rating, then alphabetical.
+- Priority: rank by(impact × log frequency); break ties by higher Rating, then alphabetical.
 - Redundancy: merge or drop overlapping stories.
 - Tone: concise, neutral; no extra prose.
 - Privacy: never reveal chain-of-thought.
@@ -318,12 +315,6 @@ Reasoning Steps(think silently)
 4. Select top 10-30 non-overlapping topics.
 5. Draft ≤ 5-word titles.
 6. Emit a JSON object with a list of strings using the supplied schema. *(Expose only Step 6.)*
-
-# <<<STORIES>>>
-{input_text}
-# <<<END>>>
-
-Now think step by step, then output the JSON using the supplied schema.
 
 """
 
@@ -396,12 +387,6 @@ Reasoning Steps(think silently)
 4. Finalize ≤ 5-word titles.
 5. Build JSON array(unique, title-case).
 6. Output exactly the JSON schema—nothing else .
-
-# START_TOPICS
-{input_text}
-# END_TOPICS
-
-Now think step by step, then output the JSON using the supplied schema.
 
 """
 
@@ -636,6 +621,7 @@ Do not output your reasoning—return the single required token only.
 """
 
 ######################################################################
+# filter_df_rows needs {input_text}, pass {topics} as extra
 TOPIC_ROUTER_SYSTEM_PROMPT = """
 # Role and Objective
 You are an ** AI Topic Router**.
@@ -697,7 +683,7 @@ Differences in wording, emphasis, quotes, or minor details do ** not ** make an 
 """
 
 DEDUPLICATE_USER_PROMPT = """
-{input_text}
+Deduplicate the following news articles:
 """
 
 ######################################################################
@@ -745,12 +731,12 @@ Please analyze the following urls according to these criteria:
 PROMPT_BATTLE_SYSTEM_PROMPT5 = """
 # ROLE AND OBJECTIVE
 You are an ** AI-newsletter editorial relevance judge**.
-I will give you 5 news items, tagged with an id and a summary.
-Your objective is to sort the 5 items in order of relevance, from most relevant to least relevant according to the ** EVALUATION FACTORS ** below.
+I will give you several news items in a JSON array.
+Your objective is to sort the items in order of relevance, from most relevant to least relevant according to the ** EVALUATION FACTORS ** below.
 Think step-by-step ** silently**; never reveal your reasoning or thoughts, only the output in the provided JSON schema.
 
 # INPUT
-5 news items, tagged with an id, a headline and a summary, in JSON format.
+A JSON array of news items, each with an id, a headline and a summary.
 
 # OUTPUT
 The id of each story in order of importance, from most important to least important, in the JSON schema provided.
@@ -781,9 +767,5 @@ Output the ids in order from most important to least important in the JSON schem
 """
 
 PROMPT_BATTLE_USER_PROMPT5 = """
-
-# STORIES
-{input_text}
-# FINAL REMINDER
-Do not output your reasoning—return only the ids in order using the provided JSON schema.
+Read these news items carefully and output only the ids in order from most important to least important in the JSON schema provided.
 """

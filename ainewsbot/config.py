@@ -5,10 +5,18 @@ dotenv.load_dotenv()
 
 REQUEST_TIMEOUT = 120
 
-DOWNLOAD_DIR = "htmldata"
-PAGES_DIR = 'htmlpages'
-SCREENSHOT_DIR = 'screenshots'
-
+DOWNLOAD_DIR = "download_sources"
+PAGES_DIR = 'download_html'
+TEXT_DIR = 'download_text'
+SCREENSHOT_DIR = 'download_screenshots'
+CHROMA_DB_DIR = "chromadb"
+CHROMA_DB_NAME = "chroma_articles"
+CHROMA_DB_PATH = os.path.join(CHROMA_DB_DIR, CHROMA_DB_NAME)
+CHROMA_DB_COLLECTION = "articles"
+CHROMA_DB_EMBEDDING_FUNCTION = "text-embedding-3-large"
+# 10% similarity
+# I am storing metadata in the doc, so titles, keywords might change, need a higher threshold
+COSINE_DISTANCE_THRESHOLD = .1
 if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
 if not os.path.exists(PAGES_DIR):
@@ -39,7 +47,7 @@ TENACITY_RETRY = 5  # Maximum 5 attempts
 # TEMPERATURE = 0
 
 SOURCECONFIG = "sources.yaml"
-SOURCES_EXPECTED = 16
+SOURCES_EXPECTED = 17
 MIN_TITLE_LEN = 28
 MINIMUM_STORY_RATING = 2.5
 MAX_STORIES = 100
