@@ -50,7 +50,7 @@ SOURCECONFIG = "sources.yaml"
 SOURCES_EXPECTED = 17
 MIN_TITLE_LEN = 28
 MINIMUM_STORY_RATING = 2.5
-MAX_STORIES = 100
+MAX_ARTICLES = 100
 # MAXPAGELEN = 50
 
 HOSTNAME_SKIPLIST = ['finbold.com']
@@ -87,6 +87,9 @@ CANONICAL_TOPICS = [
     'Disinformation',
     'Deepfakes',
     'Sustainability',
+
+    "Agents",
+    "Coding assistants",
 
     "Virtual Assistants",
     "Chatbots",
@@ -142,7 +145,6 @@ CANONICAL_TOPICS = [
     'Scams',
     'Privacy',
     'Intellectual Property',
-    'Code assistants',
     'Customer service',
     'Military',
     'Agriculture',

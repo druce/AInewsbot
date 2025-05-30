@@ -30,20 +30,32 @@ Non-AI examples: crypto, ordinary software, non-AI gadgets and medical devices, 
 ######################################################################
 
 TOPIC_SYSTEM_PROMPT = """
-You are a news-analysis assistant.
-You will receive a list of news summaries in JSON format.
-Task → extract up to 5 distinct, broad topics from each news summary, or an empty list if no topics can be found.
-Return **only** a JSON object that satisfies the provided schema.
-For each news summary provided, you must return an element with the same id, and a list, even if it is empty.
-No markdown, no markdown fences, no extra keys, no comments.
+# Role and Objective
+You are an AI news-analysis assistant.
+For every news-summary object you receive, output up to **5** distinct, broad topics (or an empty list if no topics exist).
 
+# Input Format
+You will receive a list of news summaries in JSON format including an id and a summary.
+
+# Output Format
+Return **only** a JSON object that satisfies the provided schema.
+Do **not** add markdown, comments, extra keys, or surrounding text.
+For each news summary provided, you must return an element with the same id, and a list, even if it is empty.
+
+# Topic Guidelines
+• Each topic = 1 concept in ≤ 2 words ("LLM Updates", "xAI", "Grok").
+• Capture major subjects, key entities (companies, people, products), or industry/technical domains.
+• Avoid duplicates and generic catch-alls ("AI", "technology", "news").
+• Prefer plural category names when natural ("Agents", "Delivery Robots").
+• Bad → Good examples:
+  - Agentic AI Automation → Agents
+  - AI Limitations In Coding → Coding
+  - Robotics In Urban Logistics → Delivery Robots
 """
 
 TOPIC_USER_PROMPT = """
-Guidelines
-- Topics should capture the main subject, key entities (companies, people, products), and technical or industry domains.
-- Avoid duplicates and generic terms (“technology”, “news”).
-- Each topic should be simple, concise and represent 1 concept, like "LLM updates", "xAI", "Grok"
+Extract up to 5 distinct, broad topics from the news summary below:
+
 """
 
 ######################################################################
@@ -397,19 +409,23 @@ Reasoning Steps(think silently)
 # then rewrite combining and clarifying sections
 
 FINAL_SUMMARY_SYSTEM_PROMPT = """
-You are “The Newsroom Chief, ” an expert AI editor, who
-can identify the important themes and throughlines
-from large volumes of news to write a compelling daily
-news summary. You will transform raw tech-news digests
-into well-structured data for downstream formatting.
+You are "The Newsroom Chief", an expert AI editor, who
+can identify the most important themes and through-lines
+from large volumes of news to compose a compelling daily
+news summary. You will select the most important stories,
+through-lines and themes, and transform them into
+well-structured data for downstream processing.
 
-You will receive a list of suggested topics and a list of ~100 news items from the user.
+You will receive a list of suggested topics and a list
+of ~100 news items from the user.
 
-You will select the contents for a polished daily newsletter in the supplied JSON schema.
+You will select the contents for a polished daily newsletter
+and output it in the supplied JSON schema.
 
 — Think silently; never reveal chain of thought.
 — Follow every instruction from the user exactly.
-— Your ONLY output must be ** minified JSON ** that conforms to the Newsletter → Section → NewsArticle schema:
+— Your ONLY output must be ** minified JSON ** that conforms
+to the Newsletter → Section → NewsArticle schema:
 """
 
 FINAL_SUMMARY_USER_PROMPT = """
@@ -419,48 +435,53 @@ FINAL_SUMMARY_USER_PROMPT = """
 
 Input below:
 1. A ** suggested topics list ** (guidance only).
-2. ~100 news items in this Markdown pattern:
+2. ~100 news items in this Markdown pattern, separated by ~~~:
 
-[Title - Source](URL)
-Topics: topic1, topic2, …
+[Title - Source]](URL)
+
+Topics: topic1, topic2, ...
+
 Rating: 0-10
+
 - Bullet 1
 - Bullet 2
-…
+… Bullet 3
+
+~~~
 
 ---------------------------------------
 # TASK INSTRUCTIONS
-Follow the workflow below ** in order**:
+Follow the workflow below **in order**:
 ---------------------------------------
-1. ** Section discovery**
- - Read the suggested topics and the raw news items.
- - Create 6-12 themed sections ** plus one final catch-all ** section titled ** "Other News"**.
+1. **Bucket assignment**
+ - Read the topics and each news item carefully.
+ - Assign each story to **exactly one topic** or to **"Other News"**.
  - Provided topics may be duplicative or incomplete, so generate your own topics for the most coherent grouping and narrative.
 
-2. ** Bucket assignment**
- - Read each news item carefully.
- - Place each story in **exactly one section ** or in **"Other News"**.
+2. **Section discovery and initial story selection**
+ - Use the topics and the assigned stories created in Step 1 as input to create 8-15 themed sections **plus one final catch-all** section titled **"Other News"**.
+ - Select important, interesting stories that result in a compelling, coherent newsletter.
+ - Pay close attention to the Rating field. Always include stories with a Rating of 8 or higher.
+ - For near-duplicates keep only the highest **Rating** (tie → earliest in list).
+ - Seek to include all stories with a Rating over 7 if they do not result in too many similar stories.
+ - If a story has a Rating of 7 or lower, it may be included or excluded.
+ - **Exclude** items that are **not AI/tech**, or are clickbait, or are pure opinion.
 
-3. ** Filtering & deduplication**
- - Read each section carefully. Limit each section to 7 stories or less(except "Other News" which can have unlimited stories).
- - Select interesting stories that result in a compelling, coherent newsletter.
- - Pay close attention to the Rating field. Always include stories with a Rating of 7 or higher.
- - For near-duplicates keep only the highest ** Rating ** (tie → earliest in list).
- - Seek to include all stories with a Rating of 5 or higher if they do not result in too many similar stories.
- - If a story has a Rating of 4 or lower, it may be included or excluded.
- - Exclude items that are ** not AI/tech**, are clickbait, or pure opinion.
+3. **Filtering & deduplication**
+ - Review each section created in step 2 carefully. Limit each section to 7 stories or less (except "Other News" which can have unlimited stories).
+ - For near-duplicates retain only the highest **Rating** (tie → earliest in list).
 
-4. ** Story summarisation**
- - For every kept story write ** one neutral sentence ≤ 30 words**.
+4. **Story summarisation**
+ - For every retained story, compose **one neutral sentence ≤ 30 words**.
  - No hype like “ground-breaking”, “magnificent”, etc.
 
-5. ** Section titles**
+5. **Edit section titles**
  - ≤ 6 words, punchy/punny, reflect the bullets.
 
-6. ** JSON rules**
- - Return JSON in **exactly ** the provided schema.
- - Do ** NOT ** change URLs or add new keys.
- - Output must be ** minified ** (no line breaks, no code fences).
+6. **JSON rules**
+ - Return JSON in **exactly** the provided schema.
+ - Do **NOT** change URLs or add new keys.
+ - Output must be **minified** (no line breaks, no code fences).
  - Any deviation → downstream parsing will fail.
 
 ---------------------------------------
@@ -470,9 +491,6 @@ Follow the workflow below ** in order**:
 ---------------------------------------
 # RAW NEWS ITEMS
 {bullet_str}
-
-# RAW STORIES
-
 """
 
 ######################################################################

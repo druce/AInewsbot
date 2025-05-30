@@ -48,6 +48,7 @@ import choix
 
 from openai import OpenAI
 from openai import AsyncOpenAI
+import tiktoken
 
 import chromadb
 from chromadb.config import Settings
@@ -78,7 +79,7 @@ from .config import (DOWNLOAD_DIR, TEXT_DIR, CHROMA_DB_PATH,
                      CANONICAL_TOPICS, SQLITE_DB, COSINE_DISTANCE_THRESHOLD,
                      CHROMA_DB_COLLECTION, CHROMA_DB_EMBEDDING_FUNCTION,
                      HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST, SOURCE_REPUTATION,
-                     SCREENSHOT_DIR, MINIMUM_STORY_RATING)
+                     SCREENSHOT_DIR, MINIMUM_STORY_RATING, MAX_ARTICLES)
 
 from .prompts import (
     FILTER_SYSTEM_PROMPT, FILTER_USER_PROMPT,
@@ -508,10 +509,12 @@ def fix_missing_site_names(aidf: pd.DataFrame, model_low) -> pd.DataFrame:
         lambda hostname: sites_dict.get(hostname, ""))
 
     # if any missing clean site names, populate them using OpenAI
-    missing_site_names = len(aidf.loc[aidf['site_name'] == ""])
+    tmpdf = aidf.loc[aidf['site_name'] == ""][["url"]]
+    tmpdf = tmpdf.drop_duplicates()
+    missing_site_names = len(tmpdf)
     if missing_site_names:
         log(f"Asking OpenAI for {missing_site_names} missing site names")
-        responses = asyncio.run(process_dataframes(paginate_df(aidf[["url"]]),
+        responses = asyncio.run(process_dataframes(paginate_df(tmpdf),
                                                    "",
                                                    SITE_NAME_PROMPT,
                                                    Sites, model=model_low))
@@ -522,12 +525,12 @@ def fix_missing_site_names(aidf: pd.DataFrame, model_low) -> pd.DataFrame:
             hostname = parsed_url.hostname
             new_hostnames.append(hostname)
             sites_dict[hostname] = r.site_name
-            log(f"Looked up {r.url} -> {r.site_name}")
+            # log(f"Looked up {r.url} -> {r.site_name}")
             registered_domain = ""
             extracted = tldextract.extract(hostname)
             if extracted.domain and extracted.suffix:
                 registered_domain = f"{extracted.domain}.{extracted.suffix}"
-                log(f"Looked up {hostname} -> {registered_domain}")
+                # log(f"Looked up {hostname} -> {registered_domain}")
                 domains_dict[hostname] = registered_domain
 
         # update sites table with new names
@@ -847,6 +850,7 @@ def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
     # Adjust eps and min_samples as needed
     dbscan = DBSCAN(eps=0.4, min_samples=3)
     aidf['cluster'] = dbscan.fit_predict(reduced_data)
+    aidf["cluster_name"] = ""
     log(f"Found {len(aidf['cluster'].unique())-1} clusters")
     aidf.loc[aidf['cluster'] == -1, 'cluster'] = 999
 
@@ -1024,6 +1028,9 @@ def fn_download_pages(state: AgentState, model_low) -> AgentState:
 
     aidf.loc[aidf['url'] != aidf["final_url"], "site_name"] = ""
     aidf = fix_missing_site_names(aidf, model_low)
+
+    # delete rows with duplicate final_url
+    aidf = aidf.drop_duplicates(subset="final_url", keep="first")
 
     log("Upserting text into ChromaDB with current datetime")
     for row in aidf.itertuples():
@@ -1628,8 +1635,8 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
     aidf['rating'] = aidf['rating'].clip(lower=0, upper=10)
     log(f"After deduping: {len(aidf)} rows")
 
-    # select top 60 articles using MMR
-    aidf = mmr(aidf, lambda_param=0.5, top_k=60)
+    # select top articles using MMR
+    aidf = mmr(aidf, lambda_param=0.5, top_k=MAX_ARTICLES)
 
     # sort by cluster and rating
     aidf = aidf.sort_values(
@@ -1644,8 +1651,14 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
         ("system", FINAL_SUMMARY_SYSTEM_PROMPT),
         ("user", FINAL_SUMMARY_USER_PROMPT)
     ])
+    prompt_str = prompt_template.format(cat_str=cat_str, bullet_str=bullet_str)
+    log(f"Prompt length: {len(prompt_str)}")
+    # count tokens using tiktoken
+    encoding = tiktoken.encoding_for_model(model_high.model)
+    log(f"Prompt tokens: {len(encoding.encode(prompt_str))}")
+    print(prompt_str)
     ochain = prompt_template | model_high.with_structured_output(Newsletter)
-    response = ochain.invoke(dict(cat_str=cat_str, bullet_str=bullet_str))
+    response = ochain.invoke({"cat_str": cat_str, "bullet_str": bullet_str})
     state["summary"] = str(response)
     # save bullet_str to local file
     try:
