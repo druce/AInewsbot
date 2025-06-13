@@ -467,7 +467,7 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
             _domain_last_access[domain] = time.monotonic()
 
         page = await browser_context.new_page()
-        response = await page.goto(url, timeout=60000)
+        response = await page.goto(url, timeout=60000, wait_until='domcontentloaded')
         await asyncio.sleep(initial_sleep+random.uniform(2, 5))
         await perform_human_like_actions(page)
         if click_xpath:

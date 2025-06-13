@@ -72,7 +72,7 @@ from .llm import (paginate_df, process_dataframes, fetch_all_summaries,
 # from ainb_sllm import sfetch_all_summaries
 from .scrape import (
     parse_file, fetch_queue, fetch_source_queue, normalize_html,)
-from .utilities import (log, delete_files, filter_unseen_urls_db,
+from .utilities import (log, delete_files, get_model, filter_unseen_urls_db,
                         nearest_neighbor_sort, send_gmail, unicode_to_ascii)
 from .config import (DOWNLOAD_DIR, TEXT_DIR, CHROMA_DB_PATH,
                      SOURCECONFIG, SOURCES_EXPECTED,
@@ -310,10 +310,10 @@ def fn_extract_urls(state: AgentState) -> AgentState:
     # if we get a bot block the html file might be present but have no valid links
     sources_downloaded = len(
         pd.DataFrame(state["AIdf"]).groupby("src").count()[['id']])
-    missing_sources = SOURCES_EXPECTED-sources_downloaded
+    missing_sources = len(state['sources'])-sources_downloaded
     if missing_sources:
         log(
-            f"verify_download failed, found {SOURCES_EXPECTED} sources in AIdf, {missing_sources} missing")
+            f"verify_download failed, expected {len(state['sources'])} sources in AIdf, {missing_sources} missing")
         set_found = set(pd.DataFrame(state["AIdf"]).groupby(
             "src").count()[['id']].index)
         set_missing = set(state["sources"].keys(
@@ -325,7 +325,8 @@ def fn_extract_urls(state: AgentState) -> AgentState:
 
         raise NodeInterrupt(
             f"{missing_sources} missing sources: {set_missing}")
-    log(f"verify_download passed, found {SOURCES_EXPECTED} sources in AIdf, {missing_sources} missing")
+    log(
+        f"verify_download passed, found {len(state['sources'])} sources in AIdf, {missing_sources} missing")
 
     return state
 
@@ -593,7 +594,7 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
     # # filter similar titles differing by type of quote or something
     # TODO: deduplicate by e.g. > 98% cosine similarity on embedding
     # 0.98 Levenshtein distance
-
+    aidf['title'] = aidf['title'].fillna('')
     aidf['title'] = aidf['title'].apply(unicode_to_ascii)
     aidf['title_clean'] = aidf['title'].map(lambda s: " ".join(s.split()))
     aidf = aidf.sort_values("src").groupby("title_clean").first().reset_index(
@@ -1143,7 +1144,8 @@ async def run_battles(batch, model):
         system_prompt=PROMPT_BATTLE_SYSTEM_PROMPT5,
         user_prompt=PROMPT_BATTLE_USER_PROMPT5,
         output_class=StoryOrderList,
-        model=model
+        model=model,
+        item_list_field=None  # to not worry if an id is missing on cheap models
     )
 
     return [item.id for item in itemlist.items]
@@ -1154,11 +1156,11 @@ async def bradley_terry(aidf, model):
     log("running Bradley-Terry rating")
 
     # arbitrary n_rounds, around 10 rounds for 100
-    N_ROUNDS = max(2, math.ceil(math.log(len(aidf))*3-2))
-    DEFAULT_BATCH_SIZE = 5
-    MIN_BATCH_SIZE = 2
-    TARGET_BATCHES = 10
-    JITTER_PERCENT = 2.5
+    n_rounds = max(2, math.ceil(math.log(len(aidf))*3-2))
+    default_batch_size = 5
+    min_batch_size = 2
+    target_batches = 10
+    jitter_percent = 3.5
 
     # must ensure canonical sort because prompt will return ids in order
     aidf = aidf.sort_values("id")
@@ -1170,24 +1172,33 @@ async def bradley_terry(aidf, model):
     previous_rankings = aidf['bradley_terry'].rank(
         method='min', ascending=False).astype(int)
 
-    batch_size = max(MIN_BATCH_SIZE, min(
-        DEFAULT_BATCH_SIZE, len(aidf) // TARGET_BATCHES))
+    batch_size = max(min_batch_size, min(
+        default_batch_size, len(aidf) // target_batches))
 
     all_battles = []
-    for round_num in range(1, N_ROUNDS + 1):
-        log(f"\n--- Running round {round_num}/{N_ROUNDS} ---")
+    for round_num in range(1, n_rounds + 1):
+        log(f"\n--- Running round {round_num}/{n_rounds} ---")
 
         # sort by current rating + jitter for balanced matchups but also some randomness
         battle_df = aidf.copy()
+
+        # don't want to battle eg same top 5 each time, add randomness to sort rating, sort order, batch size
+        # if you have batch size of 5 and 101 articles, bottom one possibly always skipped
+        # or 102 articles, bottom two possibly always just battle each other.
+        # Jitter helps but is it enough? don't want to jitter so much that it's not a true reflection of relative quality
+        # randomize ascending/descending order and randomize bumping batch size by 1. maybe overkill but regularizes.
         jitter_multipliers = [
-            1 + random.uniform(-JITTER_PERCENT/100, JITTER_PERCENT/100) for _ in range(len(battle_df))]
+            1 + random.uniform(-jitter_percent/100, jitter_percent/100) for _ in range(len(battle_df))]
         battle_df['jittered_rating'] = battle_df['bradley_terry'] * \
             jitter_multipliers
+        # to add more jitter randomize sort order by rating, set ascending to random 0 or 1
         battle_df = battle_df.sort_values(
-            'jittered_rating', ascending=False).drop('jittered_rating', axis=1)
-        # Paginate into batches
+            'jittered_rating', ascending=np.random.randint(0, 2)).drop('jittered_rating', axis=1)
+
+        # Paginate into batches, randomize batch size by 1
+
         batches = paginate_df(
-            battle_df[["id", "input_str"]], maxpagelen=batch_size)
+            battle_df[["id", "input_str"]], maxpagelen=max(min_batch_size, batch_size + np.random.randint(0, 3)-1))
 
         # run_battles for the round (async in parallel)
         tasks = [run_battles(batch, model) for batch in batches]
@@ -1206,7 +1217,7 @@ async def bradley_terry(aidf, model):
         new_rankings = aidf['bradley_terry'].rank(
             method='min', ascending=False).astype(int)
         # sum absolute changes in rankings
-        log(f"After round {round_num}/{N_ROUNDS}: ")
+        log(f"After round {round_num}/{n_rounds}: ")
         ranking_changes = (previous_rankings != new_rankings).sum()
         log(f"Number of ranking changes: {ranking_changes}")
         ranking_change_sum = np.abs(previous_rankings - new_rankings).sum()
@@ -1564,9 +1575,12 @@ def fn_propose_topics(state: AgentState, model_high: any) -> AgentState:
 def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
     """Compose summary using FINAL_SUMMARY_PROMPT"""
 
-    log(f"Composing summary using {str(type(model_high))}")
+    # log(f"Composing summary using {str(type(model_high))}")
+    log(f"Using model {state['model_high']} to compose summary")
+    log(f"Using model {state['model_medium']} for final filtering of topics")
+    model_medium = get_model(state["model_medium"])
+
     aidf = pd.DataFrame(state["AIdf"])
-    # select top 60 articles using MMR
     aidf['cluster_name'] = aidf['cluster_name'].fillna('')
     aidf["prompt_input"] = aidf.apply(
         lambda row: f"{row['title_topic_str']}\n\n{row['summary']}", axis=1)
@@ -1579,7 +1593,7 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
     # gets a df back
     routed_topics = asyncio.run(
         filter_df_rows(aidf_temp,
-                       model_high,
+                       model_medium,
                        router_system_prompt,
                        TOPIC_ROUTER_USER_PROMPT,
                        "cluster_name",
@@ -1598,6 +1612,11 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
     log(cluster_df.to_dict(orient='records'))
 
     deduped_dfs = []
+    # TODO: run async
+    # TODO: possibly could just use semantic distance to dedupe.
+    # but need to test a lot for the right threshold
+    # if you have very similar story but different facts, like 1 is google vs microsoft
+    # then you want to keep both, how different will cosine similarity be?
     for cluster_name in cluster_df["cluster_name"]:
         tmpdf = aidf.loc[aidf["cluster_name"] == cluster_name].sort_values(
             "rating", ascending=False).copy()
@@ -1605,10 +1624,9 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
             log(f"Deduping cluster: {cluster_name}")
             # apply filter_df to tmpdf using DEDUPLICATE_SYSTEM_PROMPT and DEDUPLICATE_USER_PROMPT
             # need a class to output
-            # TODO: run async
             deduped_dfs.append(
                 filter_df(tmpdf,
-                          model_high,
+                          model_medium,
                           DEDUPLICATE_SYSTEM_PROMPT,
                           DEDUPLICATE_USER_PROMPT,
                           "dupe_id",
@@ -1654,7 +1672,8 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
     prompt_str = prompt_template.format(cat_str=cat_str, bullet_str=bullet_str)
     log(f"Prompt length: {len(prompt_str)}")
     # count tokens using tiktoken
-    encoding = tiktoken.encoding_for_model(model_high.model)
+    # model_name = model_high.model_name
+    encoding = tiktoken.encoding_for_model("gpt-4o")
     log(f"Prompt tokens: {len(encoding.encode(prompt_str))}")
     print(prompt_str)
     ochain = prompt_template | model_high.with_structured_output(Newsletter)

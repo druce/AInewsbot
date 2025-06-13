@@ -8,7 +8,8 @@ import pandas as pd
 
 from IPython.display import display, Markdown  # , Audio
 
-from langgraph.checkpoint.memory import MemorySaver
+import sqlite3
+from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import StateGraph, START, END
 
 import langchain
@@ -111,9 +112,8 @@ class Agent:
         graph_builder.add_edge("Send email", END)
 
         # human in the loop should check web pages downloaded ok, and edit proposed categories
-        # self.conn = sqlite3.connect('lg_checkpointer.db')
-        # self.checkpointer = SqliteSaver(conn=self.conn)
-        self.checkpointer = MemorySaver()
+        self.conn = sqlite3.connect('lg_checkpointer.db')
+        self.checkpointer = SqliteSaver(conn=self.conn)
         graph = graph_builder.compile(checkpointer=self.checkpointer,)
 #                                      interrupt_before=["filter_urls", "compose_summary",])
         self.graph = graph

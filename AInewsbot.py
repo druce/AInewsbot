@@ -61,6 +61,8 @@ MAX_EDITS = 2
 
 if __name__ == "__main__":
     # Parse command line arguments
+    # TODO: add partial fetch, only fetch specified feeds
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--nofetch', action='store_true', default=False,
                         help='Disable web fetch, use existing HTML files in htmldata directory')

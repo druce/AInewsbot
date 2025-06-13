@@ -7,7 +7,7 @@ import time
 
 from playwright.sync_api import sync_playwright
 
-from ainb_const import FIREFOX_PROFILE_PATH
+from ainewsbot.config import FIREFOX_PROFILE_PATH
 
 with sync_playwright() as p:
     # ⬇️ one context *per* run – but data stays on disk
