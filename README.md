@@ -117,7 +117,7 @@ Explore interactively in [AInewsbot.ipynb](https://github.com/druce/AInewsbot/bl
 - `screenshots/`: Screenshots for podcast
 - `data/transcripts/`, `data/audio/`: Podcast transcripts and audio (via `podcastfy`)
 - `summary.md`, `bullets.md`, `bullets.html`: Drafts of the newsletter
-- `reducer.pkl`: Pickled UMAP dimensionality reduction model
+- `umap_reducer.pkl`: Pickled UMAP dimensionality reduction model (this is a very large model not in the git repo, created using the `Tune HDBSCAN.ipynb` notebook, can share upon request)
 
 ---
 
