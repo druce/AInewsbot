@@ -653,7 +653,7 @@ async def filter_df_rows(aidf: pd.DataFrame,
         input_str = getattr(row, input_column_rename)
         log(f"Queuing {row.id}: {input_str[:50]}...")
         task = asyncio.create_task(async_langchain(
-            chain, {"input_text": input_str}, tag=row.id, verbose=True))
+            chain, {"input_text": input_str}, tag=row.id, verbose=False))
         tasks.append(task)
 
     try:

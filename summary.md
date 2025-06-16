@@ -1,41 +1,41 @@
-## Agent Autonomy & Defense
+## Reasoning Models Falter
 
-- AI agents driven by large language models are gaining autonomy in tasks like email management and coding, raising safety, ethical, and job displacement concerns amid potential loss of human control. - [Technology Review](https://www.technologyreview.com/2025/06/12/1118189/ai-agents-manus-control-autonomy-operator-openai/)
-- AI-driven cyberattacks, including deepfakes and phishing scams, are outpacing human detection, prompting adoption of AI-powered biometric verification and continuous threat adaptation to secure organizations. - [TechRadar](https://www.techradar.com/pro/the-ai-arms-race-why-we-need-ai-to-fight-ai-attacks)
+- Apple researchers found large reasoning models struggle on complex problems, often giving up or producing incorrect outputs despite provided algorithms. - [The Register](https://go.theregister.com/feed/www.theregister.com/2025/06/16/opinion_column_lrm/)
 
-## Reasoning Reality Check
+## AI M&A Frenzy
 
-- India's Fathom R1 model outperformed OpenAI’s o3-mini on the IIT JEE Advanced exam and math contests, demonstrating efficient performance on a limited budget and 16K context window. - [Hacker Noon](https://hackernoon.com/openais-o3-mini-cracks-wide-open-in-front-of-indian-ai-model)
-- Apple's study found large reasoning models excel at pattern matching but perform poorly on novel puzzles and systematic reasoning, questioning current benchmarks’ ability to assess true AI reasoning. - [Ars Technica](https://arstechnica.com/ai/2025/06/new-apple-study-challenges-whether-ai-models-truly-reason-through-problems/)
+- Data infrastructure firms drove $421B in tech M&A in early 2025, with 75% of deals involving AI software as companies like Meta and Salesforce invest heavily. - [Reuters](https://www.reuters.com/business/unglamorous-world-data-infrastructure-driving-hot-tech-ma-market-ai-race-2025-06-13/)
 
-## Coding Revolution
+## Code Gets AI Supercharged
 
-- Platforms like V0.dev, Cursor, and GitHub Copilot enable users to generate front-end UIs, backend logic, tests, and documentation in minutes, reshaping developer roles toward AI guidance and refinement. - [Hacker Noon](https://hackernoon.com/how-ai-tools-are-changing-who-builds-and-how-fast)
-- Advanced AI coding models can write substantial code rapidly, potentially upending software engineering roles, though experts caution about unpredictable outputs, errors, and security risks requiring skilled oversight. - [Wired](https://www.wired.com/story/vibe-coding-engineering-apocalypse/)
+- AI coding tools like Bolt and Replit enable nontraditional developers to build custom software via natural language prompts, challenging traditional SaaS build-versus-buy models. - [Business Insider](https://www.businessinsider.com/ai-coding-tools-buy-versus-build-software-saas-netlify-bolt-2025-6)
 
-## Chatbots & Alignment
+## Bosses Embrace AI Fast
 
-- OpenAI, DeepMind, and Anthropic are addressing AI chatbots’ tendency to provide overly agreeable responses, raising concerns about reliability and prompting improvements in response quality. - [Financial Times](https://www.ft.com/content/72aa8c32-1fb5-49b7-842c-0a8e4766ac84)
-- Sam Altman asserted ChatGPT surpasses any human in capability, emphasized the need for AI alignment, and detailed its energy and water usage per query to address resource concerns. - [Windows Central](https://www.windowscentral.com/software-apps/chatgpt-is-already-more-powerful-than-any-human)
+- A Gallup poll found 33% of managers frequently use AI at work, nearly double individual contributors, with AI adoption highest in tech, professional services, and finance. - [Business Insider](https://www.businessinsider.com/ai-usage-in-workplace-statistics-gallup-poll-2025-6)
 
-## Nvidia's Euro Play
+## Telecom CEO Warns of Cuts
 
-- At VivaTech, Nvidia announced a tenfold expansion of AI computing capacity in Europe within two years and a multi-billion-dollar partnership with French AI firm Mistral AI. - [Yahoo Finance](https://finance.yahoo.com/news/applied-ai-set-dominate-frances-020651989.html)
-- Nvidia will establish its first industrial AI cloud platform in Germany to support European manufacturers, aligning with a broader strategy to scale AI infrastructure across Europe. - [Reuters](https://www.reuters.com/business/nvidia-ceo-says-quantum-computing-is-an-inflection-point-2025-06-11/)
+- BT’s CEO warned AI-driven automation could exceed planned job cuts, potentially reducing workforce beyond the 55,000 by 2030 target due to AI’s full potential. - [Business Insider](https://www.businessinsider.com/ceo-bt-telecoms-giant-warns-more-ai-driven-job-cuts-2025-6)
 
-## Copyright Clash
+## AI Drives Digital Change
 
-- Disney and NBC Universal sued Midjourney Inc. for allegedly plagiarizing their copyrighted characters, criticizing the AI image tool’s revenue-driven disregard for infringement claims. - [SiliconANGLE](https://siliconangle.com/2025/06/11/disney-nbc-universal-take-copyright-free-rider-midjourney-court-alleged-plagiarism/)
-- Meta sued Crush AI in Hong Kong for bypassing ad reviews to run thousands of AI-generated nude-image ads, prompting new detection technology and legislative support against such content. - [TechCrunch](https://techcrunch.com/2025/06/12/meta-sues-ai-nudify-app-crush-ai-for-advertising-on-its-platforms/)
+- MuleSoft research predicts AI-driven autonomous agents will augment workforces, with RPA enhancements and multi-agent architectures reshaping roles and boosting innovation and agility. - [ZDNet](https://www.zdnet.com/article/7-trends-shaping-digital-transformation-in-2025-and-ai-looms-large/)
 
-## Governance & Risks
+## Road Tests Raise Concerns
 
-- Experts urge AI leaders to adopt proactive governance frameworks, integrate ethics, map cross-border regulations, and involve employees in scenario planning to navigate evolving AI regulatory and geopolitical challenges. - [ZDNet](https://www.zdnet.com/article/ai-leaders-must-take-a-tight-grip-on-regulatory-geopolitical-and-interpersonal-concerns/)
-- U.S. export controls on AI chips are undermined by large-scale smuggling to China, prompting calls for stricter tracking, increased enforcement funding, and enhanced interagency intelligence coordination. - [CNAS](https://www.cnas.org/publications/reports/countering-ai-chip-smuggling-has-become-a-national-security-priority)
+- Uber and Wayve prepared fully driverless robotaxis in London using end-to-end AI models to navigate chaotic city conditions. - [Business Insider](https://www.businessinsider.com/i-took-chaotic-robotaxi-ride-through-london-impressive-one-question-2025-6)
+- Tesla’s Full Self-Driving repeatedly failed to stop for a flashing school bus in tests, raising safety concerns ahead of its planned Cybercab launch. - [Engadget](https://www.engadget.com/transportation/tesla-blows-past-stopped-school-bus-and-hits-kid-sized-dummies-in-full-self-driving-tests-183756251.html)
+
+## City AI Gets Local
+
+- MIT’s Civic Data Design Lab released the Generative AI Playbook and tools to help city governments analyze data and engage residents responsibly with AI in urban planning. - [Technology Review](https://www.technologyreview.com/2025/06/16/1118210/ai-city-government-residents-constituents/)
+
+## Loopholes in AI Supply
+
+- Chinese firms send engineers to Malaysia to use US-made chips for AI model training abroad, then transport data back, exploiting a loophole in US export restrictions. - [Futurism](https://futurism.com/china-chip-ai-loophole)
 
 ## Other News
 
-- Gecko Robotics raised $125 million in Series D funding at a $1.25 billion valuation to expand its AI-driven robotic platform for infrastructure inspection across energy, defense, and manufacturing sectors. - [CNBC](https://www.cnbc.com/2025/06/12/gecko-robotics-raises-125-million-surpassing-billion-dollar-valuation.html)
-- Databricks forecasts $3.7 billion in annualized revenue by July, with rapid customer spending growth and impending free cash flow positivity, and previewed its new Lakebase database software. - [CNBC](https://www.cnbc.com/2025/06/11/databricks-says-annualized-revenue-to-reach-3point7-billion-by-next-month.html)
-- Cursor prohibits AI use in coding interviews, requiring candidates to complete a two-day on-site project to demonstrate coding skills, engagement, and collaboration, according to CEO Michael Truell. - [Business Insider](https://www.businessinsider.com/cursor-interview-process-no-ai-on-site-project-coding-tool-2025-6)
-- U.S. chip export controls have spurred China’s AI ecosystem development, with Huawei advancing chip design but grappling with less advanced foundries and reliance on foreign manufacturing equipment. - [CNBC](https://www.cnbc.com/2025/06/12/chinas-racing-to-beat-us-chip-curbs-how-its-supply-chain-stacks-up.html)
+- Researchers at the Feinstein Institutes developed AI-automated focused ultrasound methods to noninvasively modulate nerve activity and reduce inflammation without surgery. - [IEEE Spectrum](https://spectrum.ieee.org/embryo-electrode-array)
+- Biopharma companies invest over $1B in AI to analyze multi-omics data for precision oncology, with AI-designed drug candidates entering human trials in 2025. - [Google News](https://news.google.com/rss/articles/CBMisAFBVV95cUxOYUZvLTE2WXh3dzFiYWhsNGU3UG5qMWdmelV1ZVdnTmdkTkNpT09sVV9LSEdNaU5iUkNhd3VwY3VmUDE2OGc1UWNPa1pncUJSMm9DWkM4cXE0MUdPWHJBQ0lDNFk4VDNTMFV2dE9lNi04VzhPVWdNN3FyRGZ6RzNLQTdEUUd1U3ozeGN2ZHF2YUFfREl5bWQxaGtPblFGNzBsSVU0WlBjQXBFT1BuZFZKMw)

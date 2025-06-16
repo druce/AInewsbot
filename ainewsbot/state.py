@@ -43,6 +43,9 @@ import pandas as pd
 
 from sklearn.cluster import DBSCAN
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics import pairwise_distances, silhouette_score, calinski_harabasz_score, davies_bouldin_score
+import hdbscan
+from hdbscan.validity import validity_index as dbcv
 
 import choix
 
@@ -148,6 +151,131 @@ def make_bullet(row, include_topics=True):
     rating = f"\n\nRating: {max(row.rating, 0):.2f}" if hasattr(
         row, "rating") else ""
     return f"[{title} - {site_name}]({final_url}){topic_str}{rating}{summary}\n\n"
+
+
+def calculate_clustering_metrics(embeddings_array, labels, clusterer=None):
+    """
+    Calculate various clustering quality metrics for HDBSCAN results.
+
+    Args:
+        embeddings_array: Original normalized embeddings used for clustering
+        labels: Cluster labels from HDBSCAN
+        clusterer: Optional HDBSCAN clusterer object
+
+    Returns:
+        Dictionary of clustering metrics
+    """
+
+    # Filter out noise points (-1 labels) for some metrics
+    non_noise_mask = labels != -1
+    non_noise_embeddings = embeddings_array[non_noise_mask]
+    non_noise_labels = labels[non_noise_mask]
+
+    metrics = {}
+
+    # Basic cluster statistics
+    unique_labels = set(labels)
+    n_clusters = len(unique_labels) - (1 if -1 in unique_labels else 0)
+    n_noise = np.sum(labels == -1)
+
+    metrics['n_clusters'] = n_clusters
+    metrics['n_noise_points'] = n_noise
+    metrics['noise_ratio'] = n_noise / len(labels)
+
+    # Cluster size distribution
+    cluster_sizes = Counter(labels[labels != -1])
+    if cluster_sizes:
+        metrics['avg_cluster_size'] = np.mean(list(cluster_sizes.values()))
+        metrics['std_cluster_size'] = np.std(list(cluster_sizes.values()))
+        metrics['min_cluster_size'] = min(cluster_sizes.values())
+        metrics['max_cluster_size'] = max(cluster_sizes.values())
+
+    # Skip other metrics if we have too few clusters or too much noise
+    if n_clusters < 2 or len(non_noise_labels) < 2:
+        print("Warning: Too few clusters or too much noise for some metrics")
+        return metrics
+
+    # HDBSCAN-specific metrics
+    # gives some divide by 0 errors
+    if clusterer is not None:
+        try:
+            # Validity index (HDBSCAN's internal metric)
+            validity_idx = hdbscan.validity.validity_index(
+                embeddings_array, labels, metric='euclidean'
+            )
+            metrics['hdbscan_validity_index'] = validity_idx
+        except Exception as e:
+            print(f"Could not compute HDBSCAN validity index: {e}")
+
+        # Cluster persistence (stability)
+        if hasattr(clusterer, 'cluster_persistence_'):
+            metrics['cluster_persistence'] = clusterer.cluster_persistence_
+
+    # Scikit-learn clustering metrics (excluding noise points)
+    try:
+        # Silhouette Score (higher is better, range [-1, 1])
+        sil_score = silhouette_score(
+            non_noise_embeddings, non_noise_labels, metric='euclidean')
+        metrics['silhouette_score'] = sil_score
+
+        # Calinski-Harabasz Index (higher is better)
+        ch_score = calinski_harabasz_score(
+            non_noise_embeddings, non_noise_labels)
+        metrics['calinski_harabasz_score'] = ch_score
+
+        # Davies-Bouldin Index (lower is better)
+        db_score = davies_bouldin_score(non_noise_embeddings, non_noise_labels)
+        metrics['davies_bouldin_score'] = db_score
+
+    except Exception as e:
+        print(f"Could not compute sklearn metrics: {e}")
+
+    # Custom composite score balancing cluster quality and quantity
+    if 'silhouette_score' in metrics and n_clusters > 0:
+        # Penalize too many small clusters or too few large clusters
+        # Optimal around 10 clusters
+        cluster_balance = 1 / (1 + abs(np.log(n_clusters / 10)))
+        size_consistency = 1 / \
+            (1 + metrics.get('std_cluster_size', 0) /
+             max(metrics.get('avg_cluster_size', 1), 1))
+        # Penalize high noise
+        noise_penalty = 1 - min(metrics['noise_ratio'], 0.5)
+
+        composite_score = (
+            0.5 * max(metrics['silhouette_score'], 0) +  # Quality component
+            0.5 * max(metrics['hdbscan_validity_index'], 0)
+            #             0.1 * cluster_balance +                       # Quantity component
+            #             0.1 * size_consistency +                      # Size consistency
+            #             0.3 * noise_penalty                           # Noise penalty
+        )
+        metrics['composite_score'] = composite_score
+
+    return metrics
+
+
+def print_clustering_summary(metrics):
+    """Print a nice summary of clustering metrics."""
+    log("=== Clustering Quality Metrics ===")
+    log(f"Number of clusters: {metrics.get('n_clusters', 'N/A')}")
+    log(f"Noise points: {metrics.get('n_noise_points', 'N/A')} ({metrics.get('noise_ratio', 0):.1%})")
+
+    if 'avg_cluster_size' in metrics:
+        log(f"Average cluster size: {metrics['avg_cluster_size']:.1f} ± {metrics.get('std_cluster_size', 0):.1f}")
+        log(f"Cluster size range: {metrics.get('min_cluster_size', 'N/A')} - {metrics.get('max_cluster_size', 'N/A')}")
+
+    log("=== Quality Scores ===")
+    if 'silhouette_score' in metrics:
+        log(f"Silhouette Score: {metrics['silhouette_score']:.3f} (higher is better)")
+    if 'calinski_harabasz_score' in metrics:
+        log(
+            f"Calinski-Harabasz Score: {metrics['calinski_harabasz_score']:.1f} (higher is better)")
+    if 'davies_bouldin_score' in metrics:
+        log(
+            f"Davies-Bouldin Score: {metrics['davies_bouldin_score']:.3f} (lower is better)")
+    if 'hdbscan_validity_index' in metrics:
+        log(f"HDBSCAN Validity Index: {metrics['hdbscan_validity_index']:.3f}")
+    if 'composite_score' in metrics:
+        log(f"Composite Score: {metrics['composite_score']:.3f} (higher is better)")
 
 
 def fn_initialize(state: AgentState) -> AgentState:
@@ -830,7 +958,10 @@ def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
     log(f"Fetching embeddings for {len(aidf)} headlines")
     embedding_model = 'text-embedding-3-large'
     client = OpenAI()
-    response = client.embeddings.create(input=aidf['title_topic_str'].tolist(),
+    # make bullets
+    aidf["bullet"] = aidf.apply(make_bullet, axis=1)
+    # get bullet embedding
+    response = client.embeddings.create(input=aidf['bullet'].tolist(),
                                         model=embedding_model)
     embedding_df = pd.DataFrame(
         [e.model_dump()['embedding'] for e in response.data])
@@ -841,16 +972,34 @@ def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
     aidf['sort_order'] = sorted_indices
 
     # do dimensionality reduction on embedding_df and cluster analysis
+    # save and use new reducer
     log("Load umap dimensionality reduction model")
-    with open("reducer.pkl", 'rb') as pklfile:
+    with open("umap_reducer.pkl", 'rb') as pklfile:
         # Load the model from the file
         reducer = pickle.load(pklfile)
     log("Perform dimensionality reduction")
-    reduced_data = reducer.transform(embedding_df)
-    log("Cluster with DBSCAN")
+    # force np64 or hdbscan pukes
+    reduced_data = reducer.transform(embedding_df).astype(np.float64)
+    # renormalize after dimensionality reduction
+    reduced_data /= np.linalg.norm(reduced_data, axis=1, keepdims=True)
+
+    # use hdbscan with best params
+    log("Cluster with HDBSCAN")
     # Adjust eps and min_samples as needed
-    dbscan = DBSCAN(eps=0.4, min_samples=3)
-    aidf['cluster'] = dbscan.fit_predict(reduced_data)
+    clusterer = hdbscan.HDBSCAN(
+        min_cluster_size=3,
+        min_samples=2,
+        metric="euclidean",
+        cluster_selection_method="eom",
+    )
+
+    labels = clusterer.fit_predict(reduced_data)
+    aidf['cluster'] = labels
+
+    # Calculate metrics
+    metrics = calculate_clustering_metrics(reduced_data, labels, clusterer)
+    print_clustering_summary(metrics)
+
     aidf["cluster_name"] = ""
     log(f"Found {len(aidf['cluster'].unique())-1} clusters")
     aidf.loc[aidf['cluster'] == -1, 'cluster'] = 999
