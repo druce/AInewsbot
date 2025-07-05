@@ -16,7 +16,7 @@ Key Features:
 - Modular design for easy customization and extension of the pipeline.
 """
 # flake8: noqa: E722
-# pylint: disable=W0718  # bare-except
+# pylint: disable=W0718, W0702  # bare-except
 
 # import pdb
 import os
@@ -108,6 +108,24 @@ from .prompts import (
     DEDUPLICATE_SYSTEM_PROMPT, DEDUPLICATE_USER_PROMPT,
     SITE_NAME_PROMPT,
 )
+
+
+# Maximum tokens allowed for embedding models (< 8192 tokens)
+MAX_EMBEDDING_TOKENS = 8191
+
+
+def truncate_text_to_max_tokens(text: str, max_tokens: int = MAX_EMBEDDING_TOKENS, model_name: str = CHROMA_DB_EMBEDDING_FUNCTION) -> str:
+    """Truncate `text` so that its token length for `model_name` is below `max_tokens`."""
+    try:
+        encoding = tiktoken.encoding_for_model(model_name)
+    except KeyError:
+        # Fallback for unknown models
+        encoding = tiktoken.get_encoding("cl100k_base")
+    tokens = encoding.encode(text)
+    if len(tokens) > max_tokens:
+        tokens = tokens[:max_tokens]
+        text = encoding.decode(tokens)
+    return text
 
 
 class AgentState(TypedDict):
@@ -727,10 +745,8 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
         .rename(columns={'index': 'id'})
     log(f"Found {len(aidf)} unique new headlines")
 
-    # # dedupe identical headlines
-    # # filter similar titles differing by type of quote or something
-    # TODO: deduplicate by e.g. > 98% cosine similarity on embedding
-    # 0.98 Levenshtein distance
+    # dedupe identical headlines
+    # filter similar titles differing by type of quote or something
     aidf['title'] = aidf['title'].fillna('')
     aidf['title'] = aidf['title'].apply(unicode_to_ascii)
     aidf['title_clean'] = aidf['title'].map(lambda s: " ".join(s.split()))
@@ -1125,6 +1141,8 @@ def fn_download_pages(state: AgentState, model_low) -> AgentState:
                 continue
             # normalize the html file
             normalized_text = normalize_html(html_path)
+            # Truncate to ensure we stay under the model's 8K token limit for embeddings
+            truncated_text = truncate_text_to_max_tokens(normalized_text)
             # query for potential duplicates among documents created before before_date
             # note that if before_date is set, won't check duplicates from this run
             before_date = state.get("before_date")
@@ -1136,7 +1154,7 @@ def fn_download_pages(state: AgentState, model_low) -> AgentState:
                 ts = eastern_dt.timestamp()
                 where_filter = {"created": {"$lt": ts}}
             results = collection.query(
-                query_texts=[normalized_text],
+                query_texts=[truncated_text],
                 n_results=1,
                 include=["distances"],
                 where=where_filter if where_filter else None
@@ -1155,10 +1173,10 @@ def fn_download_pages(state: AgentState, model_low) -> AgentState:
             file_name = os.path.splitext(os.path.basename(html_path))[0]
             # get today's date as 2024-05-01
             today = datetime.now().strftime("%Y-%m-%d")
-            OUTPUT_DIR = os.path.join(TEXT_DIR, today)
-            if not os.path.exists(OUTPUT_DIR):
-                os.makedirs(OUTPUT_DIR)
-            text_path = os.path.join(OUTPUT_DIR, f'{file_name}.txt')
+            output_dir = os.path.join(TEXT_DIR, today)
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            text_path = os.path.join(output_dir, f'{file_name}.txt')
             text_path_dict[row.id] = text_path
             log(f"Saving text to {text_path}")
             with open(text_path, 'w', encoding='utf-8') as f:
@@ -1195,14 +1213,18 @@ def fn_download_pages(state: AgentState, model_low) -> AgentState:
         try:
             # Upsert into ChromaDB
             # Use current time as timestemp eg e.g. 1716596820.981331
+            # I kinda feel there must be a way to do with 1 embedding call
+            # check if article is > eg .1 cosine distance to any existing articles and if so upsert
             ts = datetime.now(timezone.utc).timestamp()
             text_path = row.text_path
             if text_path and os.path.exists(text_path):
                 # Read the text file
                 with open(text_path, 'r', encoding='utf-8') as f:
                     text_str = f.read()
+                # Truncate to ensure we stay under the model's 8K token limit for embeddings
+                truncated_text = truncate_text_to_max_tokens(text_str)
                 collection.upsert(
-                    documents=[text_str],
+                    documents=[truncated_text],
                     ids=[text_path],
                     metadatas=[{
                         "url": row.final_url,
@@ -1309,6 +1331,16 @@ async def run_battles(batch, model):
 
 
 async def bradley_terry(aidf, model):
+    """
+    Runs Bradley-Terry rating using the `choix` library.
+
+    Args:
+        aidf (pd.DataFrame): DataFrame containing articles to be ranked.
+        model (LLM model): Model to be used for battling.
+
+    Returns:
+        pd.DataFrame: DataFrame with additional 'bradley_terry' column containing the computed ratings.
+    """
 
     log("running Bradley-Terry rating")
 
@@ -1908,12 +1940,11 @@ def fn_criticize_summary(state: AgentState, model_high) -> AgentState:
     critic_feedback = ochain.invoke({'newsletter_markdown': state['summary']})
 
     state["critic_feedback"] = critic_feedback
-    state["n_edits"] += 1
     if critic_feedback.strip().lower().startswith('OK'):
-        log("Summary is OK, edit complete")
+        log("Summary is OK")
         state["edit_complete"] = True
     else:
-        log("Summary requires revision")
+        log("Summary is not OK")
     return state
 
 
@@ -1938,9 +1969,13 @@ def fn_is_revision_complete(state: AgentState) -> str:
     return "complete" if edit_complete else "incomplete"
     """
 
-    if state["n_edits"] >= state["max_edits"]:
-        log("Max edits reached")
+    if state["edit_complete"]:
+        log("Summary eval is OK, edit complete")
+    elif state["n_edits"] >= state["max_edits"]:
+        log("Max edits reached, edit complete")
         state["edit_complete"] = True
+    else:
+        log("Summary eval is not OK, requires further revision")
 
     return "complete" if state["edit_complete"] else "incomplete"
 

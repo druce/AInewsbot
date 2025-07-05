@@ -1,44 +1,41 @@
-## Robotaxi Reality Check
+## Job Market Shakeup
 
-- Experts found Tesla’s robotaxi faced lane drifting, phantom braking, and parking errors requiring human safety monitor interventions during its early Austin launch. - [Business Insider](https://www.businessinsider.com/tesla-robotaxi-autonomous-driving-experts-respond-2025-6)
-- Elon Musk’s focus on robotaxis, humanoid robots, and social media feuds distracted from Tesla’s core EV business amid a second consecutive annual delivery decline. - [The Register](https://www.theregister.com/2025/07/03/elon_musk_tesla_deliveries_distraction/)
+- Several CEOs predict AI will cut significant white-collar jobs, though recent US job gains suggest layoffs and outsourcing drive current market shifts more than immediate automation. - [Futurism](https://futurism.com/ceos-ai-job-market)
+- An MIT Media Lab study finds heavy AI reliance reduces brain activity by up to 55% in memory, creativity, and attention, risking ‘AI zombies’ who lack critical thinking skills. - [Fast Company](https://www.fastcompany.com/91362890/how-to-avoid-creating-ai-zombies-in-your-workplace)
 
-## AI-Driven Layoffs
+## Existential Risk Spotlight
 
-- Microsoft will cut up to 9,000 jobs, about 4% of its global workforce, to fund $80 billion in AI investments and build additional data centers. - [BBC News](https://www.bbc.com/news/articles/cdxl0w1w394o)
+- In a Joe Rogan podcast, Dr. Roman Yampolskiy warns of a 20–30% extinction risk from superintelligent AI and suggests AI may mask its true capabilities to erode human autonomy. - [Gizmodo](https://gizmodo.com/joe-rogans-latest-episode-will-make-you-question-everything-about-ai-2000624443)
 
-## Regulating AI
+## Autonomy Under Scrutiny
 
-- The European Commission confirmed the AI Act will proceed with no pauses, enforcing general-purpose AI obligations from August 2024 and high-risk rules by August 2026. - [The Economic Times](https://m.economictimes.com/tech/artificial-intelligence/artificial-intelligence-rules-to-go-ahead-no-pause-eu-commission-says/articleshow/122248994.cms)
-- Independent publishers filed an EU antitrust complaint claiming Google’s AI Overviews misuse content without opt-out, harming their traffic and revenue. - [SiliconANGLE](https://siliconangle.com/2025/07/04/publisher-group-files-eu-antitrust-complaint-google-ai-overviews/)
-- The US House passed H.R. 1 to pause state and local AI regulations for ten years, sparking debate over federal preemption and innovation. - [Google News](https://www.theregreview.org/2025/07/05/seminar-compiling-the-future-of-u-s-artificial-intelligence-regulation/)
+- Experts reviewing Tesla’s robotaxi launch videos noted issues like phantom braking, lane errors, and lack of sensors beyond cameras, stressing the need for lidar, radar, and advanced mapping. - [Business Insider](https://www.businessinsider.com/tesla-robotaxi-autonomous-driving-experts-respond-2025-6)
+- Investigations of multiple fatal Tesla crashes reveal incomplete data transparency and design flaws like retractable door handles failing after crashes, raising accountability and safety concerns. - [The Guardian](https://www.theguardian.com/technology/2025/jul/05/the-vehicle-suddenly-accelerated-with-our-baby-in-it-the-terrifying-truth-about-why-teslas-cars-keep-crashing)
 
-## AI Finance & Security
+## Finance & Markets
 
-- AI tools enable CFOs to improve forecasting, run proactive scenario planning, and deploy autonomous agents for strategic financial decision-making. - [Fast Company](https://www.fastcompany.com/91350156/how-ai-is-transforming-corporate-finance-ai-corporate-finance)
-- AI Security Posture Management frameworks are key for securing AI agents, addressing prompt injection threats and managing machine identities like human users. - [Hacker Noon](https://hackernoon.com/7-5-2025-techbeat)
+- AI enables CFOs to forecast in real time, manage risk, and automate complex financial tasks, improving decision speed and scenario planning with autonomous data-driven agents. - [Fast Company](https://www.fastcompany.com/91350156/how-ai-is-transforming-corporate-finance-ai-corporate-finance)
+- CoreWeave’s stock has surged over 270% since its March IPO, fueled by a close Nvidia partnership, major OpenAI and Google Cloud contracts, and $23 billion in planned data center investments. - [TheStreet](https://www.thestreet.com/technology/this-nvidia-backed-ai-stock-just-sent-a-quiet-shockwave-through-the-ai-world-)
 
-## Startup AI Funding
+## Software Dev Insights
 
-- Quantum startup Qedma raised $26 million Series A led by Glilot to develop QESEM error-mitigation software that scales quantum circuits on current hardware. - [TechCrunch](https://techcrunch.com/2025/07/03/israeli-quantum-startup-qedma-just-raised-26-million-with-ibm-joining-in/)
-- Wonderful raised $34 million seed funding to expand its AI platform for multilingual customer support agents across calls, chatbots, and email. - [SiliconANGLE](https://siliconangle.com/2025/07/04/customer-support-automation-startup-wonderful-raises-34m/)
+- Researchers explore how large language models can evaluate code structure and prioritize problematic areas, but note human review remains essential due to AI’s limitations in understanding deep logic. - [Hacker Noon](https://hackernoon.com/can-ai-coding-tools-learn-to-rank-code-quality)
 
-## AI Stock Trends
+## Regulations & Antitrust
 
-- Nvidia briefly reached a $3.92 trillion valuation as investor enthusiasm for AI chips surged, despite emerging competition from Chinese AI models. - [The Economic Times](https://m.economictimes.com/markets/stocks/news/microsoft-apple-and-nvidia-lead-wall-streets-ai-revolution/nvidia-nearly-becomes-worlds-most-valuable-company/slideshow/122245762.cms)
-- AMD and Micron stocks rose 32% and 36% respectively on AI chip demand, with Micron’s high-bandwidth memory sold out and offering faster growth. - [Google News](https://www.fool.com/investing/2025/07/05/better-artificial-intelligence-ai-stock-advanced/)
+- Congress removed a proposed moratorium on state AI regulations, allowing states to continue enacting consumer protection laws on issues from deepfakes to transparency. - [CNET](https://www.cnet.com/tech/services-and-software/congress-wont-block-state-ai-regulations-heres-what-that-means-for-consumers/)
+- Independent publishers filed an antitrust complaint with the EU Commission, alleging Google’s AI Overviews reduce traffic and revenue by summarizing and replacing original content in search results. - [PYMNTS](http://www.pymnts.com/antitrust/2025/publishers-file-antitrust-complaint-in-europe-targeting-googles-ai-overviews/)
 
-## Chatbot Risks
+## AI Security Posture
 
-- Study found AI chatbots like ChatGPT often oversimplify scientific summaries, omitting key details and risking unsafe interpretations in medical contexts. - [Google News](https://www.livescience.com/technology/artificial-intelligence/ai-chatbots-oversimplify-scientific-studies-and-gloss-over-critical-details-the-newest-models-are-especially-guilty)
-- Netcraft found GPT-4.1 directs users to incorrect or dead URLs 34% of the time, potentially aiding phishing campaigns with malicious domains. - [PCMag](https://www.pcmag.com/news/chatgpt-could-help-phishing-scammers-steal-your-banking-login)
-
-## Agentic AI on the Rise
-
-- Agentic AI is emerging in finance, retail, and healthcare for autonomous customer service, compliance tasks, and diagnostic support using multi-agent platforms. - [Google News](https://www.cio.com/article/4016392/how-agentive-ai-is-making-an-impact-an-industry-by-industry-overview.html)
-- Industrial agentic AI leverages streaming data, vector databases, digital twins, and edge inference for autonomous, goal-driven operations in manufacturing and logistics. - [Google News](https://www.rtinsights.com/agentic-ai-in-industry-the-technologies-that-will-deliver-results/)
+- AI Security Posture Management advocates treating machine identities like human users, using prompt-hardening and governance tools to protect against prompt injections and complex AI agent risks. - [Hacker Noon](https://hackernoon.com/7-5-2025-techbeat)
 
 ## Other News
 
-- Karen Hao’s book “Empire of AI” explores how AI firms exploit global resources, threaten democracy, and drive environmental and labor harms. - [Democracy Now](https://www.democracynow.org/2025/7/4/empire_of_ai_karen_hao_on)
-- SoftBank’s Masayoshi Son predicts artificial superintelligence by 2035; key contenders include OpenAI, Meta Superintelligence Labs, and startups like Reflection AI. - [The Economic Times](https://m.economictimes.com/tech/artificial-intelligence/what-is-superintelligence-and-whos-in-the-race-to-build-it/articleshow/122248550.cms)
+- Researchers at UC Davis developed a BCI enabling a paralyzed ALS patient to communicate via speech muscle signal decoding, while Uber partners with Avride on autonomous delivery robots. - [Google News](https://www.foxnews.com/tech/fox-news-ai-newsletter-amazing-breakthrough-paralyzed-man-who-cant-speak)
+- The Flotilla framework supports scalable, fault-tolerant federated learning on resource-constrained edge devices with synchronous/asynchronous strategies and externalized session state for rapid failover. - [Quantum Zeitgeist](https://quantumzeitgeist.com/federated-learning-needs-real-world-edge-hardware-testing-for-privacy-gains/)
+- Thailand’s ministry launched WebD to automatically detect illegal websites, processing over 100,000 URLs annually and speeding detection 31.5 times faster while cutting court times by five days. - [Google News](https://www.nationthailand.com/news/general/40052180)
+- AI meeting notes startup Cluely doubled its ARR to $7 million by launching a real-time context-aware product, facing competition from open-source alternative Glass by Pickle. - [TechCrunch](https://techcrunch.com/2025/07/03/cluelys-arr-doubled-in-a-week-to-7m-founder-roy-lee-says-but-rivals-are-coming/)
+- Trust & Will’s EstateOS integrates OpenAI tools for personalized estate planning, offering plan gap analysis, AI Q&A, and document summarization to simplify will creation. - [San Diego Union-Tribune](https://www.sandiegouniontribune.com/2025/07/05/havent-made-a-will-yet-san-diego-startup-has-new-ai-tool-to-help/)
+- The open-source Zluda project enables CUDA applications to run on AMD and Intel GPUs with near-native performance, improving ROCm/HIP compatibility and unmodified binary execution. - [TechSpot](https://www.techspot.com/news/108557-open-source-project-making-strides-bringing-cuda-non.html)
+- UF’s Dr. Nasim Binesh warns unregulated AI in gambling could exploit vulnerable players and exacerbate addiction, calling for independent audits, transparency, and ethical guidelines. - [Main Street Daily News](https://www.mainstreetdailynews.com/news/uf-researcher-explore-ethics-of-ai-in-gambling)
