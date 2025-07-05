@@ -3,75 +3,90 @@ Web scraping utilities.
 
 This module contains functions used for web scraping from web sites in sources.yaml and individual news stories.
 """
+# flake8: noqa: E722
+# pylint: disable=W0718  # bare-except
+# pylint: disable=W1401  # backslash in RE
+
 import asyncio
 import re
 import os
 from urllib.parse import urljoin, urlparse
-import pdb
+# import pdb
 import json
 
 import random
 import time
 import datetime
-from dateutil import parser as date_parser
 from pathlib import Path
+
+from dateutil import parser as date_parser
 import tiktoken
 
 import requests
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
-from playwright_stealth import stealth_async
+from playwright_stealth import Stealth
+
 
 import trafilatura
 
 from .utilities import log
 from .config import (DOWNLOAD_DIR, PAGES_DIR, FIREFOX_PROFILE_PATH,  # SCREENSHOT_DIR,
-                     MIN_TITLE_LEN, SLEEP_TIME, TEXT_DIR, MAX_INPUT_TOKENS)
+                     MIN_TITLE_LEN, SLEEP_TIME, MAX_INPUT_TOKENS)
 
 # Global state for per-domain rate limiting
 _domain_locks = {}
 _domain_last_access = {}
-_RATE_LIMIT_SECONDS = 15
+_RATE_LIMIT_SECONDS = 5
 
 
-def get_og_tags(url):
+def get_og_tags(source):
     """
-    Fetches Open Graph og: tags from the HEAD of a given URL and returns them as a dictionary.
+    Fetches Open Graph og: tags from a given URL or local file and returns them as a dictionary.
 
     Parameters:
-    url (str): The URL of the webpage to fetch the og: tags from.
+    source (str): The URL of the webpage or the path to the local HTML file.
 
     Returns:
-    dict: A dictionary containing the og: tags found in the HEAD of the webpage. The keys are the property names
-          of the og: tags and the values are the corresponding content values.
-
-    Raises:
-    requests.RequestException: If there is an error fetching the webpage.
-
+    dict: A dictionary containing the og: tags found in the webpage.
     """
     result_dict = {}
-    try:
-        response = requests.get(url, timeout=60)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.content, "html.parser")
-            head = soup.head
-            if head:
-                og_tags = head.find_all(
-                    property=lambda prop: prop and prop.startswith("og:")
-                )
-                for tag in og_tags:
-                    if "content" in tag.attrs:
-                        result_dict[tag["property"]] = tag["content"]
+    content = None
 
-                page_title = ""
-                title_tag = soup.find("title")
-                if title_tag:
-                    page_title = title_tag.text
-                    if page_title:
-                        result_dict["title"] = page_title
-        return result_dict
-    except requests.RequestException as e:
-        log(f"Error fetching {url}: {e}")
+    if source.startswith(("http://", "https://")):
+        try:
+            response = requests.get(source, timeout=60)
+            if response.status_code == 200:
+                content = response.content
+        except requests.RequestException as e:
+            log(f"Error fetching {source}: {e}")
+    else:
+        try:
+            with open(source, "r", encoding="utf-8") as f:
+                content = f.read()
+        except FileNotFoundError:
+            log(f"Error: File not found at {source}")
+        except Exception as e:
+            log(f"Error reading file {source}: {e}")
+
+    if content:
+        soup = BeautifulSoup(content, "html.parser")
+        head = soup.head
+        if head:
+            og_tags = head.find_all(
+                property=lambda prop: prop and prop.startswith("og:")
+            )
+            for tag in og_tags:
+                if "content" in tag.attrs:
+                    result_dict[tag["property"]] = tag["content"]
+
+            page_title = ""
+            title_tag = soup.find("title")
+            if title_tag:
+                page_title = title_tag.text
+                if page_title:
+                    result_dict["title"] = page_title
+
     return result_dict
 
 
@@ -300,8 +315,9 @@ async def get_browser(p):
 
 async def apply_stealth_script(context):
     """Apply stealth settings to a new page using playwright_stealth."""
+    stealth = Stealth()
     page = await context.new_page()
-    await stealth_async(page)
+    await stealth.apply_stealth_async(page)
     await page.close()
 
 
@@ -535,7 +551,7 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
                     log(
                         f"Found script last updated time from script datePublished: {last_updated}")
                     break
-            except Exception as e:
+            except Exception:
                 continue
 
         # Check HTTP Last-Modified header
@@ -551,7 +567,7 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
                 last_updated = await page.evaluate("document.lastModified")
                 log(
                     f"Found last updated time from document.lastModified: {last_updated}")
-            except:
+            except Exception:
                 last_updated = None
 
         # Validate and normalize last_updated to Zulu datetime
@@ -751,7 +767,7 @@ def parse_file(source_dict):
         url = trimmed_href(link)
         title = link.get_text(strip=True)
         if title == "LINK":
-            # try to update title
+            # try to update title if the title is LINK (or eventually other patterns)
             og_dict = get_og_tags(url)
             if og_dict.get("og:title"):
                 title = og_dict.get("og:title")

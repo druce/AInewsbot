@@ -26,6 +26,7 @@ umap-learn
 matplotlib
 ratelimit
 yapf
+tldextract
 # alpha-vantage
 newsapi-python
 trafilatura

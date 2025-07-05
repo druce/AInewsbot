@@ -28,6 +28,7 @@ from .state import (AgentState,
                     fn_rate_articles,
                     fn_propose_topics,
                     fn_compose_summary,
+                    fn_criticize_summary,
                     fn_rewrite_summary,
                     fn_is_revision_complete,
                     fn_send_mail,)
@@ -89,6 +90,7 @@ class Agent:
         graph_builder.add_node(
             "Propose newsletter topics", self.propose_topics)
         graph_builder.add_node("Compose summary", self.compose_summary)
+        graph_builder.add_node("Criticize summary", self.criticize_summary)
         graph_builder.add_node("Polish summary", self.rewrite_summary)
         graph_builder.add_node("Send email", self.send_mail)
 
@@ -103,12 +105,13 @@ class Agent:
         graph_builder.add_edge("Topic extraction", "Topic clustering")
         graph_builder.add_edge("Topic clustering", "Propose newsletter topics")
         graph_builder.add_edge("Propose newsletter topics", "Compose summary")
-        graph_builder.add_edge("Compose summary", "Polish summary")
-        graph_builder.add_conditional_edges("Polish summary",
+        graph_builder.add_edge("Compose summary", "Criticize summary")
+        graph_builder.add_conditional_edges("Criticize summary",
                                             self.is_revision_complete,
                                             {"incomplete": "Polish summary",
                                              "complete": "Send email",
                                              })
+        graph_builder.add_edge("Polish summary", "Criticize summary")
         graph_builder.add_edge("Send email", END)
 
         # human in the loop should check web pages downloaded ok, and edit proposed categories
@@ -195,6 +198,12 @@ class Agent:
         """compose the first draft of the summary using bullets and topics"""
         model = get_model(model_str) if model_str else self.model_high
         self.state = fn_compose_summary(state, model)
+        return self.state
+
+    def criticize_summary(self, state: AgentState, model_str: str = "") -> AgentState:
+        """criticize the summary, suggest revisions"""
+        model = get_model(model_str) if model_str else self.model_high
+        self.state = fn_criticize_summary(state, model)
         return self.state
 
     def rewrite_summary(self, state: AgentState, model_str: str = "") -> AgentState:

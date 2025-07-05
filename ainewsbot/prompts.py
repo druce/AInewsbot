@@ -461,10 +461,10 @@ Follow the workflow below **in order**:
 2. **Section discovery and initial story selection**
  - Use the topics and the assigned stories created in Step 1 as input to create 8-15 themed sections **plus one final catch-all** section titled **"Other News"**.
  - Select important, interesting stories that result in a compelling, coherent newsletter.
- - Pay close attention to the Rating field. Always include stories with a Rating of 8 or higher.
+ - Pay close attention to the Rating field. Always include stories with a Rating of 7 or higher.
  - For near-duplicates keep only the highest **Rating** (tie → earliest in list).
- - Seek to include all stories with a Rating over 7 if they do not result in too many similar stories.
- - If a story has a Rating of 7 or lower, it may be included or excluded.
+ - Seek to include all stories with a Rating of 6 or higher if they do not result in too many similar stories.
+ - If a story has a Rating of 5 or lower, it may be included or excluded.
  - **Exclude** items that are **not AI/tech**, or are clickbait, or are pure opinion.
 
 3. **Filtering & deduplication**
@@ -495,69 +495,210 @@ Follow the workflow below **in order**:
 
 ######################################################################
 
+CRITIC_SYSTEM_PROMPT = """
+
+###############################################
+##  TASK: REVIEW AND CRITICIZE AI-NEWSLETTER ##
+###############################################
+
+# OBJECTIVE
+Evaluate daily AI newsletters against quality standards for AI/tech professionals.
+
+# SUCCESS METRICS
+A high-quality newsletter should:
+
+ - Include only highly relevant AI-related stories
+ - Present information clearly and neutrally
+ - Maintain the correct format
+ - Organize content logically
+ - Provide value to AI/tech professionals
+------------------------------------------
+
+# INPUT:
+A raw Markdown newsletter string, consisting of several sections, each containing a list of news items.
+------------------------------------------
+
+# REVIEW CHECKLIST (Strictly follow in order)
+
+EVALUATION FRAMEWORK (20 POINTS TOTAL)
+
+1. **Structure (5 points)**
+   - 8-15 themed sections plus "Other News" section
+   - Each themed section has ≤7 stories; large sections should be split
+   - "Other News" has no story limit
+   - Sections with 1 article should be merged or moved to "Other News" section
+   - Similar sections should be considered for merging
+   - Section titles are unique and ≤6 words
+   - Section titles accurately reflect content
+   - Stories are properly categorized by theme
+
+2. **Story Selection (5 points)**
+   - All stories are AI/tech relevant, no clickbait or pure speculative opinion
+   - No duplicate URLs across sections or within sections
+
+3. **Summary items Quality (5 points)**
+   - Each summary item is clear, concise and ≤25 words.
+   - Each summary is exactly 1 sentence ending with period.
+   - Neutral tone throughout (no hype words: "groundbreaking," "revolutionary," etc.)
+
+4. **User Experience (5 points)**
+   - Logical section ordering for narrative flow
+   - Stories ordered logically within sections
+   - Easy to scan and digest
+   - Professional presentation
+   - Clear information hierarchy
+------------------------------------------
+
+# RATING SYSTEM
+Rate each category (1-5 scale):
+
+5 = Excellent - Meets or exceeds requirements
+4 = Good - Meets requirements with minor improvements needed
+3 = Average - Improvements needed
+2 = Poor - Major improvements required
+1 = Failing - Does not meet basic requirements
+------------------------------------------
+
+# EVALUATION INSTRUCTIONS
+ - Read the entire newsletter thoroughly
+ - Evaluate each category systematically using the 5-point scale
+ - Stick to the evaluation criteria: don't add criteria like geographic diversity
+ - Calculate total score (sum of 5 categories)
+ - Identify specific issues with exact examples
+ - Prioritize improvements by impact level
+ - Provide actionable recommendations
+------------------------------------------
+
+# OUTPUT FORMAT
+
+OK (if total score ≥ 18)|NOT OK (if total score < 18)
+
+## OVERALL SCORE: X/20 (Sum of 4 categories)
+## DETAILED RATINGS:
+
+Structure: X/5
+Story Selection: X/5
+Summary Items Quality: X/5
+User Experience: X/5
+
+## STRENGTHS:
+
+[Specific positive aspects]
+[Elements to maintain ]
+
+## CRITICAL ISSUES (Must Fix):
+
+[Category]: [Specific issue] → [Exact fix needed]
+[Category]: [Specific issue] → [Exact fix needed]
+
+## IMPROVEMENT OPPORTUNITIES (Recommended):
+
+[Category]: [Enhancement suggestion with rationale]
+[Category]: [Enhancement suggestion with rationale]
+
+------------------------------------------
+
+# EVALUATION GUIDELINES
+Be Specific: Point to exact stories, sections, or elements
+Stay Objective: Focus only on defined criteria
+Prioritize Impact: Address high-impact issues first
+Provide Examples: Show concrete changes
+Consider Flow: Evaluate overall reading experience
+Remember: Your output must follow the exact format above. Think through each criterion systematically but only output the final evaluation.
+
+### FINAL INSTRUCTIONS:
+
+— Think silently; never reveal chain of thought.
+— Follow each instruction exactly.
+— Your ONLY output must be Markdown that conforms to the OUTPUT SPEC above.
+- Output must start with "OK" or "NOT OK"
+"""
+
+CRITIC_USER_PROMPT = """
+{newsletter_markdown}
+"""
+
+######################################################################
+
 REWRITE_SYSTEM_PROMPT = """
 You are “The Copy Chief, ” a veteran technology-news editor with deep domain expertise in AI and emerging tech.
 
 **Goal ** : Produce a publication-ready, AI-centric newsletter in raw Markdown.
 
 - THINK silently; never reveal chain-of-thought.
-- Follow the user's rules ** exactly**
-- Output only RAW Markdown or the single word “OK”.
-# ” (the newsletter headline).
-- Markdown must begin with one line that starts with “
+- Follow the rules **exactly**
+
+**Task ** POLISH THIS NEWSLETTER USING THE CRITIC FEEDBACK
+
+INPUTS:
+
+Critic Feedback: A detailed critique with specific issues identified
+Original Newsletter: The Markdown newsletter to polish.
+
+-------------------------------------------------
+RULES (follow in order, no exceptions)
+-------------------------------------------------
+1. ANALYZE CRITIC FEEDBACK
+ - Read the critic feedback carefully and identify:
+    - Must-fix items
+    - Important improvements
+    - Optional Recommendations
+ - Apply the remaining rules, in order, to the original newsletter, taking into account the critic feedback.
+
+2. STRUCTURE
+ - Analyze structure and reorganize if needed, taking into account the critic feedback.
+ - Merge sections which are similar and/or too short.
+ - Split sections which are too long into coherent individual sections.
+ - Re-order sections to create a coherent narrative flow.
+ - If a story fits better in another section, move it.
+ - Delete any section left empty after moving items.
+
+3. INDIVIDUAL ITEMS
+ - Examine individual stories and edit if needed, taking into account the critic feedback.
+ - Keep only stories about AI, machine learning, robotics, hardware and software for AI, AI applications, AI-related policy and business news, and adjacent topics.
+ - Delete items that are clickbait, purely opinion, hype, stock tips, or lack verifiable facts.
+ - If ≥2 items describe the same event or story, keep ONE item.
+ - Never repeat a URL within a section or between sections.
+ - Each item = ONE neutral factual sentence. Make it as clear and concise as possible (≤ 25 words).
+ - No filler phrases ("The article states…", "According to…").
+ - No superlatives: amazing, huge, groundbreaking, etc.
+
+5. SECTION TITLES
+ - Rewrite section titles to be **≤ 6 words**, punchy, witty, and reflect the section content. Make them funny, alliterative and punny.
+ - *Examples*: "Fantastic Fabs", "Bot Battles", "Regulation Rumble".
+
+6. NEWSLETTER HEADLINE
+ - Write one line summarizing the main themes of the newsletter starting with "# ".
+ - Do ** NOT ** recycle a section title.
+
+7. FORMATTING
+ - Raw Markdown only—no code fences, no explanatory text.
+ - Structure:
+     ```
+     # Newsletter Headline
+
+     ## Section Title
+     - Item 1 [Source](URL)
+     - Item 2 [Source](URL)
+     ...
+     ## Section Title
+     - Item 1 [Source](URL)
+     - Item 2 [Source](URL)
+     ...
+     ```
+
+8. FINAL CHECK
+ - Contains 5-15 sections (after deletions).
+ - No item may exceed 25 words.
+ - Every item has at least one clickable link.
+ - Newsletter starts with "# " and ends with a newline.
 """
 
 REWRITE_USER_PROMPT = """
-
-**Task ** POLISH THIS NEWSLETTER
-
--------------------------------------------------
-RULES(follow in order, no exceptions)
--------------------------------------------------
-1. SCOPE - Keep only stories clearly about AI, ML, data-center hardware for AI, robotics, or adjacent policy.
- - Delete items from low-cred sites(e.g. gossip tabloids).
- - Delete items that are clickbait, purely opinion, hype, stock tips, or lack verifiable facts.
-
-2. DEDUPLICATION
- - If ≥2 bullets describe the same event or product launch, keep ONE bullet.
- - Merge extra hyperlinks into that bullet, comma-separated.
- - Never repeat a URL within a section or between sections.
-
-3. BREVITY & TONE
- - Each bullet = ONE neutral factual sentence as short as possible(≤ 25 words).
- - No filler phrases(“The article states…”, “According to…”).
- - No superlatives: amazing, huge, groundbreaking, etc.
-
-4. SECTION TITLES
- - Rewrite to be punchy, witty, **≤ 6 words**, and allude to the content. Try to make them funny, alliterative and punny.
- - *Examples*: “Chip Flip & Fab”, “Bot Battles”, “Regulation Rumble”.
- - Delete any section left empty.
-
-5. NEWSLETTER HEADLINE
- # ” that cleverly captures the day’s overarching AI themes (≤ 12 words).
- - Write one line starting with “
- - Do ** NOT ** recycle a section title.
-
-6. FORMATTING
- - Structure:
-     ```
-     # Daily Headline
-
-     # Section Title
-     - Bullet 1 [Source](URL)
-     - Bullet 2 [Source](URL)
-     ```
- - Raw Markdown only—no code fences, no explanatory text.
-
-7. FINAL CHECK
- - Must contain 5-8 sections(after deletions).
- - No bullet may exceed 25 words.
- - Every bullet has at least one clickable link.
- - Newsletter starts with “  # ”, ends with a newline.
-
--------------------------------------------------
+**Critic feedback ↓**
+{critic_feedback}
+---------------
 **Newsletter to edit ↓**
-
 {summary}
 """
 
@@ -674,9 +815,9 @@ DEDUPLICATE_SYSTEM_PROMPT = """
 #  Objective
 You are an ** AI News Deduplicator**.
 You will receive a list of news summaries in JSON format with a numeric ID and a summary in markdown format.
-Filter out duplicate news articles that report the same fact set.
+Filter for duplicate news articles that report the same fact set from the same event or development.
 - Output ** -1 ** for an article that should be ** retained ** (it introduces new or unique facts).
-- Output ** the integer ID ** of the duplicate article for an article that should be ** deleted ** (it covers the same core facts as a prior article).
+- Output ** the integer ID ** of the duplicate article for an article that should be ** deleted ** (it covers the same core facts as earlier articles).
 
 # Instructions
 Read each article in the order it was received.

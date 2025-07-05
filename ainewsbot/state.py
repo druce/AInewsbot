@@ -15,7 +15,10 @@ Key Features:
 - Use of machine learning models for clustering, topic extraction, and content summarization.
 - Modular design for easy customization and extension of the pipeline.
 """
-import pdb
+# flake8: noqa: E722
+# pylint: disable=W0718  # bare-except
+
+# import pdb
 import os
 import re
 import pickle
@@ -23,7 +26,6 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from collections import Counter, defaultdict
 import asyncio
-import aiofiles
 
 from typing import TypedDict, List, Tuple, Dict
 from urllib.parse import urlparse
@@ -34,6 +36,8 @@ import math
 import yaml
 import markdown
 
+import aiofiles
+
 import requests
 import tldextract
 from IPython.display import display  # , Audio
@@ -41,11 +45,11 @@ from IPython.display import display  # , Audio
 import numpy as np
 import pandas as pd
 
-from sklearn.cluster import DBSCAN
+# from sklearn.cluster import DBSCAN
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.metrics import pairwise_distances, silhouette_score, calinski_harabasz_score, davies_bouldin_score
+from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
 import hdbscan
-from hdbscan.validity import validity_index as dbcv
+# from hdbscan.validity import validity_index as dbcv
 
 import choix
 
@@ -53,23 +57,25 @@ from openai import OpenAI
 from openai import AsyncOpenAI
 import tiktoken
 
-import chromadb
-from chromadb.config import Settings
-from chromadb.utils import embedding_functions
-
 import langchain
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.errors import NodeInterrupt
 # import subprocess
 
+import chromadb
+from chromadb.config import Settings
+from chromadb.utils import embedding_functions
+
 from .llm import (paginate_df, process_dataframes, fetch_all_summaries,
                   filter_page_async, filter_df, filter_page_async_id,
                   filter_df_rows, filter_df_rows_with_probability,
                   get_all_canonical_topic_results, clean_topics,
-                  Stories, TopicSpecList, TopicHeadline, TopicCategoryList, SingleTopicSpec,
-                  Sites, StoryOrderList, Newsletter
                   )
+from .llm_output_schemas import (
+    Stories, TopicSpecList, TopicHeadline, TopicCategoryList, SingleTopicSpec,
+    Sites, StoryOrderList, Newsletter
+)
 # from ainb_sllm import (
 #     sfetch_all_summaries, sfilter_page_async)
 # from ainb_sllm import sfetch_all_summaries
@@ -78,7 +84,7 @@ from .scrape import (
 from .utilities import (log, delete_files, get_model, filter_unseen_urls_db,
                         nearest_neighbor_sort, send_gmail, unicode_to_ascii)
 from .config import (DOWNLOAD_DIR, TEXT_DIR, CHROMA_DB_PATH,
-                     SOURCECONFIG, SOURCES_EXPECTED,
+                     SOURCECONFIG,
                      CANONICAL_TOPICS, SQLITE_DB, COSINE_DISTANCE_THRESHOLD,
                      CHROMA_DB_COLLECTION, CHROMA_DB_EMBEDDING_FUNCTION,
                      HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST, SOURCE_REPUTATION,
@@ -95,6 +101,7 @@ from .prompts import (
     IMPORTANCE_SYSTEM_PROMPT, IMPORTANCE_USER_PROMPT,
     TOP_CATEGORIES_SYSTEM_PROMPT, TOP_CATEGORIES_USER_PROMPT,
     FINAL_SUMMARY_SYSTEM_PROMPT, FINAL_SUMMARY_USER_PROMPT,
+    CRITIC_SYSTEM_PROMPT, CRITIC_USER_PROMPT,
     REWRITE_SYSTEM_PROMPT, REWRITE_USER_PROMPT,
     TOPIC_ROUTER_SYSTEM_PROMPT, TOPIC_ROUTER_USER_PROMPT,
     PROMPT_BATTLE_SYSTEM_PROMPT5, PROMPT_BATTLE_USER_PROMPT5,
@@ -121,6 +128,7 @@ class AgentState(TypedDict):
     sources_reverse: dict[str, str]  # map file names to sources
     bullets: list[str]  # bullet points for summary email
     summary: str  # final summary
+    critic_feedback: str  # feedback from critic model on generated content
     cluster_topics: list[str]  # list of cluster topics
     topics_str: str  # edited topics
     n_edits: int  # count edit iterations so we don't keep editing forever
@@ -234,12 +242,12 @@ def calculate_clustering_metrics(embeddings_array, labels, clusterer=None):
     if 'silhouette_score' in metrics and n_clusters > 0:
         # Penalize too many small clusters or too few large clusters
         # Optimal around 10 clusters
-        cluster_balance = 1 / (1 + abs(np.log(n_clusters / 10)))
-        size_consistency = 1 / \
-            (1 + metrics.get('std_cluster_size', 0) /
-             max(metrics.get('avg_cluster_size', 1), 1))
-        # Penalize high noise
-        noise_penalty = 1 - min(metrics['noise_ratio'], 0.5)
+        # cluster_balance = 1 / (1 + abs(np.log(n_clusters / 10)))
+        # size_consistency = 1 / \
+        #     (1 + metrics.get('std_cluster_size', 0) /
+        #      max(metrics.get('avg_cluster_size', 1), 1))
+        # # Penalize high noise
+        # noise_penalty = 1 - min(metrics['noise_ratio'], 0.5)
 
         composite_score = (
             0.5 * max(metrics['silhouette_score'], 0) +  # Quality component
@@ -694,7 +702,8 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
 
     # TODO: probably best way to filter unseen urls would be to keep the full text in a vector database
     # or at least the embedding, then do a similarity search to find duplicates, like if you've seen
-    # something with 95% cosine similarity previously then skip it
+    # something with 95% cosine similarity previously then skip it (done, but should delete articles older
+    # than eg 30 days from vector db or it grows unbounded)
 
     # if keeping all articles, then should also store whether it was AI-related (currently in sqlite)
     # and whether it was used in daily summary, to be able to train on it
@@ -747,7 +756,7 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
     ])
     try:  # for idempotency
         aidf = aidf.drop(columns=['isAI'])
-    except Exception as exc:
+    except Exception:
         pass
         # error expected, no need to print
         # log("fn_filter_urls")
@@ -888,7 +897,7 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
 
     try:  # for idempotency
         aidf = aidf.drop(columns=['topic_str', 'title_topic_str'])
-    except Exception as exc:
+    except Exception:
         pass
 
     aidf = pd.merge(
@@ -1036,7 +1045,6 @@ def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
             except Exception as exc:
                 log(exc)
 
-    # send mail
     state["bullets"] = [make_bullet(row) for row in aidf.itertuples()]
     markdown_list = [f"{1 + row.id}. " +
                      make_bullet(row, include_topics=False)
@@ -1164,7 +1172,7 @@ def fn_download_pages(state: AgentState, model_low) -> AgentState:
     try:  # for idempotency in merge
         aidf = aidf.drop(
             columns=['path', 'last_updated', 'text_path', 'final_url'])
-    except Exception as exc:
+    except Exception:
         pass
         # error expected, no need to print
         # log("fn_download_pages")
@@ -1417,7 +1425,7 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
 
     aidf['input_str'] = aidf['title'] + "\n" + aidf['summary']
 
-    log(f"Rating recency")
+    log("Rating recency")
     # add points for recency
     yesterday = (datetime.now(timezone.utc)
                  - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -1433,7 +1441,7 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     aidf["recency_score"] = 2 * np.exp(-k * aidf["age"]) - 1
 
     # low quality articles
-    log(f"Rating spam probability")
+    log("Rating spam probability")
     aidf = asyncio.run(filter_df_rows_with_probability(aidf,
                                                        model=model_medium,
                                                        system_prompt=LOW_QUALITY_SYSTEM_PROMPT,
@@ -1444,7 +1452,7 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     log(f"low quality articles: {counts}")
 
     # on topic articles
-    log(f"Rating on-topic probability")
+    log("Rating on-topic probability")
     aidf = asyncio.run(filter_df_rows_with_probability(aidf,
                                                        model=model_medium,
                                                        system_prompt=ON_TOPIC_SYSTEM_PROMPT,
@@ -1452,10 +1460,10 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
                                                        output_column='on_topic',
                                                        input_column="input_str"))
     counts = aidf["on_topic"].value_counts().to_dict()
-    log(f"on topic articles: {counts}")
+    log("on topic articles: {counts}")
 
     # important articles
-    log(f"Rating importance probability")
+    log("Rating importance probability")
     aidf = asyncio.run(filter_df_rows_with_probability(aidf,
                                                        model=model_medium,
                                                        system_prompt=IMPORTANCE_SYSTEM_PROMPT,
@@ -1515,38 +1523,22 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     conn.commit()
     conn.close()
 
-    # Convert Markdown to HTML and send mail
-    markdown_extensions = [
-        # 'tables',
-        # 'fenced_code',
-        # 'codehilite',
-        'attr_list',
-        'def_list',
-        # 'footnotes',
-        'markdown.extensions.nl2br',
-        'markdown.extensions.sane_lists'
-    ]
-
-    markdown_str = "\n\n".join(aidf['bullet'])
-    html_str = markdown.markdown(markdown_str, extensions=markdown_extensions)
-    with open('bullets.html', 'w', encoding="utf-8") as f:
-        f.write(html_str)
-
-    # send email html_str
-    log("Sending bullet points email")
-    subject = f'AI news bullets {datetime.now().strftime("%H:%M:%S")}'
-    send_gmail(subject, html_str)
-
-    # same with a delimiter and no ID, to save as a txt file to use downstream
-    bullet_str = "\n~~~\n".join(aidf['bullet'])
-    with open('bullet_str.txt', 'w', encoding='utf-8') as f:
-        f.write(bullet_str)
-
     state["AIdf"] = aidf.to_dict(orient='records')
     return state
 
 
 async def get_embedding(client, item_id: str, file_path: str) -> Dict:
+    """
+    Get OpenAI embedding for a text file
+
+    Args:
+    client: AsyncOpenAI client
+    item_id: Unique identifier for the text
+    file_path: Path to the text file
+
+    Returns:
+    Dictionary with id and embedding
+    """
     try:
         async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
             text = await f.read()
@@ -1570,6 +1562,15 @@ async def get_embedding(client, item_id: str, file_path: str) -> Dict:
 
 
 async def get_openai_embeddings_df(aidf: pd.DataFrame) -> pd.DataFrame:
+    """
+    Get OpenAI embeddings for articles in aidf
+
+    Args:
+    aidf: Dataframe with articles
+
+    Returns:
+    Dataframe with embeddings
+    """
     log("get embeddings")
     client = AsyncOpenAI()
     tasks = []
@@ -1592,13 +1593,36 @@ async def get_openai_embeddings_df(aidf: pd.DataFrame) -> pd.DataFrame:
 
 
 def mmr_rank(
-    ratings,
-    embeddings,
+    ratings: List[float],
+    embeddings: List[np.ndarray],
     lambda_param: float = 0.5,
     top_k: int = 60
-) -> List:
+) -> List[int]:
     """
     returns list of indices of top_k documents
+    ranked using Maximum Marginal Relevance (MMR)
+
+    MMR is a ranking strategy that balances two different factors:
+     - The relevance of the document to the query
+     - The similarity of the document to previously selected documents
+
+    The goal is to select a diverse set of documents that are all relevant
+    to the query, without selecting too many similar documents.
+
+    The MMR score is calculated as a weighted sum of these two factors:
+     - lambda_param * rating (relevance to the query)
+     - (1 - lambda_param) * max_sim_to_selected (similarity to previously selected documents)
+
+    The documents are then ranked by their MMR score in descending order.
+
+    Args:
+        ratings: list of ratings (relevance scores) for each document
+        embeddings: list of embeddings for each document
+        lambda_param: float between 0 and 1, controls the relative importance of relevance and diversity
+        top_k: int, number of documents to select
+
+    Returns:
+        list of indices of top_k documents
     """
     log(f"mmr_rank with lambda={lambda_param}, top_k={top_k}")
     selected = []
@@ -1801,6 +1825,34 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
     # trim to < 10
     aidf['rating'] = aidf['rating'].clip(lower=0, upper=10)
     log(f"After deduping: {len(aidf)} rows")
+    aidf["bullet"] = aidf.apply(make_bullet, axis=1)
+
+    # Convert Markdown to HTML and send mail
+    markdown_extensions = [
+        # 'tables',
+        # 'fenced_code',
+        # 'codehilite',
+        'attr_list',
+        'def_list',
+        # 'footnotes',
+        'markdown.extensions.nl2br',
+        'markdown.extensions.sane_lists'
+    ]
+
+    markdown_str = "\n\n".join(aidf['bullet'])
+    html_str = markdown.markdown(markdown_str, extensions=markdown_extensions)
+    with open('bullets.html', 'w', encoding="utf-8") as f:
+        f.write(html_str)
+
+    # send email html_str
+    log("Sending bullet points email")
+    subject = f'AI news bullets {datetime.now().strftime("%H:%M:%S")}'
+    send_gmail(subject, html_str)
+
+    # same with a delimiter and no ID, to save as a txt file to use downstream
+    bullet_str = "\n~~~\n".join(aidf['bullet'])
+    with open('bullet_str.txt', 'w', encoding='utf-8') as f:
+        f.write(bullet_str)
 
     # select top articles using MMR
     aidf = mmr(aidf, lambda_param=0.5, top_k=MAX_ARTICLES)
@@ -1827,7 +1879,7 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
     print(prompt_str)
     ochain = prompt_template | model_high.with_structured_output(Newsletter)
     response = ochain.invoke({"cat_str": cat_str, "bullet_str": bullet_str})
-    state["summary"] = str(response)
+    state["summary"] = str(response)  # str representation converts to markdown
     # save bullet_str to local file
     try:
         filename = 'summary.md'
@@ -1842,8 +1894,31 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
     return state
 
 
+def fn_criticize_summary(state: AgentState, model_high) -> AgentState:
+    """Review summary using CRITIC_PROMPT"""
+    # possible TODO: evaluate with flesch-kincaid readability score
+    log(f"Evaluating summary using {str(type(model_high))}")
+
+    prompt_template = ChatPromptTemplate.from_messages([
+        ("system", CRITIC_SYSTEM_PROMPT),
+        ("user", CRITIC_USER_PROMPT)
+    ])
+
+    ochain = prompt_template | model_high | StrOutputParser()
+    critic_feedback = ochain.invoke({'newsletter_markdown': state['summary']})
+
+    state["critic_feedback"] = critic_feedback
+    state["n_edits"] += 1
+    if critic_feedback.strip().lower().startswith('OK'):
+        log("Summary is OK, edit complete")
+        state["edit_complete"] = True
+    else:
+        log("Summary requires revision")
+    return state
+
+
 def fn_rewrite_summary(state: AgentState, model_high) -> AgentState:
-    """Edit summary using REWRITE_PROMPT"""
+    """Review summary using REWRITE_PROMPT"""
     # possible TODO: evaluate with flesch-kincaid readability score
     log(f"Rewriting summary using {str(type(model_high))}")
 
@@ -1851,16 +1926,10 @@ def fn_rewrite_summary(state: AgentState, model_high) -> AgentState:
         ("system", REWRITE_SYSTEM_PROMPT),
         ("user", REWRITE_USER_PROMPT)
     ])
-    # openai_model = ChatOpenAI(model="o3-mini", reasoning_effort="high")
     ochain = prompt_template | model_high | StrOutputParser()
-    response_str = ochain.invoke({'summary': state["summary"]})
-
+    state['summary'] = ochain.invoke({'critic_feedback': state['critic_feedback'],
+                                     'summary': state['summary']})
     state["n_edits"] += 1
-    if response_str.strip().lower().startswith('ok'):
-        log("No edits made, edit complete")
-        state["edit_complete"] = True
-    else:
-        state["summary"] = response_str
     return state
 
 

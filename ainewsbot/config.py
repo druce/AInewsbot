@@ -53,13 +53,14 @@ MINIMUM_STORY_RATING = 2.5
 MAX_ARTICLES = 100
 # MAXPAGELEN = 50
 
-HOSTNAME_SKIPLIST = ['finbold.com']
-SITE_NAME_SKIPLIST = ['finbold']
+HOSTNAME_SKIPLIST = ['finbold.com', 'philarchive.org']
+SITE_NAME_SKIPLIST = ['finbold', 'philarchive.org']
 
 MODEL_FAMILY = {'gpt-4o-2024-11-20': 'openai',
                 'gpt-4o-mini': 'openai',
                 'o4-mini': 'openai',
                 'o3-mini': 'openai',
+                'o3': 'openai',
                 'gpt-4.5-preview': 'openai',
                 'gpt-4.1': 'openai',
                 'gpt-4.1-mini': 'openai',
