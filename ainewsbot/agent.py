@@ -115,7 +115,12 @@ class Agent:
         graph_builder.add_edge("Send email", END)
 
         # human in the loop should check web pages downloaded ok, and edit proposed categories
-        self.conn = sqlite3.connect('lg_checkpointer.db')
+        # Disable SQLite same-thread check so this connection can be reused by LangGraph nodes that may execute in
+        # different threads. LangGraph runs parts of the workflow concurrently, so the checkpointer connection has
+        # to be thread-safe. "check_same_thread=False" tells the sqlite3 driver to allow the connection to be shared.
+        # We rely on LangGraph's own locking as well as the SqliteSaver's internal mutex to serialize writes.
+        self.conn = sqlite3.connect(
+            'lg_checkpointer.db', check_same_thread=False)
         self.checkpointer = SqliteSaver(conn=self.conn)
         graph = graph_builder.compile(checkpointer=self.checkpointer,)
 #                                      interrupt_before=["filter_urls", "compose_summary",])
