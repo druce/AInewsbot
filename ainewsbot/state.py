@@ -18,7 +18,6 @@ Key Features:
 # flake8: noqa: E722
 # pylint: disable=W0718, W0702  # bare-except
 
-# import pdb
 import os
 import re
 import pickle
@@ -67,6 +66,8 @@ import chromadb
 from chromadb.config import Settings
 from chromadb.utils import embedding_functions
 
+from .utilities import trunc_tokens
+
 from .llm import (paginate_df, process_dataframes, fetch_all_summaries,
                   filter_page_async, filter_df, filter_page_async_id,
                   filter_df_rows, filter_df_rows_with_probability,
@@ -108,24 +109,6 @@ from .prompts import (
     DEDUPLICATE_SYSTEM_PROMPT, DEDUPLICATE_USER_PROMPT,
     SITE_NAME_PROMPT,
 )
-
-
-# Maximum tokens allowed for embedding models (< 8192 tokens)
-MAX_EMBEDDING_TOKENS = 8191
-
-
-def truncate_text_to_max_tokens(text: str, max_tokens: int = MAX_EMBEDDING_TOKENS, model_name: str = CHROMA_DB_EMBEDDING_FUNCTION) -> str:
-    """Truncate `text` so that its token length for `model_name` is below `max_tokens`."""
-    try:
-        encoding = tiktoken.encoding_for_model(model_name)
-    except KeyError:
-        # Fallback for unknown models
-        encoding = tiktoken.get_encoding("cl100k_base")
-    tokens = encoding.encode(text)
-    if len(tokens) > max_tokens:
-        tokens = tokens[:max_tokens]
-        text = encoding.decode(tokens)
-    return text
 
 
 class AgentState(TypedDict):
@@ -1142,7 +1125,7 @@ def fn_download_pages(state: AgentState, model_low) -> AgentState:
             # normalize the html file
             normalized_text = normalize_html(html_path)
             # Truncate to ensure we stay under the model's 8K token limit for embeddings
-            truncated_text = truncate_text_to_max_tokens(normalized_text)
+            truncated_text = trunc_tokens(normalized_text)
             # query for potential duplicates among documents created before before_date
             # note that if before_date is set, won't check duplicates from this run
             before_date = state.get("before_date")
@@ -1222,7 +1205,7 @@ def fn_download_pages(state: AgentState, model_low) -> AgentState:
                 with open(text_path, 'r', encoding='utf-8') as f:
                     text_str = f.read()
                 # Truncate to ensure we stay under the model's 8K token limit for embeddings
-                truncated_text = truncate_text_to_max_tokens(text_str)
+                truncated_text = trunc_tokens(text_str)
                 collection.upsert(
                     documents=[truncated_text],
                     ids=[text_path],

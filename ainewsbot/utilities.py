@@ -22,8 +22,10 @@ from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_anthropic import ChatAnthropic
 
+import tiktoken
+
 from .config import (SQLITE_DB, REQUEST_TIMEOUT,
-                     MODEL_FAMILY)
+                     MODEL_FAMILY, MAX_INPUT_TOKENS, CHROMA_DB_EMBEDDING_FUNCTION)
 
 # from ortools.constraint_solver import routing_enums_pb2
 # from ortools.constraint_solver import pywrapcp
@@ -73,6 +75,23 @@ def log(action_str, source_str="", level=logging.INFO):
 ############################################################################################################
 # utility functions
 ############################################################################################################
+
+
+def trunc_tokens(long_prompt, model=CHROMA_DB_EMBEDDING_FUNCTION, maxtokens=MAX_INPUT_TOKENS):
+    """return prompt string, truncated to maxtokens"""
+    # Initialize the encoding for the model you are using, e.g., 'gpt-4'
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+    except KeyError:
+        # Fallback for unknown models
+        encoding = tiktoken.get_encoding("cl100k_base")
+
+    # Encode the prompt into tokens, truncate, and return decoded prompt
+    tokens = encoding.encode(long_prompt)
+    if len(tokens) > maxtokens:
+        tokens = tokens[:maxtokens]
+        long_prompt = encoding.decode(tokens)
+    return long_prompt
 
 
 def get_model(model_name):

@@ -539,6 +539,7 @@ EVALUATION FRAMEWORK (20 POINTS TOTAL)
 3. **Summary items Quality (5 points)**
    - Each summary item is clear, concise and ≤25 words.
    - Each summary is exactly 1 sentence ending with period.
+   - Each summary has a clickable link.
    - Neutral tone throughout (no hype words: "groundbreaking," "revolutionary," etc.)
 
 4. **User Experience (5 points)**

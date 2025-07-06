@@ -1,4 +1,8 @@
 """Agent class for AInewsbot"""
+
+# flake8: noqa: E722
+# pylint: disable=W0718  # bare-except
+
 import argparse
 import uuid
 

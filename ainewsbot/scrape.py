@@ -20,7 +20,6 @@ import datetime
 from pathlib import Path
 
 from dateutil import parser as date_parser
-import tiktoken
 
 import requests
 from bs4 import BeautifulSoup
@@ -30,7 +29,7 @@ from playwright_stealth import Stealth
 
 import trafilatura
 
-from .utilities import log
+from .utilities import log, trunc_tokens
 from .config import (DOWNLOAD_DIR, PAGES_DIR, FIREFOX_PROFILE_PATH,  # SCREENSHOT_DIR,
                      MIN_TITLE_LEN, SLEEP_TIME, MAX_INPUT_TOKENS)
 
@@ -147,19 +146,6 @@ def sanitize_filename(filename):
     trunc_len = 255 - len(datestr) - len(sep) - len(".html") - 1
     filename = filename[:trunc_len]
     return filename
-
-
-def trunc_tokens(long_prompt, model='gpt-4o', maxtokens=MAX_INPUT_TOKENS):
-    """return prompt string, truncated to maxtokens"""
-    # Initialize the encoding for the model you are using, e.g., 'gpt-4'
-    encoding = tiktoken.encoding_for_model(model)
-
-    # Encode the prompt into tokens, truncate, and return decoded prompt
-    tokens = encoding.encode(long_prompt)
-    tokens = tokens[:maxtokens]
-    truncated_prompt = encoding.decode(tokens)
-
-    return truncated_prompt
 
 
 def normalize_html(path: Path | str) -> str:
