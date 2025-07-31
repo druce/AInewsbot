@@ -523,6 +523,7 @@ A raw Markdown newsletter string, consisting of several sections, each containin
 EVALUATION FRAMEWORK (20 POINTS TOTAL)
 
 1. **Structure (5 points)**
+   - Newsleader headline
    - 8-15 themed sections plus "Other News" section
    - Each themed section has ≤7 stories; large sections should be split
    - "Other News" has no story limit
@@ -531,6 +532,7 @@ EVALUATION FRAMEWORK (20 POINTS TOTAL)
    - Section titles are unique and ≤6 words
    - Section titles accurately reflect content
    - Stories are properly categorized by theme
+   - No extraneous comment, summary or table of contents, just newsleader headline, sections with bullet points
 
 2. **Story Selection (5 points)**
    - All stories are AI/tech relevant, no clickbait or pure speculative opinion

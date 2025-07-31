@@ -5,15 +5,20 @@ dotenv.load_dotenv()
 
 REQUEST_TIMEOUT = 120
 
-DOWNLOAD_DIR = "download_sources"
-PAGES_DIR = 'download_html'
-TEXT_DIR = 'download_text'
-SCREENSHOT_DIR = 'download_screenshots'
-CHROMA_DB_DIR = "chromadb"
+DOWNLOAD_ROOT = "download"
+DOWNLOAD_DIR = os.path.join(DOWNLOAD_ROOT, "sources")
+PAGES_DIR = os.path.join(DOWNLOAD_ROOT, 'html')
+TEXT_DIR = os.path.join(DOWNLOAD_ROOT, 'text')
+SCREENSHOT_DIR = os.path.join(DOWNLOAD_ROOT, 'screenshots')
+
+DATA_ROOT = "data"
+CHROMA_DB_DIR = os.path.join(DATA_ROOT, "chromadb")
 CHROMA_DB_NAME = "chroma_articles"
 CHROMA_DB_PATH = os.path.join(CHROMA_DB_DIR, CHROMA_DB_NAME)
 CHROMA_DB_COLLECTION = "articles"
 CHROMA_DB_EMBEDDING_FUNCTION = "text-embedding-3-large"
+
+OUTPUT_DIR = "out"
 # 10% similarity
 # I am storing metadata in the doc, so titles, keywords might change, need a higher threshold
 COSINE_DISTANCE_THRESHOLD = .1
@@ -36,7 +41,7 @@ SLEEP_TIME = 10
 # NUM_BROWSERS = 4
 # BROWSERS = []
 
-SQLITE_DB = 'articles.db'
+SQLITE_DB = os.path.join(DATA_ROOT, 'articles.db')
 
 # note that token count may not be accurate for eg google, anthropic
 

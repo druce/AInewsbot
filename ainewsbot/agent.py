@@ -5,6 +5,7 @@
 
 import argparse
 import uuid
+import sqlite3
 
 import nest_asyncio
 
@@ -12,7 +13,6 @@ import pandas as pd
 
 from IPython.display import display, Markdown  # , Audio
 
-import sqlite3
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import StateGraph, START, END
 

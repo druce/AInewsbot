@@ -31,10 +31,12 @@ Run this script directly to execute the AInewsbot workflow, or import it as a mo
 to use the `Agent` class and related functions programmatically.
 """
 
+import os
 import argparse
 import nest_asyncio
 import langchain
 
+from ainewsbot.config import OUTPUT_DIR
 from ainewsbot.agent import initialize_agent
 from ainewsbot.utilities import log
 
@@ -91,7 +93,7 @@ if __name__ == "__main__":
 
     log(f"thread_id: {thread_id}")
     # save in case we want to get the last state from Sqlite and inpsect or resume in Jupyter
-    with open('thread_id.txt', 'w', encoding="utf-8") as file:
+    with open(os.path.join(OUTPUT_DIR, 'thread_id.txt'), 'w', encoding="utf-8") as file:
         file.write(thread_id)
     config = {"configurable": {"thread_id": thread_id}}
     lg_state = lg_agent.run(lg_state, config)

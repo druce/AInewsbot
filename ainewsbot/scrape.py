@@ -2,6 +2,18 @@
 Web scraping utilities.
 
 This module contains functions used for web scraping from web sites in sources.yaml and individual news stories.
+
+one way to refactor this is to instantiate a class for each site
+base on https://www.scrapy.org/
+with playwright integration https://github.com/scrapy-plugins/scrapy-playwright
+initialize with parameters from sources.yaml
+
+can use also rss for many of these
+
+seemingly not maintained
+https://github.com/AndyTheFactory/newspaper4k
+https://github.com/fhamborg/news-please
+
 """
 # flake8: noqa: E722
 # pylint: disable=W0718  # bare-except

@@ -84,12 +84,13 @@ from .scrape import (
     parse_file, fetch_queue, fetch_source_queue, normalize_html,)
 from .utilities import (log, delete_files, get_model, filter_unseen_urls_db,
                         nearest_neighbor_sort, send_gmail, unicode_to_ascii)
-from .config import (DOWNLOAD_DIR, TEXT_DIR, CHROMA_DB_PATH,
+from .config import (DOWNLOAD_DIR, TEXT_DIR, PAGES_DIR, SCREENSHOT_DIR, OUTPUT_DIR,
+                     CHROMA_DB_PATH, DATA_ROOT,
                      SOURCECONFIG,
                      CANONICAL_TOPICS, SQLITE_DB, COSINE_DISTANCE_THRESHOLD,
                      CHROMA_DB_COLLECTION, CHROMA_DB_EMBEDDING_FUNCTION,
                      HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST, SOURCE_REPUTATION,
-                     SCREENSHOT_DIR, MINIMUM_STORY_RATING, MAX_ARTICLES)
+                     MINIMUM_STORY_RATING, MAX_ARTICLES)
 
 from .prompts import (
     FILTER_SYSTEM_PROMPT, FILTER_USER_PROMPT,
@@ -306,8 +307,8 @@ def fn_initialize(state: AgentState) -> AgentState:
         # empty download directories
         log("Deleting existing files")
         delete_files(DOWNLOAD_DIR)
-        # delete_files(PAGES_DIR)
-        # loop through directory, grab name, delete if > 60 days old
+        delete_files(PAGES_DIR)
+        delete_files(TEXT_DIR)
         delete_files(SCREENSHOT_DIR)
 
     #  load sources to scrape from sources.yaml
@@ -636,7 +637,7 @@ def fix_missing_site_names(aidf: pd.DataFrame, model_low) -> pd.DataFrame:
     based on the sites table in the SQLite database.
     If any site names are missing, populate them using OpenAI.
     """
-    conn = sqlite3.connect('articles.db')
+    conn = sqlite3.connect(SQLITE_DB)
     query = "select * from sites"
     sites_df = pd.read_sql_query(query, conn)
     sites_dict = {row.hostname: row.site_name for row in sites_df.itertuples()}
@@ -982,7 +983,7 @@ def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
     # do dimensionality reduction on embedding_df and cluster analysis
     # save and use new reducer
     log("Load umap dimensionality reduction model")
-    with open("umap_reducer.pkl", 'rb') as pklfile:
+    with open(os.path.join(DATA_ROOT, "umap_reducer.pkl"), 'rb') as pklfile:
         # Load the model from the file
         reducer = pickle.load(pklfile)
     log("Perform dimensionality reduction")
@@ -1053,7 +1054,7 @@ def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
     markdown_str = markdown_str.replace('•', '\n  - ')
 
     # save bullets
-    with open('bullets.md', 'w', encoding="utf-8") as f:
+    with open(os.path.join(OUTPUT_DIR, 'bullets.md'), 'w', encoding="utf-8") as f:
         f.write(markdown_str)
 
     state["AIdf"] = aidf.to_dict(orient='records')
@@ -1090,14 +1091,17 @@ def fn_download_pages(state: AgentState, model_low) -> AgentState:
     saved_pages = asyncio.run(fetch_queue(queue, state['n_browsers']))
     # pdb.set_trace()
     pages_df = pd.DataFrame(saved_pages)
+    log(f"Saved {len(pages_df)} HTML files")
     if len(pages_df):
         pages_df.columns = ['id', 'url', 'title', 'path', 'last_updated']
+
     openai_ef = embedding_functions.OpenAIEmbeddingFunction(
         model_name=CHROMA_DB_EMBEDDING_FUNCTION,
         api_key=os.getenv("OPENAI_API_KEY")
     )
 
     if not os.path.exists(CHROMA_DB_PATH):
+        log(f"Creating ChromaDB at {CHROMA_DB_PATH}")
         os.makedirs(CHROMA_DB_PATH)
         # Create a Chroma vector store in CHROMA_DB_PATH if it does not exist
         client = chromadb.PersistentClient(
@@ -1113,10 +1117,17 @@ def fn_download_pages(state: AgentState, model_low) -> AgentState:
     collection = client.get_or_create_collection(CHROMA_DB_COLLECTION,
                                                  embedding_function=openai_ef,
                                                  )
+    # delete documents older than 90 days
+    collection.delete(
+        where={"created": {"$lt": datetime.now(
+            timezone.utc).timestamp() - 90 * 24 * 60 * 60}}
+    )
 
     # Loop through pages_df rows, open each file, normalize text, and store in ChromaDB
     text_path_dict = {}
+    log(f"Checking {len(pages_df)} documents for duplicates in ChromaDB")
     for row in pages_df.itertuples():
+        log(f"Checking {row.path} for duplicate in ChromaDB")
         try:
             html_path = row.path
             if not html_path or not os.path.exists(html_path):
@@ -1191,7 +1202,7 @@ def fn_download_pages(state: AgentState, model_low) -> AgentState:
     # delete rows with duplicate final_url
     aidf = aidf.drop_duplicates(subset="final_url", keep="first")
 
-    log("Upserting text into ChromaDB with current datetime")
+    log("Upserting new files into ChromaDB with current datetime")
     for row in aidf.itertuples():
         try:
             # Upsert into ChromaDB
@@ -1200,12 +1211,14 @@ def fn_download_pages(state: AgentState, model_low) -> AgentState:
             # check if article is > eg .1 cosine distance to any existing articles and if so upsert
             ts = datetime.now(timezone.utc).timestamp()
             text_path = row.text_path
+            log(f"Upserting {row.text_path} into ChromaDB")
             if text_path and os.path.exists(text_path):
                 # Read the text file
                 with open(text_path, 'r', encoding='utf-8') as f:
                     text_str = f.read()
                 # Truncate to ensure we stay under the model's 8K token limit for embeddings
                 truncated_text = trunc_tokens(text_str)
+                # Delete documents older than 90 days
                 collection.upsert(
                     documents=[truncated_text],
                     ids=[text_path],
@@ -1224,7 +1237,7 @@ def fn_download_pages(state: AgentState, model_low) -> AgentState:
 
     state["AIdf"] = aidf.to_dict(orient='records')
     # Pickle AIdf to AIdf.pkl
-    aidf.to_pickle("AIdf.pkl")
+    aidf.to_pickle(os.path.join(DATA_ROOT, "AIdf.pkl"))
     return state
 
 
@@ -1527,7 +1540,7 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     records = aidf[cols].to_records(index=False)
     rows = list(records)
 
-    conn = sqlite3.connect('articles.db')
+    conn = sqlite3.connect(SQLITE_DB)
     cursor = conn.cursor()
     insert_sql = """
     INSERT INTO daily_summaries
@@ -1750,7 +1763,7 @@ def fn_propose_topics(state: AgentState, model_high: any) -> AgentState:
 
     # save topics to local file
     try:
-        filename = 'topics.txt'
+        filename = os.path.join(OUTPUT_DIR, 'topics.txt')
         with open(filename, 'w', encoding="utf-8") as topicfile:
             topicfile.write(state["topics_str"])
         log(f"Topics successfully saved to {filename}.")
@@ -1856,7 +1869,7 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
 
     markdown_str = "\n\n".join(aidf['bullet'])
     html_str = markdown.markdown(markdown_str, extensions=markdown_extensions)
-    with open('bullets.html', 'w', encoding="utf-8") as f:
+    with open(os.path.join(OUTPUT_DIR, 'bullets.html'), 'w', encoding="utf-8") as f:
         f.write(html_str)
 
     # send email html_str
@@ -1866,7 +1879,7 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
 
     # same with a delimiter and no ID, to save as a txt file to use downstream
     bullet_str = "\n~~~\n".join(aidf['bullet'])
-    with open('bullet_str.txt', 'w', encoding='utf-8') as f:
+    with open(os.path.join(OUTPUT_DIR, 'bullet_str.txt'), 'w', encoding='utf-8') as f:
         f.write(bullet_str)
 
     # select top articles using MMR
@@ -1897,7 +1910,7 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
     state["summary"] = str(response)  # str representation converts to markdown
     # save bullet_str to local file
     try:
-        filename = 'summary.md'
+        filename = os.path.join(OUTPUT_DIR, 'summary.md')
         with open(filename, 'w', encoding="utf-8") as summaryfile:
             summaryfile.write(state.get("summary"))
             log(f"Markdown content successfully saved to {filename}.")

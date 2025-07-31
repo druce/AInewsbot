@@ -99,7 +99,11 @@ def get_model(model_name):
     if model_name in MODEL_FAMILY:
         model_type = MODEL_FAMILY[model_name]
         if model_type == 'openai':
-            return ChatOpenAI(model=model_name, request_timeout=REQUEST_TIMEOUT)
+            if model_name in ['o4-mini', 'o4', 'o1-mini', 'o1', 'o1-preview']:
+                # these models don't support temperature
+                return ChatOpenAI(model=model_name, request_timeout=REQUEST_TIMEOUT)
+            else:
+                return ChatOpenAI(model=model_name, request_timeout=REQUEST_TIMEOUT, temperature=0.3)
         elif model_type == 'google':
             return ChatGoogleGenerativeAI(model=model_name, request_timeout=REQUEST_TIMEOUT, verbose=True)
         elif model_type == 'anthropic':
