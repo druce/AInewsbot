@@ -8,6 +8,7 @@ import uuid
 import sqlite3
 import os
 import nest_asyncio
+from typing import Any, Tuple, Dict, Optional
 
 import pandas as pd
 
@@ -230,7 +231,7 @@ class Agent:
         self.state = fn_send_mail(state)
         return self.state
 
-    def run(self, state, runconfig):
+    def run(self, state: AgentState, runconfig: Dict[str, Any]) -> AgentState:
         """run the agent"""
         # The config is the **second positional argument** to stream() or invoke()!
         events = self.graph.stream(state, runconfig, stream_mode="values")
@@ -251,14 +252,23 @@ class Agent:
                         "src").count()[['id']])
                 elif event.get('sources'):
                     log(list(event.get('sources').keys()))
+            except KeyError as exc:
+                log(f'Missing key in event data: {exc}')
+            except AttributeError as exc:
+                log(f'Attribute error processing event: {exc}')
             except Exception as exc:
-                log('run exception')
-                log(exc)
+                log(f'Unexpected error in run loop: {exc}')
 
         return self.state
 
 
-def initialize_agent(model_low, model_medium, model_high, do_download=True, before_date=None, max_edits=MAX_EDITS, n_browsers=N_BROWSERS):  # pylint: disable=redefined-outer-name
+def initialize_agent(model_low: str,
+                     model_medium: str,
+                     model_high: str,
+                     do_download: bool = True,
+                     before_date: Optional[str] = None,
+                     max_edits: int = MAX_EDITS,
+                     n_browsers: int = N_BROWSERS) -> Tuple[AgentState, Agent, str]:  # pylint: disable=redefined-outer-name
     """set initial state"""
     state = AgentState({
         'AIdf': [{}],

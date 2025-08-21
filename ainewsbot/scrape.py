@@ -26,6 +26,7 @@ import platform
 from urllib.parse import urljoin, urlparse
 # import pdb
 import json
+from typing import Dict, List, Tuple, Optional, Union, Any
 
 import random
 import time
@@ -35,9 +36,8 @@ from dateutil import parser as date_parser
 
 import requests
 from bs4 import BeautifulSoup
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 from playwright_stealth import Stealth
-
 
 import trafilatura
 
@@ -50,7 +50,7 @@ _domain_locks = {}
 _domain_last_access = {}
 _RATE_LIMIT_SECONDS = 5
 
-def get_og_tags(source):
+def get_og_tags(source: str) -> Dict[str, str]:
     """
     Fetches Open Graph og: tags from a given URL or local file and returns them as a dictionary.
 
@@ -76,8 +76,12 @@ def get_og_tags(source):
                 content = f.read()
         except FileNotFoundError:
             log(f"Error: File not found at {source}")
-        except Exception as e:
-            log(f"Error reading file {source}: {e}")
+        except PermissionError as e:
+            log(f"Permission denied reading file {source}: {e}")
+        except UnicodeDecodeError as e:
+            log(f"Encoding error reading file {source}: {e}")
+        except OSError as e:
+            log(f"OS error reading file {source}: {e}")
 
     if content:
         soup = BeautifulSoup(content, "html.parser")
@@ -100,7 +104,7 @@ def get_og_tags(source):
     return result_dict
 
 
-def get_path_from_url(url):
+def get_path_from_url(url: str) -> str:
     """
     Extracts the path following the top-level domain name from a URL.
 
@@ -111,7 +115,7 @@ def get_path_from_url(url):
     return parsed_url.path
 
 
-def trimmed_href(link):
+def trimmed_href(link: Union[str, Any]) -> Optional[str]:
     """
     Trims everything in the link after a question mark such as a session ID.
 
@@ -136,7 +140,7 @@ def trimmed_href(link):
         return s
 
 
-def sanitize_filename(filename):
+def sanitize_filename(filename: str) -> str:
     """
     Sanitizes a filename by removing unsafe characters and ensuring it is valid.
 
@@ -181,9 +185,14 @@ def normalize_html(path: Path | str) -> str:
     try:
         with open(path, 'r', encoding='utf-8') as file:
             html_content = file.read()
-    except Exception as exc:
-        log(f"Error: {str(exc)}")
-        log(f"Skipping {path}")
+    except FileNotFoundError as exc:
+        log(f"File not found: {path}")
+        return ""
+    except PermissionError as exc:
+        log(f"Permission denied reading {path}: {exc}")
+        return ""
+    except UnicodeDecodeError as exc:
+        log(f"Encoding error reading {path}: {exc}")
         return ""
 
     # Parse the HTML content using trafilatura
@@ -194,9 +203,9 @@ def normalize_html(path: Path | str) -> str:
         title_tag = soup.find("title")
         title_str = "Page title: " + title_tag.string.strip() + \
             "\n" if title_tag and title_tag.string else ""
-    except Exception as exc:
+    except (AttributeError, TypeError) as exc:
         title_str = ""
-        log(str(exc), "clean_html page_title")
+        log(f"Error extracting page title: {exc}")
 
     try:
         # Try to get the title from the Open Graph meta tag
@@ -207,9 +216,9 @@ def normalize_html(path: Path | str) -> str:
         og_title = og_title_tag["content"].strip(
         ) + "\n" if og_title_tag and og_title_tag.get("content") else ""
         og_title = "Social card title: " + og_title if og_title else ""
-    except Exception as exc:
+    except (AttributeError, KeyError, TypeError) as exc:
         og_title = ""
-        log(str(exc), "clean_html og_title")
+        log(f"Error extracting og:title: {exc}")
 
     try:
         # get summary from social media cards
@@ -221,18 +230,18 @@ def normalize_html(path: Path | str) -> str:
         og_desc = og_desc_tag.get("content").strip() + \
             "\n" if og_desc_tag else ""
         og_desc = 'Social card description: ' + og_desc if og_desc else ""
-    except Exception as exc:
+    except (AttributeError, KeyError, TypeError) as exc:
         og_desc = ""
-        log(str(exc), "clean_html og_desc")
+        log(f"Error extracting og:description: {exc}")
 
     # Get text and strip leading/trailing whitespace
     log(title_str + og_title + og_desc, "clean_html")
     try:
         plaintext = trafilatura.extract(html_content)
         plaintext = plaintext.strip() if plaintext else ""
-    except Exception as exc:
+    except (ImportError, RuntimeError, ValueError) as exc:
         plaintext = html_content
-        log(str(exc), "clean_html trafilatura")
+        log(f"Trafilatura extraction failed: {exc}")
 
     # remove special tokens, have found in artiles about tokenization
     # All OpenAI special tokens follow the pattern <|something|>
@@ -244,7 +253,7 @@ def normalize_html(path: Path | str) -> str:
     return visible_text
 
 
-async def get_browser(p):
+async def get_browser(p: Any) -> BrowserContext:
     """
     Initializes a Playwright browser instance with stealth settings.
 
@@ -310,7 +319,7 @@ async def get_browser(p):
     return b
 
 
-async def apply_stealth_script(context):
+async def apply_stealth_script(context: BrowserContext) -> None:
     """Apply stealth settings to a new page using playwright_stealth."""
     stealth = Stealth()
     page = await context.new_page()
@@ -318,7 +327,7 @@ async def apply_stealth_script(context):
     await page.close()
 
 
-async def perform_human_like_actions(page):
+async def perform_human_like_actions(page: Page) -> Page:
     """Perform random human-like actions on the page to mimic real user behavior."""
     # Random mouse movements
     for _ in range(random.randint(3, 8)):
@@ -360,7 +369,9 @@ async def perform_human_like_actions(page):
     return page
 
 
-async def worker(queue, browser, results):
+async def worker(queue: asyncio.Queue,
+                 browser: BrowserContext,
+                 results: List[Tuple[int, str, str, str, Optional[str]]]) -> None:
     """Worker function for asynchronous url processing
     fetch URLs from queue until empty,
     calling fetch_url using browser, append to results.
@@ -376,8 +387,6 @@ async def worker(queue, browser, results):
     while True:
         try:
             idx, url, title = await queue.get()
-            domain = urlparse(url).netloc
-            log(f"from queue: {idx}, {url} , {title}")
         except asyncio.QueueEmpty:
             return
 
@@ -390,6 +399,9 @@ async def worker(queue, browser, results):
             queue.task_done()
             continue
 
+        domain = urlparse(url).netloc
+        log(f"from queue: {idx}, {url} , {title}")
+
         # skip urls from domains in ignore_list, just return empty path
         if domain in ignore_list:
             log(f"Skipping fetch for {idx} {url} {title}")
@@ -397,23 +409,45 @@ async def worker(queue, browser, results):
             queue.task_done()
             continue
 
-        # Check if the domain is currently rate-limited
-        now = time.monotonic()
-        last_access = _domain_last_access.get(domain, 0)
-        time_since_last = now - last_access
-        if time_since_last < _RATE_LIMIT_SECONDS:
-            wait_time = _RATE_LIMIT_SECONDS - time_since_last
+        # create domain lock if it doesn't exist
+        lock = _domain_locks.setdefault(domain, asyncio.Lock())
+
+        # Check rate limit atomically
+        should_wait = False
+        wait_time = 0
+
+        async with lock:
+            now = time.monotonic()
+            last_access = _domain_last_access.get(domain, 0)
+            time_since_last = now - last_access
+
+            if time_since_last < _RATE_LIMIT_SECONDS:
+                should_wait = True
+                wait_time = _RATE_LIMIT_SECONDS - time_since_last
+            else:
+                # Update timestamp and proceed
+                _domain_last_access[domain] = now
+
+        # and we give up the lock
+        # note we are only checking the access time and updating it inside the lock block
+        # this is to prevent race conditions
+        # if the fetch takes a long time a we could have overlapping fetches
+        # but overall will only get 1 fetch per domain per _RATE_LIMIT_SECONDS
+
+        # Handle rate limiting and fetching OUTSIDE the lock
+        if should_wait:
+            # put it back in the queue
             log(f"Domain {domain} is rate-limited. Re-queuing {url}.")
-            await queue.put((idx, url, title))
+            await queue.put((idx, url, title))  # ✅ Outside lock
             queue.task_done()
 
-            # Check if next item in queue is from same domain to decide wait time
+            # how long to wait
             should_wait_full = False
             # Peek at the next item in queue (we know queue has items since we just added one)
             try:
                 next_item = queue._queue[0]  # Peek at front of queue
                 next_domain = urlparse(next_item[1]).netloc  # next_item[1] is the URL
-                if next_domain == domain:
+                if next_domain == domain: # same domain, maybe same item
                     should_wait_full = True
                     log(f"Next item also from {domain}, wait full rate limit")
             except (IndexError, AttributeError):
@@ -423,30 +457,27 @@ async def worker(queue, browser, results):
                 log(f"Waiting {wait_time:.1f}s for rate limit to expire")
                 await asyncio.sleep(wait_time + 0.1)
             else:
-                await asyncio.sleep(0.1)  # Brief sleep to prevent busy-loop
+                await asyncio.sleep(0.5)  # Brief sleep to prevent busy-loop
+                # so anyway, at least in the case where 2 in a row are different domains we won't pause the full time
             continue
 
-        try:
-            # Get or create a lock for this domain
-            lock = _domain_locks.setdefault(domain, asyncio.Lock())
-            async with lock:
-                # Update last access time before making the request, even if fetch blocks it won't be null or way old
-                _domain_last_access[domain] = time.monotonic()
-                # fetch_url
-                html_path, last_updated, final_url = await fetch_url(url, title, browser, destination=PAGES_DIR)
-                # Update last access time after making the request in case it blocked for a while
-                _domain_last_access[domain] = time.monotonic()
-
-            # append to results
-            results.append(
-                (idx, final_url, title, html_path, last_updated))
-        except Exception as exc:
-            log(f"Error fetching {url}: {exc}")
-        finally:
-            queue.task_done()
+        else:
+            # Make request (no lock needed here)
+            try:
+                log(f"Fetching {url}")
+                html_path, last_updated, final_url = await fetch_url(url, title, browser)
+                results.append((idx, final_url, title, html_path, last_updated))
+            except asyncio.TimeoutError as exc:
+                log(f"Timeout fetching {url}: {exc}")
+            except (ConnectionError, OSError) as exc:
+                log(f"Network error fetching {url}: {exc}")
+            except Exception as exc:
+                log(f"Unexpected error fetching {url}: {exc}")
+            finally:
+                queue.task_done()
 
 
-async def fetch_queue(queue, concurrency):
+async def fetch_queue(queue: asyncio.Queue, concurrency: int) -> List[Tuple[int, str, str, str, Optional[str]]]:
     """
     Processes a queue of URLs concurrently using a specified number of workers.
 
@@ -482,7 +513,7 @@ async def fetch_queue(queue, concurrency):
 # 5. update get_browser below to use chrome and new profile. potentially ask o3 to look at your code and suggest a good stealth calling template.
 
 
-async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=0, initial_sleep=SLEEP_TIME, destination=DOWNLOAD_DIR):
+async def fetch_url(url: str, title: str, browser_context: Optional[BrowserContext] = None, click_xpath: Optional[str] = None, scrolls: int = 0, initial_sleep: float = SLEEP_TIME, destination: str = DOWNLOAD_DIR) -> Tuple[Optional[str], Optional[str], Optional[str]]:
     """
     Fetches a URL using a Playwright browser context.
 
@@ -612,7 +643,7 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
                     dt = dt.replace(tzinfo=datetime.timezone.utc)
                 dt_utc = dt.astimezone(datetime.timezone.utc)
                 last_updated = dt_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
-            except Exception as e:
+            except (ValueError, TypeError) as e:
                 log(f"Could not parse last_updated '{last_updated}': {e}")
                 # set to 1 day ago
                 last_updated = (datetime.datetime.now(
@@ -638,12 +669,18 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
         await page.close()
 
         return html_path, last_updated, final_url
+    except asyncio.TimeoutError as exc:
+        log(f"Timeout error fetching {url}: {exc}")
+        return None, None, None
+    except (ConnectionError, OSError) as exc:
+        log(f"Network error fetching {url}: {exc}")
+        return None, None, None
     except Exception as exc:
-        log(f"Error fetching {url}: {exc}")
+        log(f"Unexpected error fetching {url}: {exc}")
         return None, None, None
 
 
-async def fetch_source(source_dict, browser_context=None):
+async def fetch_source(source_dict: Dict[str, Any], browser_context: Optional[BrowserContext] = None) -> Tuple[str, Optional[str]]:
     """
     Fetches a landing page using fetch_url and parameters defined in sources.yaml.
     source_dict is the landing page parameters loaded from sources.yaml.
@@ -676,7 +713,7 @@ async def fetch_source(source_dict, browser_context=None):
     return (sourcename, file_path)
 
 
-async def fetch_source_queue(queue, concurrency):
+async def fetch_source_queue(queue: asyncio.Queue, concurrency: int) -> List[Tuple[str, Optional[str]]]:
     """
     Processes a queue of sources concurrently using a specified number of workers.
 
@@ -721,7 +758,7 @@ async def fetch_source_queue(queue, concurrency):
     return results
 
 
-def parse_file(source_dict):
+def parse_file(source_dict: Dict[str, Any]) -> List[Dict[str, str]]:
     """
     Parse a saved HTML file and return a list of dictionaries with title, url, src for each link in the file.
 

@@ -7,6 +7,7 @@ import unicodedata
 from datetime import datetime
 import sqlite3
 import smtplib
+from typing import Optional, Any, List, Union
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -46,7 +47,7 @@ else:
     LOGGER = None
 
 
-def log(action_str, source_str="", level=logging.INFO):
+def log(action_str: str, source_str: str = "", level: int = logging.INFO) -> None:
     """Output a log message with timestamp, action, source, and severity level.
 
     Args:
@@ -77,7 +78,7 @@ def log(action_str, source_str="", level=logging.INFO):
 ############################################################################################################
 
 
-def trunc_tokens(long_prompt, model=CHROMA_DB_EMBEDDING_FUNCTION, maxtokens=MAX_INPUT_TOKENS):
+def trunc_tokens(long_prompt: str, model: str = CHROMA_DB_EMBEDDING_FUNCTION, maxtokens: int = MAX_INPUT_TOKENS) -> str:
     """return prompt string, truncated to maxtokens"""
     # Initialize the encoding for the model you are using, e.g., 'gpt-4'
     try:
@@ -94,7 +95,7 @@ def trunc_tokens(long_prompt, model=CHROMA_DB_EMBEDDING_FUNCTION, maxtokens=MAX_
     return long_prompt
 
 
-def get_model(model_name):
+def get_model(model_name: str) -> Optional[Any]:
     """get langchain model based on model_name"""
     # might output headers including API keys if verbose_mode is True
     verbose_mode = os.getenv('MODEL_VERBOSE', 'false').lower() == 'true'
@@ -116,7 +117,7 @@ def get_model(model_name):
         return None
 
 
-def delete_files(download_dir):
+def delete_files(download_dir: str) -> None:
     """
     Deletes non-hidden files in the specified directory.
 
@@ -144,11 +145,13 @@ def delete_files(download_dir):
             elif os.path.isdir(file_path):
                 # If you want to remove subdirectories as well, use os.rmdir() here
                 pass
-        except Exception as e:
-            log(f'Failed to delete {file_path}. Reason: {e}')
+        except PermissionError as e:
+            log(f'Permission denied deleting {file_path}: {e}')
+        except OSError as e:
+            log(f'OS error deleting {file_path}: {e}')
 
 
-def insert_article(conn, cursor, src, actual_src, title, url, actual_url, is_ai, article_date):
+def insert_article(conn: sqlite3.Connection, cursor: sqlite3.Cursor, src: str, actual_src: str, title: str, url: str, actual_url: str, is_ai: bool, article_date: str) -> None:
     """
     Inserts a new article record into the SQLite database.
 
@@ -175,11 +178,13 @@ def insert_article(conn, cursor, src, actual_src, title, url, actual_url, is_ai,
         conn.commit()
     except sqlite3.IntegrityError:
         log(f"Duplicate entry for URL: {url}")
-    except Exception as err:
-        log(err)
+    except sqlite3.OperationalError as err:
+        log(f"Database operational error: {err}")
+    except sqlite3.DatabaseError as err:
+        log(f"Database error: {err}")
 
 
-def filter_unseen_urls_db(orig_df, before_date=None, after_date=None):
+def filter_unseen_urls_db(orig_df: pd.DataFrame, before_date: Optional[str] = None, after_date: Optional[str] = None) -> pd.DataFrame:
     """
     Filters out rows from orig_df that have URLs already present in the database during the specified time interval.
 
@@ -238,7 +243,7 @@ def filter_unseen_urls_db(orig_df, before_date=None, after_date=None):
     return filtered_df
 
 
-def unicode_to_ascii(input_string):
+def unicode_to_ascii(input_string: str) -> str:
     """
     Converts a Unicode string to ASCII by normalizing it to NFKD form and then encoding it to ASCII bytes.
     Characters that cannot be converted are ignored.
@@ -262,7 +267,7 @@ def unicode_to_ascii(input_string):
     return ascii_string
 
 
-def nearest_neighbor_sort(embedding_array, start_index=None):
+def nearest_neighbor_sort(embedding_array: np.ndarray, start_index: Optional[int] = None) -> np.ndarray:
     """
     Sorts the embeddings in a greedy traveling salesman traversal order based on their pairwise Euclidean distances.
 
@@ -302,7 +307,7 @@ def nearest_neighbor_sort(embedding_array, start_index=None):
     return np.array(path)
 
 
-def agglomerative_cluster_sort(embedding_df):
+def agglomerative_cluster_sort(embedding_df: pd.DataFrame) -> np.ndarray:
     """
     Sorts embeddings using agglomerative clustering. Neither sort works perfectly, unclear which is better.
     Agglomerative clustering divides the data into 2 clusters minimizing in-cluster distances and maximizing
@@ -323,7 +328,7 @@ def agglomerative_cluster_sort(embedding_df):
     return leaf_order
 
 
-def traveling_salesman_sort_scipy(df):
+def traveling_salesman_sort_scipy(df: pd.DataFrame) -> np.ndarray:
     """
     Given a dataframe of embeddings, sort the rows of the dataframe based on the order of nodes in the traveling salesman traversal.
 
@@ -392,7 +397,7 @@ def traveling_salesman_sort_scipy(df):
 #     return order
 
 
-def send_gmail(subject, html_str):
+def send_gmail(subject: str, html_str: str) -> None:
     """send mail using gmail smtp server"""
     # body
     body = f"""

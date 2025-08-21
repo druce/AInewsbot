@@ -21,7 +21,7 @@ import re
 import math
 # import aiohttp
 import asyncio
-from typing import List, Type, Dict, Any, Callable
+from typing import List, Type, Dict, Any, Callable, Optional, Union, Tuple, Awaitable
 
 import pandas as pd
 
@@ -77,19 +77,46 @@ from .llm_output_schemas import (
 #     assert enc.decode(enc.encode("hello world")) == "hello world"
 #     return len(enc.encode(s))
 
-def sanitize_error_for_logging(error_msg):
+def sanitize_error_for_logging(error_msg: Any) -> str:
     """Remove API keys from error messages"""
     # Remove common API key patterns
     patterns = [
-        r'sk-[a-zA-Z0-9]{20,}',  # OpenAI keys
-        r'sk-ant-[a-zA-Z0-9-]{40,}',  # Anthropic keys
-        r'AIza[a-zA-Z0-9_-]{35}',  # Google keys
-        r'api_key=[a-zA-Z0-9]+',  # Generic api_key params
-        r'authorization:[^,\s]*',  # Auth headers
-        r'bearer\s+[a-zA-Z0-9_-]+',  # Bearer tokens
-        r'password=[^\s&]+',  # URL passwords
-        r'secret=[^\s&]+',    # URL secrets
-        r'token=[^\s&]+',     # URL tokens
+        # OpenAI keys (various formats)
+        r'sk-[a-zA-Z0-9]{20,}',
+        r'sk-proj-[a-zA-Z0-9]{48}',
+
+        # Anthropic keys
+        r'sk-ant-[a-zA-Z0-9-]{40,}',
+
+        # Google keys (multiple formats)
+        r'AIza[a-zA-Z0-9_-]{35}',
+        r'gsk_[a-zA-Z0-9]{40,}',
+        r'ya29\.[a-zA-Z0-9_-]+',
+
+        # AWS keys
+        r'AKIA[0-9A-Z]{16}',
+        r'aws_access_key_id=[A-Z0-9]+',
+
+        # Generic patterns (case-insensitive)
+        r'(?i)api[_-]?key\s*[=:]\s*["\']?[a-zA-Z0-9_-]{8,}["\']?',
+        r'(?i)authorization\s*:\s*[^\s,]+',
+        r'(?i)bearer\s+[a-zA-Z0-9_.-]+',
+        r'(?i)token\s*[=:]\s*["\']?[a-zA-Z0-9_.-]{8,}["\']?',
+        r'(?i)secret\s*[=:]\s*["\']?[a-zA-Z0-9_.-]{8,}["\']?',
+        r'(?i)password\s*[=:]\s*["\']?[a-zA-Z0-9_.-]{8,}["\']?',
+
+        # JSON context
+        r'"(?:api_key|token|secret|password)"\s*:\s*"[^"]+',
+
+        # URL parameters
+        r'[?&](?:api_key|token|secret|password)=[^&\s]+',
+
+        # GitHub tokens
+        r'ghp_[a-zA-Z0-9]{36}',
+        r'gho_[a-zA-Z0-9]{36}',
+
+        # Slack tokens
+        r'xox[bpoa]-[0-9]+-[0-9]+-[a-zA-Z0-9]+',
     ]
 
     sanitized = str(error_msg)
@@ -158,7 +185,7 @@ def paginate_df(input_df: pd.DataFrame,
         f"Attempt {retry_state.attempt_number}: {retry_state.outcome.exception()}, tag: {retry_state.args[1].get('tag', '')}")),
     reraise=True,  # Make sure to re-raise the final exception after all retries are exhausted
 )
-async def async_langchain(chain, input_dict, tag="", label="article", verbose=False):
+async def async_langchain(chain: Any, input_dict: Dict[str, Any], tag: str = "", label: str = "article", verbose: bool = False) -> Union[Tuple[Any, str, int], Tuple[Any, str]]:
     #     async with sem:
     """
     call langchain asynchronously with ainvoke
@@ -189,7 +216,7 @@ async def async_langchain(chain, input_dict, tag="", label="article", verbose=Fa
         f"Attempt {retry_state.attempt_number}: {retry_state.outcome.exception()}, tag: {retry_state.args[1].get('tag', '')}")),
     reraise=True,  # Make sure to re-raise the final exception after all retries are exhausted
 )
-async def async_langchain_with_probs(chain, input_dict, tag="", verbose=False):
+async def async_langchain_with_probs(chain: Any, input_dict: Dict[str, Any], tag: str = "", verbose: bool = False) -> Tuple[str, float, str]:
     #     async with sem:
     """
     similar to async_langchain, but expects chain from model.bind(logprobs=True) and a prompt for 1 token only
@@ -230,7 +257,7 @@ async def filter_page_async(
     user_prompt: str,
     output_class: Type[T],
     model: ChatOpenAI,
-    input_vars: Dict[str, Any] = None,
+    input_vars: Optional[Dict[str, Any]] = None,
     opening_delimiter: str = "### <<<DATASET>>>",
     closing_delimiter: str = "### <<<END>>>###\nThink carefully, then respond with the JSON only.",
 ) -> T:
@@ -270,11 +297,14 @@ async def filter_page_async(
     except asyncio.TimeoutError as e:
         log(f"Timeout error in filter_page_async: {str(e)}")
         raise
+    except (ConnectionError, TimeoutError) as e:
+        log(f"Network/timeout error in filter_page_async: {str(e)}")
+        raise
+    except ValueError as e:
+        log(f"Invalid data in filter_page_async: {str(e)}")
+        raise
     except Exception as e:
-        if 'timeout' in str(e).lower():
-            log(f"Probable timeout in filter_page_async: {str(e)}")
-        else:
-            log(sanitize_error_for_logging(f"Error in filter_page_async: {str(e)}"))
+        log(f"Unexpected error in filter_page_async: {str(e)}")
         raise
 
     return response  # Should be an instance of output_class
@@ -295,7 +325,7 @@ async def filter_page_async_id(
     user_prompt: str,
     output_class: Type[T],
     model: ChatOpenAI,
-    input_vars: Dict[str, Any] = None,
+    input_vars: Optional[Dict[str, Any]] = None,
     item_list_field: str = "items",
     item_id_field: str = "id",
     opening_delimiter: str = "### <<<DATASET>>>",
@@ -330,17 +360,19 @@ async def filter_page_async_id(
     # print(input_prompt)
     # print(input_text)
 
-    # Call the chain asynchronously
     try:
         response = await chain.ainvoke(input_dict)
     except asyncio.TimeoutError as e:
         log(f"Timeout error in filter_page_async_id: {str(e)}")
         raise
+    except (ConnectionError, TimeoutError) as e:
+        log(f"Network/timeout error in filter_page_async_id: {str(e)}")
+        raise
+    except ValueError as e:
+        log(f"Invalid data in filter_page_async_id: {str(e)}")
+        raise
     except Exception as e:
-        if 'timeout' in str(e).lower():
-            log(f"Probable timeout in filter_page_async_id: {str(e)}")
-        else:
-            log(sanitize_error_for_logging(f"Error in filter_page_async_id: {str(e)}"))
+        log(f"Unexpected error in filter_page_async_id: {str(e)}")
         raise
 
     # check ids in response
@@ -367,10 +399,10 @@ async def process_dataframes(dataframes: List[pd.DataFrame],
                              user_prompt: str,
                              output_class: Type[T],
                              model: ChatOpenAI,
-                             input_vars: Dict[str, Any] = None,
+                             input_vars: Optional[Dict[str, Any]] = None,
                              item_list_field: str = "items",
                              item_id_field: str = "",
-                             ) -> T:
+                             ) -> Union[List[Any], None]:
     """
     Process multiple dataframes asynchronously.
     if item_list_field is provided, flatten the results
@@ -435,8 +467,8 @@ def filter_df(aidf: pd.DataFrame,
               output_column: str, input_column: str, input_column_rename: str = "",
               output_class: Type[T] = StoryRatings,
               output_class_label: str = "rating",
-              mapper_func: Callable = None,
-              batch_size=50) -> pd.DataFrame:
+              mapper_func: Optional[Callable] = None,
+              batch_size: int = 50) -> pd.DataFrame:
     """
     Generic filter for a dataframe using a prompt.
 
@@ -501,7 +533,7 @@ async def filter_df_rows(aidf: pd.DataFrame,
                          input_column_rename: str = "",
                          output_class: Type[T] = StoryRatings,
                          output_class_label: str = "rating",
-                         mapper_func: Callable = None) -> pd.DataFrame:
+                         mapper_func: Optional[Callable] = None) -> pd.DataFrame:
     """
     Generic filter for a dataframe using a prompt.
 
@@ -563,7 +595,7 @@ async def filter_df_rows(aidf: pd.DataFrame,
     return aidf
 
 
-async def fetch_all_summaries(aidf, model):
+async def fetch_all_summaries(aidf: pd.DataFrame, model: BaseLanguageModel) -> List[Tuple[str, str, int]]:
     """
     Fetch summaries for all articles in the AIdf DataFrame.
 
@@ -615,8 +647,16 @@ async def fetch_all_summaries(aidf, model):
         try:
             with open(text_path, 'r', encoding='utf-8') as f:
                 article_str = f.read()
-        except Exception as e:
-            log(f"Error reading file {text_path}: {str(e)}")
+        except FileNotFoundError as e:
+            log(f"File not found {text_path}: {str(e)}")
+            count_no_content += 1
+            continue
+        except PermissionError as e:
+            log(f"Permission denied reading {text_path}: {str(e)}")
+            count_no_content += 1
+            continue
+        except UnicodeDecodeError as e:
+            log(f"Encoding error reading {text_path}: {str(e)}")
             count_no_content += 1
             continue
 
@@ -638,13 +678,17 @@ async def fetch_all_summaries(aidf, model):
         log(f"Received {len(responses)} summaries")
         for summary, rowid, article_len in responses:
             log(f"Summary for {rowid} (length {article_len}): {summary}")
+    except asyncio.TimeoutError as e:
+        log(f"Timeout error fetching summaries: {str(e)}")
+    except ConnectionError as e:
+        log(f"Network connection error fetching summaries: {str(e)}")
     except Exception as e:
-        log(f"Error fetching summaries: {str(e)}")
+        log(f"Unexpected error fetching summaries: {str(e)}")
 
     return responses
 
 
-async def get_canonical_topic_results(pages, topic, model_low):
+async def get_canonical_topic_results(pages: List[pd.DataFrame], topic: str, model_low: BaseLanguageModel) -> Tuple[str, List[Any]]:
     """call CANONICAL_TOPIC_PROMPT on pages for a single topic"""
     retval = await process_dataframes(dataframes=pages,
                                       system_prompt=CANONICAL_SYSTEM_PROMPT,
@@ -655,7 +699,7 @@ async def get_canonical_topic_results(pages, topic, model_low):
     return topic, retval
 
 
-async def get_all_canonical_topic_results(pages, topics, model_medium):
+async def get_all_canonical_topic_results(pages: List[pd.DataFrame], topics: List[str], model_medium: BaseLanguageModel) -> List[Tuple[str, List[Any]]]:
     """call all topics on pages"""
     tasks = []
     for topic in topics:
@@ -666,7 +710,7 @@ async def get_all_canonical_topic_results(pages, topics, model_medium):
     return results
 
 
-def clean_topics(row):
+def clean_topics(row: Any) -> List[str]:
     """
     Cleans the extracted_topics and assigned_topics by removing certain common topics and combining them into a single list.
 
@@ -699,7 +743,7 @@ async def filter_df_rows_with_probability(aidf: pd.DataFrame,
                                           output_column: str,
                                           input_column: str,
                                           input_column_rename: str = "",
-                                          mapper_func: Callable = None) -> pd.DataFrame:
+                                          mapper_func: Optional[Callable] = None) -> pd.DataFrame:
     """
     Generic filter for a dataframe using a prompt that returns 1/0 probability.
 
@@ -753,8 +797,12 @@ async def filter_df_rows_with_probability(aidf: pd.DataFrame,
         log(f"Fetching responses for {len(tasks)} articles")
         responses = await asyncio.gather(*tasks)
         log(f"Received {len(responses)} responses")
+    except asyncio.TimeoutError as e:
+        log(f"Timeout error fetching probability responses: {str(e)}")
+    except ConnectionError as e:
+        log(f"Network connection error fetching probability responses: {str(e)}")
     except Exception as e:
-        log(f"Error fetching responses: {str(e)}")
+        log(f"Unexpected error fetching probability responses: {str(e)}")
 
     # Extract response, probabilities from responses
     response_dict = {}

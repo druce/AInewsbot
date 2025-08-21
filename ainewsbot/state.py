@@ -27,7 +27,7 @@ from zoneinfo import ZoneInfo
 from collections import Counter, defaultdict
 import asyncio
 
-from typing import TypedDict, List, Tuple, Dict
+from typing import TypedDict, List, Tuple, Dict, Optional, Any, Union
 from urllib.parse import urlparse
 
 import sqlite3
@@ -142,7 +142,7 @@ class AgentState(TypedDict):
     n_browsers: int  # number of browsers to use for scraping
 
 
-def make_bullet(row, include_topics=True):
+def make_bullet(row: Any, include_topics: bool = True) -> str:
     """Given a row in AIdf, return a markdown block with links, topics, bullet points """
     # rowid = str(row.id) + ". " if hasattr(row, "id") else ""
     title = row.title if hasattr(row, "title") else ""
@@ -166,7 +166,7 @@ def make_bullet(row, include_topics=True):
     return f"[{title} - {site_name}]({final_url}){topic_str}{rating}{summary}\n\n"
 
 
-def calculate_clustering_metrics(embeddings_array, labels, clusterer=None):
+def calculate_clustering_metrics(embeddings_array: np.ndarray, labels: np.ndarray, clusterer: Optional[Any] = None) -> Dict[str, Any]:
     """
     Calculate various clustering quality metrics for HDBSCAN results.
 
@@ -217,8 +217,10 @@ def calculate_clustering_metrics(embeddings_array, labels, clusterer=None):
                 embeddings_array, labels, metric='euclidean'
             )
             metrics['hdbscan_validity_index'] = validity_idx
-        except Exception as e:
+        except (ValueError, ZeroDivisionError, RuntimeError) as e:
             print(f"Could not compute HDBSCAN validity index: {e}")
+        except ImportError as e:
+            print(f"HDBSCAN validity module not available: {e}")
 
         # Cluster persistence (stability)
         if hasattr(clusterer, 'cluster_persistence_'):
@@ -240,8 +242,10 @@ def calculate_clustering_metrics(embeddings_array, labels, clusterer=None):
         db_score = davies_bouldin_score(non_noise_embeddings, non_noise_labels)
         metrics['davies_bouldin_score'] = db_score
 
-    except Exception as e:
-        print(f"Could not compute sklearn metrics: {e}")
+    except ValueError as e:
+        print(f"Invalid data for sklearn metrics (likely insufficient clusters): {e}")
+    except RuntimeError as e:
+        print(f"Runtime error computing sklearn metrics: {e}")
 
     # Custom composite score balancing cluster quality and quantity
     if 'silhouette_score' in metrics and n_clusters > 0:
@@ -266,7 +270,7 @@ def calculate_clustering_metrics(embeddings_array, labels, clusterer=None):
     return metrics
 
 
-def print_clustering_summary(metrics):
+def print_clustering_summary(metrics: Dict[str, Any]) -> None:
     """Print a nice summary of clustering metrics."""
     log("=== Clustering Quality Metrics ===")
     log(f"Number of clusters: {metrics.get('n_clusters', 'N/A')}")
@@ -635,7 +639,7 @@ def fn_extract_newsapi(state: AgentState) -> AgentState:
     return state
 
 
-def fix_missing_site_names(aidf: pd.DataFrame, model_low) -> pd.DataFrame:
+def fix_missing_site_names(aidf: pd.DataFrame, model_low: Any) -> pd.DataFrame:
     """
     Update the site_name and domain columns in the aidf DataFrame
     based on the sites table in the SQLite database.
@@ -675,7 +679,7 @@ def fix_missing_site_names(aidf: pd.DataFrame, model_low) -> pd.DataFrame:
                 if extracted.domain and extracted.suffix:
                     registered_domain = f"{extracted.domain}.{extracted.suffix}"
                     domains_dict[hostname] = registered_domain
-            except Exception as e:
+            except (AttributeError, ValueError) as e:
                 log(f"Error extracting domain from {hostname}: {e}")
                 continue
 
@@ -697,7 +701,7 @@ def fix_missing_site_names(aidf: pd.DataFrame, model_low) -> pd.DataFrame:
     return aidf
 
 
-def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
+def fn_filter_urls(state: AgentState, model_low: Any) -> AgentState:
     """
     Filters the URLs in state["AIdf"] to include only those that have not been previously seen,
     and are related to AI according to the response from a ChatGPT prompt.
@@ -796,8 +800,10 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
             conn.commit()
         except sqlite3.IntegrityError as e:
             log(f"Integrity error during batch insert: {e}")
-        except Exception as err:
-            log(f"Error during batch insert: {err}")
+        except sqlite3.OperationalError as err:
+            log(f"Database operational error during batch insert: {err}")
+        except sqlite3.DatabaseError as err:
+            log(f"Database error during batch insert: {err}")
 
     # keep headlines that are related to AI
     aidf = aidf.loc[aidf["isAI"] == 1] \
@@ -1117,7 +1123,9 @@ def fn_download_pages(state: AgentState, model_low) -> AgentState:
 
     # Create a queue for multiprocessing and populate it
     queue = asyncio.Queue()
-    for row in aidf.itertuples():
+    # shuffle aidf first so all the e.g. google pages aren't together
+    # they are a bit correlated since they will come from feedly and newsapi
+    for row in aidf.sample(frac=1).reset_index(drop=True).itertuples():
         asyncio.run(queue.put((row.id, row.url, row.title)))
 
     log(
@@ -1209,8 +1217,14 @@ def fn_download_pages(state: AgentState, model_low) -> AgentState:
             log(f"Saving text to {text_path}")
             with open(text_path, 'w', encoding='utf-8') as f:
                 f.write(normalized_text)
-        except Exception as e:
-            log(f"Error processing {html_path}: {e}")
+        except FileNotFoundError as e:
+            log(f"File not found: {html_path}: {e}")
+        except PermissionError as e:
+            log(f"Permission denied processing {html_path}: {e}")
+        except UnicodeDecodeError as e:
+            log(f"Encoding error processing {html_path}: {e}")
+        except OSError as e:
+            log(f"OS error processing {html_path}: {e}")
 
     # rename url column to final_url
     pages_df = pages_df.rename(columns={'url': 'final_url'})
@@ -1265,8 +1279,17 @@ def fn_download_pages(state: AgentState, model_low) -> AgentState:
                         "created": ts
                     }]
                 )
-        except Exception as exc:
-            log(f"Error upserting into ChromaDB: {exc}")
+        except FileNotFoundError as exc:
+            log(f"Text file not found for ChromaDB upsert: {exc}")
+            continue
+        except UnicodeDecodeError as exc:
+            log(f"Encoding error reading text file: {exc}")
+            continue
+        except (ConnectionError, TimeoutError) as exc:
+            log(f"ChromaDB connection error: {exc}")
+            continue
+        except ValueError as exc:
+            log(f"Invalid data for ChromaDB upsert: {exc}")
             continue
 
     state["AIdf"] = aidf.to_dict(orient='records')
@@ -1293,9 +1316,14 @@ def fn_summarize_pages(state: AgentState, model_medium) -> AgentState:
     try:
         responses = asyncio.run(fetch_all_summaries(aidf, model=model_medium))
         # responses = sfetch_all_summaries(aidf, model=model_medium)
+    except asyncio.TimeoutError as e:
+        log(f"Timeout error fetching summaries: {e}")
+    except ConnectionError as e:
+        log(f"Network connection error fetching summaries: {e}")
+    except ValueError as e:
+        log(f"Invalid data for summary generation: {e}")
     except Exception as e:
-        log("Error fetching summaries")
-        log(e)
+        log(f"Unexpected error fetching summaries: {e}")
     log(f"Received {len(responses)} summaries")
     # pdb.set_trace()
     response_dict = {}
@@ -1331,8 +1359,14 @@ def update_ratings_with_choix(all_battles: List[Tuple[int, int]], num_items: int
         # Compute Bradley-Terry ratings using maximum likelihood estimation
         ratings = choix.opt_pairwise(num_items, choix_battles)
         return ratings
-    except Exception as e:
-        print(f"Warning: choix optimization failed ({e}), returning zeros")
+    except ValueError as e:
+        print(f"Warning: choix optimization failed - invalid data ({e}), returning zeros")
+        return np.zeros(num_items)
+    except RuntimeError as e:
+        print(f"Warning: choix optimization failed - runtime error ({e}), returning zeros")
+        return np.zeros(num_items)
+    except ImportError as e:
+        print(f"Warning: choix library not available ({e}), returning zeros")
         return np.zeros(num_items)
 
 
@@ -1630,8 +1664,14 @@ async def get_embedding(client, item_id: str, file_path: str) -> Dict:
 
         return {"id": item_id, "embedding": embedding}
 
-    except Exception as e:
-        print(f"Failed on id {item_id} with path {file_path}: {e}")
+    except FileNotFoundError as e:
+        print(f"File not found for embedding {item_id} at {file_path}: {e}")
+        return None
+    except UnicodeDecodeError as e:
+        print(f"Encoding error reading {file_path} for embedding {item_id}: {e}")
+        return None
+    except (ConnectionError, TimeoutError) as e:
+        print(f"OpenAI API error for embedding {item_id}: {e}")
         return None
 
 
@@ -1813,8 +1853,12 @@ def fn_propose_topics(state: AgentState, model_high: any) -> AgentState:
         with open(filename, 'w', encoding="utf-8") as topicfile:
             topicfile.write(state["topics_str"])
         log(f"Topics successfully saved to {filename}.")
-    except Exception as e:
-        log(f"An error occurred: {e}")
+    except FileNotFoundError as e:
+        log(f"Directory not found for topics file: {e}")
+    except PermissionError as e:
+        log(f"Permission denied writing topics file: {e}")
+    except OSError as e:
+        log(f"OS error writing topics file: {e}")
 
     return state
 
@@ -1961,8 +2005,12 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
             summaryfile.write(state.get("summary"))
             pyperclip.copy(state.get("summary"))
             log(f"Markdown content successfully saved to {filename} and copied to clipboard.")
-    except Exception as e:
-        log(f"An error occurred: {e}")
+    except FileNotFoundError as e:
+        log(f"Directory not found for summary file: {e}")
+    except PermissionError as e:
+        log(f"Permission denied writing summary file: {e}")
+    except OSError as e:
+        log(f"OS error writing summary file: {e}")
 
     state['AIdf'] = aidf.to_dict(orient='records')
 
