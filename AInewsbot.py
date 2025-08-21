@@ -40,7 +40,8 @@ from ainewsbot.config import OUTPUT_DIR
 from ainewsbot.agent import initialize_agent
 from ainewsbot.utilities import log
 
-langchain.verbose = True
+# True may log headers with API keys
+langchain.verbose = os.getenv('LANGCHAIN_VERBOSE', 'false').lower() == 'true'
 
 nest_asyncio.apply()  # needed for asyncio.run to work under langgraph
 
@@ -83,7 +84,8 @@ if __name__ == "__main__":
     MAX_EDITS = args.max_edits
     log(f"Starting AInewsbot with do_download={do_download}, before_date='{before_date}', N_BROWSERS={N_BROWSERS}, MAX_EDITS={MAX_EDITS}")
 
-    ml, mm, mh = 'gpt-4.1-mini', 'gpt-4.1-mini', 'o4-mini'
+    ml, mm, mh = 'gpt-5-nano', 'gpt-5-mini', 'gpt-5'
+    log(f"Using models: low={ml}, medium={mm}, high={mh}")
 
     lg_state, lg_agent, thread_id = initialize_agent(ml, mm, mh,
                                                      do_download,

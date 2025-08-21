@@ -96,18 +96,21 @@ def trunc_tokens(long_prompt, model=CHROMA_DB_EMBEDDING_FUNCTION, maxtokens=MAX_
 
 def get_model(model_name):
     """get langchain model based on model_name"""
+    # might output headers including API keys if verbose_mode is True
+    verbose_mode = os.getenv('MODEL_VERBOSE', 'false').lower() == 'true'
+
     if model_name in MODEL_FAMILY:
         model_type = MODEL_FAMILY[model_name]
         if model_type == 'openai':
-            if model_name in ['o4-mini', 'o4', 'o1-mini', 'o1', 'o1-preview']:
+            if model_name in ['o4-mini', 'o4', 'o1-mini', 'o1', 'o1-preview', 'gpt-5-nano', 'gpt-5-mini', 'gpt-5']:
                 # these models don't support temperature
                 return ChatOpenAI(model=model_name, request_timeout=REQUEST_TIMEOUT)
             else:
                 return ChatOpenAI(model=model_name, request_timeout=REQUEST_TIMEOUT, temperature=0.3)
         elif model_type == 'google':
-            return ChatGoogleGenerativeAI(model=model_name, request_timeout=REQUEST_TIMEOUT, verbose=True)
+            return ChatGoogleGenerativeAI(model=model_name, request_timeout=REQUEST_TIMEOUT, verbose=verbose_mode)
         elif model_type == 'anthropic':
-            return ChatAnthropic(model=model_name, verbose=True)
+            return ChatAnthropic(model=model_name, verbose=verbose_mode)
     else:
         log(f"Unknown model {model_name}")
         return None
@@ -196,17 +199,23 @@ def filter_unseen_urls_db(orig_df, before_date=None, after_date=None):
     #       filter by domain + title instead of src + title
     """
     conn = sqlite3.connect(SQLITE_DB)
-    where_clause = ''
+    params = []
+    conditions = []
+
     if before_date:
-        where_clause = f"WHERE timestamp < '{before_date}'"
+        conditions.append("timestamp < ?")
+        params.append(before_date)
     if after_date:
-        if len(where_clause) == 0:
-            where_clause = f"WHERE timestamp > '{after_date}'"
-        else:
-            where_clause += f" AND timestamp > '{after_date}'"
+        conditions.append("timestamp > ?")
+        params.append(after_date)
+
+    where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
     log(f"Querying SQLite with where_clause: {where_clause}")
-    existing_urls = pd.read_sql_query(
-        f"SELECT url, src, title FROM news_articles {where_clause}", conn)
+
+    query = f"SELECT url, src, title FROM news_articles {where_clause}"
+
+    existing_urls = pd.read_sql_query(query, conn, params=params)
+
     conn.close()
 
     log(f"URLs in orig_df: {len(orig_df)}")

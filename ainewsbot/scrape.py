@@ -22,6 +22,7 @@ https://github.com/fhamborg/news-please
 import asyncio
 import re
 import os
+import platform
 from urllib.parse import urljoin, urlparse
 # import pdb
 import json
@@ -30,7 +31,6 @@ import random
 import time
 import datetime
 from pathlib import Path
-
 from dateutil import parser as date_parser
 
 import requests
@@ -49,7 +49,6 @@ from .config import (DOWNLOAD_DIR, PAGES_DIR, FIREFOX_PROFILE_PATH,  # SCREENSHO
 _domain_locks = {}
 _domain_last_access = {}
 _RATE_LIMIT_SECONDS = 5
-
 
 def get_og_tags(source):
     """
@@ -377,23 +376,74 @@ async def worker(queue, browser, results):
     while True:
         try:
             idx, url, title = await queue.get()
+            domain = urlparse(url).netloc
             log(f"from queue: {idx}, {url} , {title}")
         except asyncio.QueueEmpty:
             return
+
+        # Check if file already exists first
+        title_sanitized = sanitize_filename(title)
+        html_path = os.path.join(PAGES_DIR, f'{title_sanitized}.html')
+        if os.path.exists(html_path):
+            log(f"File already exists: {html_path}")
+            results.append((idx, url, title, html_path, None))
+            queue.task_done()
+            continue
+
         # skip urls from domains in ignore_list, just return empty path
-        if urlparse(url).hostname in ignore_list:
+        if domain in ignore_list:
             log(f"Skipping fetch for {idx} {url} {title}")
             results.append((idx, url, title, ""))
             queue.task_done()
-        else:
+            continue
+
+        # Check if the domain is currently rate-limited
+        now = time.monotonic()
+        last_access = _domain_last_access.get(domain, 0)
+        time_since_last = now - last_access
+        if time_since_last < _RATE_LIMIT_SECONDS:
+            wait_time = _RATE_LIMIT_SECONDS - time_since_last
+            log(f"Domain {domain} is rate-limited. Re-queuing {url}.")
+            await queue.put((idx, url, title))
+            queue.task_done()
+
+            # Check if next item in queue is from same domain to decide wait time
+            should_wait_full = False
+            # Peek at the next item in queue (we know queue has items since we just added one)
             try:
+                next_item = queue._queue[0]  # Peek at front of queue
+                next_domain = urlparse(next_item[1]).netloc  # next_item[1] is the URL
+                if next_domain == domain:
+                    should_wait_full = True
+                    log(f"Next item also from {domain}, wait full rate limit")
+            except (IndexError, AttributeError):
+                pass
+
+            if should_wait_full:
+                log(f"Waiting {wait_time:.1f}s for rate limit to expire")
+                await asyncio.sleep(wait_time + 0.1)
+            else:
+                await asyncio.sleep(0.1)  # Brief sleep to prevent busy-loop
+            continue
+
+        try:
+            # Get or create a lock for this domain
+            lock = _domain_locks.setdefault(domain, asyncio.Lock())
+            async with lock:
+                # Update last access time before making the request, even if fetch blocks it won't be null or way old
+                _domain_last_access[domain] = time.monotonic()
+                # fetch_url
                 html_path, last_updated, final_url = await fetch_url(url, title, browser, destination=PAGES_DIR)
-                results.append(
-                    (idx, final_url, title, html_path, last_updated))
-            except Exception as exc:
-                log(f"Error fetching {url}: {exc}")
-            finally:
-                queue.task_done()
+                # Update last access time after making the request in case it blocked for a while
+                _domain_last_access[domain] = time.monotonic()
+
+            # append to results
+            results.append(
+                (idx, final_url, title, html_path, last_updated))
+        except Exception as exc:
+            log(f"Error fetching {url}: {exc}")
+        finally:
+            queue.task_done()
 
 
 async def fetch_queue(queue, concurrency):
@@ -466,20 +516,6 @@ async def fetch_url(url, title, browser_context=None, click_xpath=None, scrolls=
             return html_path, None, url
 
         # if file does not exist, download
-        # rate limit per domain
-        domain = urlparse(url).netloc   # get domain name
-        # Get or create a lock for this domain
-        lock = _domain_locks.setdefault(domain, asyncio.Lock())
-        async with lock:
-            now = time.monotonic()
-            last = _domain_last_access.get(domain, 0)
-            wait = _RATE_LIMIT_SECONDS - (now - last) + random.uniform(0, 20)
-            if wait > 0:
-                log(f"Waiting {wait} seconds to rate limit {domain} {now - last}")
-                await asyncio.sleep(wait)
-            # Update last access time
-            _domain_last_access[domain] = time.monotonic()
-
         page = await browser_context.new_page()
         response = await page.goto(url, timeout=60000, wait_until='domcontentloaded')
         await asyncio.sleep(initial_sleep+random.uniform(2, 5))

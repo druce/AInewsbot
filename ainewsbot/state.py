@@ -14,6 +14,7 @@ Key Features:
 - Support for multiprocessing and asynchronous operations for efficient data processing.
 - Use of machine learning models for clustering, topic extraction, and content summarization.
 - Modular design for easy customization and extension of the pipeline.
+
 """
 # flake8: noqa: E722
 # pylint: disable=W0718, W0702  # bare-except
@@ -66,6 +67,8 @@ import chromadb
 from chromadb.config import Settings
 from chromadb.utils import embedding_functions
 
+import pyperclip
+
 from .utilities import trunc_tokens
 
 from .llm import (paginate_df, process_dataframes, fetch_all_summaries,
@@ -89,7 +92,7 @@ from .config import (DOWNLOAD_DIR, TEXT_DIR, PAGES_DIR, SCREENSHOT_DIR, OUTPUT_D
                      SOURCECONFIG,
                      CANONICAL_TOPICS, SQLITE_DB, COSINE_DISTANCE_THRESHOLD,
                      CHROMA_DB_COLLECTION, CHROMA_DB_EMBEDDING_FUNCTION,
-                     HOSTNAME_SKIPLIST, SITE_NAME_SKIPLIST, SOURCE_REPUTATION,
+                     DOMAIN_SKIPLIST, SITE_NAME_SKIPLIST, SOURCE_REPUTATION,
                      MINIMUM_STORY_RATING, MAX_ARTICLES)
 
 from .prompts import (
@@ -303,6 +306,7 @@ def fn_initialize(state: AgentState) -> AgentState:
         yaml.YAMLError: If there is an error while loading the YAML file.
 
     """
+    log(f"fn_initialize: do_download={state.get('do_download')}, before_date={state.get('before_date')}, n_browsers={state.get('n_browsers')}, max_edits={state.get('max_edits')}")
     if state.get("do_download"):
         # empty download directories
         log("Deleting existing files")
@@ -660,17 +664,20 @@ def fix_missing_site_names(aidf: pd.DataFrame, model_low) -> pd.DataFrame:
         # update site_dict from responses
         new_hostnames = []
         for r in responses:
-            parsed_url = urlparse(r.url)
-            hostname = parsed_url.hostname
-            new_hostnames.append(hostname)
-            sites_dict[hostname] = r.site_name
-            # log(f"Looked up {r.url} -> {r.site_name}")
-            registered_domain = ""
-            extracted = tldextract.extract(hostname)
-            if extracted.domain and extracted.suffix:
-                registered_domain = f"{extracted.domain}.{extracted.suffix}"
-                # log(f"Looked up {hostname} -> {registered_domain}")
-                domains_dict[hostname] = registered_domain
+            try:
+                parsed_url = urlparse(r.url)
+                hostname = parsed_url.hostname
+                log(f"Looked up {r.url} -> {hostname}")
+                new_hostnames.append(hostname)
+                sites_dict[hostname] = r.site_name
+                registered_domain = ""
+                extracted = tldextract.extract(hostname)
+                if extracted.domain and extracted.suffix:
+                    registered_domain = f"{extracted.domain}.{extracted.suffix}"
+                    domains_dict[hostname] = registered_domain
+            except Exception as e:
+                log(f"Error extracting domain from {hostname}: {e}")
+                continue
 
         # update sites table with new names
         for new_hostname in new_hostnames:
@@ -804,10 +811,19 @@ def fn_filter_urls(state: AgentState, model_low: any) -> AgentState:
     aidf = fix_missing_site_names(aidf, model_low)
 
     # drop banned slop sites
-    aidf = aidf.loc[~aidf["hostname"].str.lower().isin(HOSTNAME_SKIPLIST)]
+    aidf = aidf.loc[~aidf["hostname"].str.lower().isin(DOMAIN_SKIPLIST)]
     aidf = aidf.loc[~aidf["site_name"].str.lower().isin(SITE_NAME_SKIPLIST)]
 
-    aidf['reputation'] = aidf['hostname'].apply(
+    aidf['domain'] = aidf['site_name'].apply(
+        lambda x: tldextract.extract(x).top_domain_under_public_suffix)
+
+    for domain in aidf['domain'].unique():
+        if domain not in SOURCE_REPUTATION:
+            log(f"{domain} not in SOURCE_REPUTATION dict")
+        if domain in DOMAIN_SKIPLIST:
+            log(f"{domain} in DOMAIN_SKIPLIST")
+
+    aidf['reputation'] = aidf['domain'].apply(
         lambda x: SOURCE_REPUTATION.get(x, 0))
 
     state["AIdf"] = aidf.to_dict(orient='records')
@@ -859,7 +875,6 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
     # )
     topics_df = pd.DataFrame([[item.id, item.extracted_topics] for item in topic_results], columns=[
         "id", "extracted_topics"])
-    log(f"{len(topics_df)} free-form topics extracted")
 
     all_topics = [item.lower() for row in topics_df.itertuples()
                   for item in row.extracted_topics]
@@ -927,6 +942,25 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
                                       output_class=TopicCategoryList,
                                       output_class_label="items"
                                       ))
+    # when extracting free-form topics, put them into free_form_topics table if they are not in free_form_topics or canonical_topics
+    sqlstr = """
+    INSERT INTO free_form_topics (date, topic_str)
+    SELECT :today, :topic_str
+    WHERE NOT EXISTS (
+        SELECT 1 FROM canonical_topics WHERE topic_str = :topic_str
+    )
+    AND NOT EXISTS (
+        SELECT 1 FROM free_form_topics WHERE topic_str = :topic_str AND date = :today
+    );
+    """
+    with sqlite3.connect(SQLITE_DB) as conn:
+        cursor = conn.cursor()
+        for row in aidf.itertuples():
+            for topic_str in row.topic_list:
+                cursor.execute(sqlstr, {"today": datetime.now().date(), "topic_str": topic_str.title()})
+        conn.commit()
+    log(f"{len(topics_df)} free-form topics extracted")
+
     aidf["topic_str"] = aidf["topic_list"].str.join(", ")
 
     aidf['title_topic_str'] = aidf.apply(
@@ -1341,6 +1375,8 @@ async def bradley_terry(aidf, model):
     log("running Bradley-Terry rating")
 
     # arbitrary n_rounds, around 10 rounds for 100
+    # could just continue until ranking_change_sum < number of articles, avg change < 1
+    # or until first increase, from e.g. 2 rounds ago, indicating we are converging
     n_rounds = max(2, math.ceil(math.log(len(aidf))*3-2))
     default_batch_size = 5
     min_batch_size = 2
@@ -1361,6 +1397,7 @@ async def bradley_terry(aidf, model):
         default_batch_size, len(aidf) // target_batches))
 
     all_battles = []
+    all_results = []
     for round_num in range(1, n_rounds + 1):
         log(f"\n--- Running round {round_num}/{n_rounds} ---")
 
@@ -1406,7 +1443,12 @@ async def bradley_terry(aidf, model):
         ranking_changes = (previous_rankings != new_rankings).sum()
         log(f"Number of ranking changes: {ranking_changes}")
         ranking_change_sum = np.abs(previous_rankings - new_rankings).sum()
-        log(f"Sum of absolute ranking changes: {ranking_change_sum}")
+        avg_change = ranking_change_sum / len(aidf)
+        log(f"Sum of absolute ranking changes: {ranking_change_sum:.1f} (avg rank chg {avg_change:.2f})")
+        all_results.append(avg_change)
+        if len(all_results) > 4 and (all_results[-1] + all_results[-2]) > (all_results[-3] + all_results[-4]):
+            log("Increase in avg rank change, converging")
+            break
         previous_rankings = new_rankings
 
     return aidf
@@ -1469,9 +1511,12 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     aidf["recency_score"] = 2 * np.exp(-k * aidf["age"]) - 1
 
     # low quality articles
-    log("Rating spam probability")
+    # gpt-5 models don't return logprobs, so use gpt-4.1-mini
+    prob_model = get_model(model_name="gpt-4.1-mini")
+    log("Rating spam probability with gpt-4.1-mini")
+    # aidf = asyncio.run(filter_df_rows_with_probability(aidf,
     aidf = asyncio.run(filter_df_rows_with_probability(aidf,
-                                                       model=model_medium,
+                                                       model=prob_model,
                                                        system_prompt=LOW_QUALITY_SYSTEM_PROMPT,
                                                        user_prompt=LOW_QUALITY_USER_PROMPT,
                                                        output_column='low_quality',
@@ -1480,20 +1525,19 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     log(f"low quality articles: {counts}")
 
     # on topic articles
-    log("Rating on-topic probability")
     aidf = asyncio.run(filter_df_rows_with_probability(aidf,
-                                                       model=model_medium,
+                                                       model=prob_model,
                                                        system_prompt=ON_TOPIC_SYSTEM_PROMPT,
                                                        user_prompt=ON_TOPIC_USER_PROMPT,
                                                        output_column='on_topic',
                                                        input_column="input_str"))
     counts = aidf["on_topic"].value_counts().to_dict()
-    log("on topic articles: {counts}")
+    log(f"on topic articles: {counts}")
 
     # important articles
     log("Rating importance probability")
     aidf = asyncio.run(filter_df_rows_with_probability(aidf,
-                                                       model=model_medium,
+                                                       model=prob_model,
                                                        system_prompt=IMPORTANCE_SYSTEM_PROMPT,
                                                        user_prompt=IMPORTANCE_USER_PROMPT,
                                                        output_column='importance',
@@ -1507,11 +1551,10 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     aidf = asyncio.run(bradley_terry(aidf, model=model_medium))
 
     # could test if the prompts bias for/against certain types of stories, adjust the prompts, or boost ratings if they match those topics
-
-    # len < 100 -> 0
-    # len > 10000 -> 2
-    # in between log10(x) - 2
-    aidf['adjusted_len'] = np.log10(aidf['article_len']) - 2
+    # bonus for longer articles
+    # len < 1000 -> 0
+    # len > 10000 -> 1
+    aidf['adjusted_len'] = np.log10(aidf['article_len']) - 3
     aidf['adjusted_len'] = aidf['adjusted_len'].clip(lower=0, upper=2)
 
     aidf['rating'] = aidf['reputation'] \
@@ -1521,7 +1564,10 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
         - aidf['low_quality'] \
         + aidf['bt_z'] \
         + aidf['recency_score']
-    # filter out low rated articles TODO: should use MMR
+    # filter out low rated articles
+    log(f"Low rated articles: {len(aidf[aidf['rating'] < MINIMUM_STORY_RATING])}")
+    for row in aidf[aidf['rating'] < MINIMUM_STORY_RATING].itertuples():
+        log(f"low rated article: {row.title} {row.rating}")
     aidf = aidf[aidf['rating'] >= MINIMUM_STORY_RATING].copy()
 
     # sort by rating
@@ -1913,7 +1959,8 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
         filename = os.path.join(OUTPUT_DIR, 'summary.md')
         with open(filename, 'w', encoding="utf-8") as summaryfile:
             summaryfile.write(state.get("summary"))
-            log(f"Markdown content successfully saved to {filename}.")
+            pyperclip.copy(state.get("summary"))
+            log(f"Markdown content successfully saved to {filename} and copied to clipboard.")
     except Exception as e:
         log(f"An error occurred: {e}")
 
@@ -1925,6 +1972,11 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
 def fn_criticize_summary(state: AgentState, model_high) -> AgentState:
     """Review summary using CRITIC_PROMPT"""
     # possible TODO: evaluate with flesch-kincaid readability score
+    if state["n_edits"] >= state["max_edits"]:
+        log(f"Max edits ({state['max_edits']}) reached, skipping critic")
+        state["edit_complete"] = True
+        return state
+
     log(f"Evaluating summary using {str(type(model_high))}")
 
     prompt_template = ChatPromptTemplate.from_messages([
@@ -1940,13 +1992,14 @@ def fn_criticize_summary(state: AgentState, model_high) -> AgentState:
         log("Summary is OK")
         state["edit_complete"] = True
     else:
-        log("Summary is not OK")
+        log("Critic feedback: " + critic_feedback)
     return state
 
 
 def fn_rewrite_summary(state: AgentState, model_high) -> AgentState:
     """Review summary using REWRITE_PROMPT"""
     # possible TODO: evaluate with flesch-kincaid readability score
+
     log(f"Rewriting summary using {str(type(model_high))}")
 
     prompt_template = ChatPromptTemplate.from_messages([
@@ -1968,7 +2021,7 @@ def fn_is_revision_complete(state: AgentState) -> str:
     if state["edit_complete"]:
         log("Summary eval is OK, edit complete")
     elif state["n_edits"] >= state["max_edits"]:
-        log("Max edits reached, edit complete")
+        log(f"Max edits ({state['max_edits']}) reached, edit complete")
         state["edit_complete"] = True
     else:
         log("Summary eval is not OK, requires further revision")

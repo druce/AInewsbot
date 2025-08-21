@@ -17,6 +17,7 @@ based on the latest AI news.
 
 # import pdb
 import os
+import re
 import math
 # import aiohttp
 import asyncio
@@ -33,7 +34,6 @@ from tenacity import (
 
 # import openai
 # from openai import OpenAI
-
 
 # import langchain
 from langchain_openai import ChatOpenAI
@@ -77,6 +77,26 @@ from .llm_output_schemas import (
 #     assert enc.decode(enc.encode("hello world")) == "hello world"
 #     return len(enc.encode(s))
 
+def sanitize_error_for_logging(error_msg):
+    """Remove API keys from error messages"""
+    # Remove common API key patterns
+    patterns = [
+        r'sk-[a-zA-Z0-9]{20,}',  # OpenAI keys
+        r'sk-ant-[a-zA-Z0-9-]{40,}',  # Anthropic keys
+        r'AIza[a-zA-Z0-9_-]{35}',  # Google keys
+        r'api_key=[a-zA-Z0-9]+',  # Generic api_key params
+        r'authorization:[^,\s]*',  # Auth headers
+        r'bearer\s+[a-zA-Z0-9_-]+',  # Bearer tokens
+        r'password=[^\s&]+',  # URL passwords
+        r'secret=[^\s&]+',    # URL secrets
+        r'token=[^\s&]+',     # URL tokens
+    ]
+
+    sanitized = str(error_msg)
+    for pattern in patterns:
+        sanitized = re.sub(pattern, '[API_KEY_REDACTED]', sanitized, flags=re.IGNORECASE)
+
+    return sanitized
 
 def paginate_df(input_df: pd.DataFrame,
                 maxpagelen: int = 50) -> List[pd.DataFrame]:
@@ -134,8 +154,8 @@ def paginate_df(input_df: pd.DataFrame,
     # Wait 2^x * multiplier seconds between retries
     wait=wait_exponential(multiplier=1, min=2, max=128),
     retry=retry_if_exception_type(Exception),
-    before_sleep=lambda retry_state: log(
-        f"Attempt {retry_state.attempt_number}: {retry_state.outcome.exception()}, tag: {retry_state.args[1].get('tag', '')}"),
+    before_sleep=lambda retry_state: log(sanitize_error_for_logging(
+        f"Attempt {retry_state.attempt_number}: {retry_state.outcome.exception()}, tag: {retry_state.args[1].get('tag', '')}")),
     reraise=True,  # Make sure to re-raise the final exception after all retries are exhausted
 )
 async def async_langchain(chain, input_dict, tag="", label="article", verbose=False):
@@ -147,12 +167,12 @@ async def async_langchain(chain, input_dict, tag="", label="article", verbose=Fa
     also returns the length of a chosen input item like "article" which we are summarizing (admittedly hacky)
     """
     if verbose:
-        print(f"async_langchain: {tag}, {input_dict}")
+        print(sanitize_error_for_logging(f"async_langchain: {tag}, {input_dict}"))
     # Call the chain asynchronously
     response = await chain.ainvoke(input_dict)
 
     if verbose:
-        print(f"async_langchain: {tag} response: {response}")
+        print(sanitize_error_for_logging(f"async_langchain: {tag} response: {response}"))
 
     if label in input_dict:
         return response, tag, len(input_dict.get(label, ""))
@@ -165,8 +185,8 @@ async def async_langchain(chain, input_dict, tag="", label="article", verbose=Fa
     # Wait 2^x * multiplier seconds between retries
     wait=wait_exponential(multiplier=1, min=2, max=128),
     retry=retry_if_exception_type(Exception),
-    before_sleep=lambda retry_state: log(
-        f"Attempt {retry_state.attempt_number}: {retry_state.outcome.exception()}, tag: {retry_state.args[1].get('tag', '')}"),
+    before_sleep=lambda retry_state: log(sanitize_error_for_logging(
+        f"Attempt {retry_state.attempt_number}: {retry_state.outcome.exception()}, tag: {retry_state.args[1].get('tag', '')}")),
     reraise=True,  # Make sure to re-raise the final exception after all retries are exhausted
 )
 async def async_langchain_with_probs(chain, input_dict, tag="", verbose=False):
@@ -179,12 +199,12 @@ async def async_langchain_with_probs(chain, input_dict, tag="", verbose=False):
     also adds a reference tag so if we gather 100 async responses we can match them up with the input
     """
     if verbose:
-        print(f"async_langchain_with_probs: {tag}, {input_dict}")
+        print(sanitize_error_for_logging(f"async_langchain_with_probs: {tag}, {input_dict}"))
     # Call the chain asynchronously
     response = await chain.ainvoke(input_dict)
 
     if verbose:
-        print(f"async_langchain: {tag} response: {response}")
+        print(sanitize_error_for_logging(f"async_langchain_with_probs: {tag} response: {response}"))
 
     content = response.content
     logprob = response.response_metadata["logprobs"]["content"][0]
@@ -201,8 +221,8 @@ async def async_langchain_with_probs(chain, input_dict, tag="", verbose=False):
     # Wait 2^x * multiplier seconds between retries
     wait=wait_exponential(multiplier=1, min=2, max=128),
     retry=retry_if_exception_type(Exception),
-    before_sleep=lambda retry_state: log(
-        f"Retrying after {retry_state.outcome.exception()}, attempt {retry_state.attempt_number}")
+    before_sleep=lambda retry_state: log(sanitize_error_for_logging(
+        f"Retrying after {retry_state.outcome.exception()}, attempt {retry_state.attempt_number}"))
 )
 async def filter_page_async(
     input_df: pd.DataFrame,
@@ -254,7 +274,7 @@ async def filter_page_async(
         if 'timeout' in str(e).lower():
             log(f"Probable timeout in filter_page_async: {str(e)}")
         else:
-            log(f"Error in filter_page_async: {str(e)}")
+            log(sanitize_error_for_logging(f"Error in filter_page_async: {str(e)}"))
         raise
 
     return response  # Should be an instance of output_class
@@ -265,8 +285,8 @@ async def filter_page_async(
     # Wait 2^x * multiplier seconds between retries
     wait=wait_exponential(multiplier=1, min=2, max=128),
     retry=retry_if_exception_type(Exception),
-    before_sleep=lambda retry_state: log(
-        f"Retrying after {retry_state.outcome.exception()}, attempt {retry_state.attempt_number}"),
+    before_sleep=lambda retry_state: log(sanitize_error_for_logging(
+        f"Retrying after {retry_state.outcome.exception()}, attempt {retry_state.attempt_number}")),
     reraise=True,  # Make sure to re-raise the final exception
 )
 async def filter_page_async_id(
@@ -320,7 +340,7 @@ async def filter_page_async_id(
         if 'timeout' in str(e).lower():
             log(f"Probable timeout in filter_page_async_id: {str(e)}")
         else:
-            log(f"Error in filter_page_async_id: {str(e)}")
+            log(sanitize_error_for_logging(f"Error in filter_page_async_id: {str(e)}"))
         raise
 
     # check ids in response
@@ -334,7 +354,7 @@ async def filter_page_async_id(
                                 for r in response_list]
                 difference = set(sent_ids) - set(received_ids)
                 if difference:
-                    log(f"missing items: {str(difference)}")
+                    log(sanitize_error_for_logging(f"missing items: {str(difference)}"))
                     raise ValueError(
                         f"No {item_id_field} found in the results")
 
@@ -394,7 +414,7 @@ async def process_dataframes(dataframes: List[pd.DataFrame],
             if hasattr(result, item_list_field):
                 flat_list.extend(getattr(result, item_list_field))
             else:
-                raise ValueError(f"No {item_list_field} found in the results")
+                raise ValueError(sanitize_error_for_logging(f"No {item_list_field} found in the results"))
         if item_id_field:   # check ids if provided
             sent_ids = [
                 item_id for df in dataframes for item_id in df[item_id_field].to_list()]

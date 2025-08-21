@@ -1,3 +1,8 @@
+# paths
+HOMEDIR = '/Users/drucev/projects/windsurf/AInewsbot'
+CONDA_PREFIX = '/opt/anaconda3'
+ENV_NAME = 'ainewsbot'
+
 # Your API key
 NEWSCATCHER_API_KEY = ''
 

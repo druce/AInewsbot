@@ -6,7 +6,7 @@
 import argparse
 import uuid
 import sqlite3
-
+import os
 import nest_asyncio
 
 import pandas as pd
@@ -40,8 +40,8 @@ from .state import (AgentState,
 from .utilities import (log, get_model)
 
 # from langchain_anthropic import ChatAnthropic
-
-langchain.verbose = True
+# note that true might log headers including API keys
+langchain.verbose = os.getenv('LANGCHAIN_VERBOSE', 'false').lower() == 'true'
 
 # from langchain_core.prompts import ChatPromptTemplate
 # JsonOutputParser, StrOutputParser
@@ -304,7 +304,7 @@ if __name__ == "__main__":
     MAX_EDITS = args.max_edits
     log(f"Starting AInewsbot with do_download={do_download}, before_date='{before_date}', N_BROWSERS={N_BROWSERS}, MAX_EDITS={MAX_EDITS}")
 
-    ml, mm, mh = 'gpt-4.1-mini', 'gpt-4.1', 'o4-mini'
+    ml, mm, mh = 'gpt-5-nano', 'gpt-5-mini', 'gpt-5'
 
     lg_state, lg_agent, thread_id = initialize_agent(ml, mm, mh,
                                                      do_download,
