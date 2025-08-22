@@ -1862,6 +1862,18 @@ def fn_propose_topics(state: AgentState, model_high: any) -> AgentState:
 
     return state
 
+async def do_dedupe_async(cluster_tasks):
+    deduped_results = await asyncio.gather(*[
+        filter_df_rows(tmpdf,
+                        model_medium,
+                        DEDUPLICATE_SYSTEM_PROMPT,
+                        DEDUPLICATE_USER_PROMPT,
+                        "dupe_id",
+                        "prompt_input",
+                        "topic")
+        for tmpdf in cluster_tasks
+    ])
+    return deduped_results
 
 def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
     """Compose summary using FINAL_SUMMARY_PROMPT"""
@@ -1902,45 +1914,40 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
     cluster_df.columns = ["cluster_name", "count"]
     log(cluster_df.to_dict(orient='records'))
 
-    deduped_dfs = []
-    # TODO: run async
-    # TODO: possibly could just use semantic distance to dedupe.
+    # TODO: possibly could just use semantic distance to dedupe instead of a prompt.
     # but need to test a lot for the right threshold
     # if you have very similar story but different facts, like 1 is google vs microsoft
     # then you want to keep both, how different will cosine similarity be?
+    # Prepare list of dataframes for parallel processing
+    cluster_tasks = []
     for cluster_name in cluster_df["cluster_name"]:
         tmpdf = aidf.loc[aidf["cluster_name"] == cluster_name].sort_values(
             "rating", ascending=False).copy()
         if len(tmpdf) > 1:  # at least 2 to dedupe
-            log(f"Deduping cluster: {cluster_name}")
-            # apply filter_df to tmpdf using DEDUPLICATE_SYSTEM_PROMPT and DEDUPLICATE_USER_PROMPT
-            # need a class to output
-            deduped_dfs.append(
-                filter_df(tmpdf,
-                          model_medium,
-                          DEDUPLICATE_SYSTEM_PROMPT,
-                          DEDUPLICATE_USER_PROMPT,
-                          "dupe_id",
-                          "prompt_input",
-                          "topic"))
-    # concatenate deduped_dfs into a single df
-    deduped_df = pd.concat(deduped_dfs)
-    # merge dupe_id into aidf
-    try:
-        aidf = aidf.drop("dupe_id", axis=1)
-    except:
-        pass
-    aidf = pd.merge(aidf, deduped_df[["id", "dupe_id"]], on="id", how="left")
-    # count number of rows in aidf where dupe_id is >0 and group by dupe_id
-    dupe_counts = aidf.loc[aidf['dupe_id'] > 0].groupby('dupe_id').size()
-    log(dupe_counts)
-    # for each dupe_id in dupe_counts, add the count to the rating of that id
-    for dupe_id in dupe_counts.index:
-        aidf.loc[aidf['id'] == dupe_id, 'rating'] += dupe_counts[dupe_id]
+            log(f"Preparing dedup for cluster: {cluster_name}")
+            cluster_tasks.append(tmpdf.copy())
 
-    # drop rows where dupe_id is >= 0 (keep rows where dupe_id is -1, ie unique)
-    aidf = aidf.loc[aidf['dupe_id'] < 0]
-    # trim to < 10
+    # Process all clusters in parallel
+    if cluster_tasks:
+        deduped_dfs = asyncio.run(do_dedupe_async(cluster_tasks))
+        # concatenate deduped_dfs into a single df
+        deduped_df = pd.concat(deduped_dfs)
+        # merge dupe_id into aidf
+        try:
+            aidf = aidf.drop("dupe_id", axis=1)
+        except:
+            pass
+        aidf = pd.merge(aidf, deduped_df[["id", "dupe_id"]], on="id", how="left")
+        # count number of rows in aidf where dupe_id is >0 and group by dupe_id
+        dupe_counts = aidf.loc[aidf['dupe_id'] > 0].groupby('dupe_id').size()
+        log(dupe_counts)
+        # for each dupe_id in dupe_counts, add the count to the rating of that id
+        for dupe_id in dupe_counts.index:
+            aidf.loc[aidf['id'] == dupe_id, 'rating'] += dupe_counts[dupe_id]
+        # drop rows where dupe_id is >= 0 (keep rows where dupe_id is -1, ie unique)
+        aidf = aidf.loc[aidf['dupe_id'] < 0]
+
+    # trim rating to < 10
     aidf['rating'] = aidf['rating'].clip(lower=0, upper=10)
     log(f"After deduping: {len(aidf)} rows")
     aidf["bullet"] = aidf.apply(make_bullet, axis=1)

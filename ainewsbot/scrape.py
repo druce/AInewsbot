@@ -50,6 +50,11 @@ _domain_locks = {}
 _domain_last_access = {}
 _RATE_LIMIT_SECONDS = 5
 
+# Global worker tracking
+_active_workers = 0
+_worker_counter = 0
+_worker_lock = None
+
 def get_og_tags(source: str) -> Dict[str, str]:
     """
     Fetches Open Graph og: tags from a given URL or local file and returns them as a dictionary.
@@ -298,7 +303,7 @@ async def get_browser(p: Any) -> BrowserContext:
 
     b = await p.firefox.launch_persistent_context(
         user_data_dir=FIREFOX_PROFILE_PATH,
-        headless=True,  # run headless, hide splash window
+        headless=True,  # run without GUI
         viewport=viewport,
         device_scale_factor=device_scale_factor,
         timezone_id=timezone_id,
@@ -310,6 +315,12 @@ async def get_browser(p: Any) -> BrowserContext:
             # "--disable-blink-features=AutomationControlled",  # Chrome/Blink flag analogue
             "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage"
         ],
+        # Firefox preferences to ensure new windows open as tabs
+        firefox_user_prefs={
+            "browser.link.open_newwindow": 3,  # Open new windows in tabs instead
+            "browser.link.open_newwindow.restriction": 0,  # Allow all redirections to tabs
+            "browser.tabs.loadInBackground": False,  # Focus new tabs immediately
+        },
         # provide a valid realistic User-Agent string for the latest Firefox on Apple Silicon
         # match OS / browser build
         user_agent="Mozilla/5.0 (Macintosh; ARM Mac OS X 14.4; rv:125.0) Gecko/20100101 Firefox/125.0",
@@ -378,103 +389,121 @@ async def worker(queue: asyncio.Queue,
     multiple asynchronous workers are appending to 1 results array
     which I guess is OK but maybe each should just return results"""
 
-    log("Launching worker")
-    # for now, skip these domains since I don't want to log in and potentially get my account blocked
-    ignore_list = ["www.bloomberg.com", "bloomberg.com",
-                   "cnn.com", "www.cnn.com",
-                   "wsj.com", "www.wsj.com"]
+    global _active_workers, _worker_counter, _worker_lock
+    
+    # Initialize worker lock if not already done
+    if _worker_lock is None:
+        _worker_lock = asyncio.Lock()
+    
+    # Track worker startup
+    async with _worker_lock:
+        _active_workers += 1
+        _worker_counter += 1
+        worker_id = _worker_counter
+        log(f"Launching worker {worker_id} (total active: {_active_workers})")
+    
+    try:
+        # for now, skip these domains since I don't want to log in and potentially get my account blocked
+        ignore_list = ["www.bloomberg.com", "bloomberg.com",
+                       "cnn.com", "www.cnn.com",
+                       "wsj.com", "www.wsj.com"]
 
-    while True:
-        try:
-            idx, url, title = await queue.get()
-        except asyncio.QueueEmpty:
-            return
-
-        # Check if file already exists first
-        title_sanitized = sanitize_filename(title)
-        html_path = os.path.join(PAGES_DIR, f'{title_sanitized}.html')
-        if os.path.exists(html_path):
-            log(f"File already exists: {html_path}")
-            results.append((idx, url, title, html_path, None))
-            queue.task_done()
-            continue
-
-        domain = urlparse(url).netloc
-        log(f"from queue: {idx}, {url} , {title}")
-
-        # skip urls from domains in ignore_list, just return empty path
-        if domain in ignore_list:
-            log(f"Skipping fetch for {idx} {url} {title}")
-            results.append((idx, url, title, ""))
-            queue.task_done()
-            continue
-
-        # create domain lock if it doesn't exist
-        lock = _domain_locks.setdefault(domain, asyncio.Lock())
-
-        # Check rate limit atomically
-        should_wait = False
-        wait_time = 0
-
-        async with lock:
-            now = time.monotonic()
-            last_access = _domain_last_access.get(domain, 0)
-            time_since_last = now - last_access
-
-            if time_since_last < _RATE_LIMIT_SECONDS:
-                should_wait = True
-                wait_time = _RATE_LIMIT_SECONDS - time_since_last
-            else:
-                # Update timestamp and proceed
-                _domain_last_access[domain] = now
-
-        # and we give up the lock
-        # note we are only checking the access time and updating it inside the lock block
-        # this is to prevent race conditions
-        # if the fetch takes a long time a we could have overlapping fetches
-        # but overall will only get 1 fetch per domain per _RATE_LIMIT_SECONDS
-
-        # Handle rate limiting and fetching OUTSIDE the lock
-        if should_wait:
-            # put it back in the queue
-            log(f"Domain {domain} is rate-limited. Re-queuing {url}.")
-            await queue.put((idx, url, title))  # ✅ Outside lock
-            queue.task_done()
-
-            # how long to wait
-            should_wait_full = False
-            # Peek at the next item in queue (we know queue has items since we just added one)
+        while True:
             try:
-                next_item = queue._queue[0]  # Peek at front of queue
-                next_domain = urlparse(next_item[1]).netloc  # next_item[1] is the URL
-                if next_domain == domain: # same domain, maybe same item
-                    should_wait_full = True
-                    log(f"Next item also from {domain}, wait full rate limit")
-            except (IndexError, AttributeError):
-                pass
+                idx, url, title = await queue.get()
+            except asyncio.QueueEmpty:
+                break
 
-            if should_wait_full:
-                log(f"Waiting {wait_time:.1f}s for rate limit to expire")
-                await asyncio.sleep(wait_time + 0.1)
-            else:
-                await asyncio.sleep(0.5)  # Brief sleep to prevent busy-loop
-                # so anyway, at least in the case where 2 in a row are different domains we won't pause the full time
-            continue
-
-        else:
-            # Make request (no lock needed here)
-            try:
-                log(f"Fetching {url}")
-                html_path, last_updated, final_url = await fetch_url(url, title, browser)
-                results.append((idx, final_url, title, html_path, last_updated))
-            except asyncio.TimeoutError as exc:
-                log(f"Timeout fetching {url}: {exc}")
-            except (ConnectionError, OSError) as exc:
-                log(f"Network error fetching {url}: {exc}")
-            except Exception as exc:
-                log(f"Unexpected error fetching {url}: {exc}")
-            finally:
+            # Check if file already exists first
+            title_sanitized = sanitize_filename(title)
+            html_path = os.path.join(PAGES_DIR, f'{title_sanitized}.html')
+            if os.path.exists(html_path):
+                log(f"File already exists: {html_path}")
+                results.append((idx, url, title, html_path, None))
                 queue.task_done()
+                continue
+
+            domain = urlparse(url).netloc
+            log(f"from queue: {idx}, {url} , {title}")
+
+            # skip urls from domains in ignore_list, just return empty path
+            if domain in ignore_list:
+                log(f"Skipping fetch for {idx} {url} {title}")
+                results.append((idx, url, title, ""))
+                queue.task_done()
+                continue
+
+            # create domain lock if it doesn't exist
+            lock = _domain_locks.setdefault(domain, asyncio.Lock())
+
+            # Check rate limit atomically
+            should_wait = False
+            wait_time = 0
+
+            async with lock:
+                now = time.monotonic()
+                last_access = _domain_last_access.get(domain, 0)
+                time_since_last = now - last_access
+
+                if time_since_last < _RATE_LIMIT_SECONDS:
+                    should_wait = True
+                    wait_time = _RATE_LIMIT_SECONDS - time_since_last
+                else:
+                    # Update timestamp and proceed
+                    _domain_last_access[domain] = now
+
+            # and we give up the lock
+            # note we are only checking the access time and updating it inside the lock block
+            # this is to prevent race conditions
+            # if the fetch takes a long time a we could have overlapping fetches
+            # but overall will only get 1 fetch per domain per _RATE_LIMIT_SECONDS
+
+            # Handle rate limiting and fetching OUTSIDE the lock
+            if should_wait:
+                # put it back in the queue
+                log(f"Domain {domain} is rate-limited. Re-queuing {url}.")
+                await queue.put((idx, url, title))  # ✅ Outside lock
+                queue.task_done()
+
+                # how long to wait
+                should_wait_full = False
+                # Peek at the next item in queue (we know queue has items since we just added one)
+                try:
+                    next_item = queue._queue[0]  # Peek at front of queue
+                    next_domain = urlparse(next_item[1]).netloc  # next_item[1] is the URL
+                    if next_domain == domain: # same domain, maybe same item
+                        should_wait_full = True
+                        log(f"Next item also from {domain}, wait full rate limit")
+                except (IndexError, AttributeError):
+                    pass
+
+                if should_wait_full:
+                    log(f"Waiting {wait_time:.1f}s for rate limit to expire")
+                    await asyncio.sleep(wait_time + 0.1)
+                else:
+                    await asyncio.sleep(0.5)  # Brief sleep to prevent busy-loop
+                    # so anyway, at least in the case where 2 in a row are different domains we won't pause the full time
+                continue
+
+            else:
+                # Make request (no lock needed here)
+                try:
+                    log(f"Fetching {url}")
+                    html_path, last_updated, final_url = await fetch_url(url, title, browser)
+                    results.append((idx, final_url, title, html_path, last_updated))
+                except asyncio.TimeoutError as exc:
+                    log(f"Timeout fetching {url}: {exc}")
+                except (ConnectionError, OSError) as exc:
+                    log(f"Network error fetching {url}: {exc}")
+                except Exception as exc:
+                    log(f"Unexpected error fetching {url}: {exc}")
+                finally:
+                    queue.task_done()
+    finally:
+        # Track worker shutdown
+        async with _worker_lock:
+            _active_workers -= 1
+            log(f"Worker {worker_id} shutting down (total active: {_active_workers})")
 
 
 async def fetch_queue(queue: asyncio.Queue, concurrency: int) -> List[Tuple[int, str, str, str, Optional[str]]]:
@@ -725,22 +754,7 @@ async def fetch_source_queue(queue: asyncio.Queue, concurrency: int) -> List[Tup
         list: A list of tuples containing (index, url, title, result) for each processed URL.
     """
     async with async_playwright() as p:
-
-        browser = await p.firefox.launch_persistent_context(
-            user_data_dir=FIREFOX_PROFILE_PATH,
-            headless=True,  # run headless, hide splash window
-            viewport={"width": 1366, "height": 768},
-            # removes Playwright’s default flag
-            ignore_default_args=["--enable-automation"],
-            args=[
-                # "--disable-blink-features=AutomationControlled",  # Chrome/Blink flag analogue
-                "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage"
-            ],
-            # match OS / browser build
-            # provide a valid realistic User-Agent string for the latest Firefox on Apple Silicon
-            user_agent="Mozilla/5.0 (Macintosh; ARM Mac OS X 14.4; rv:125.0) Gecko/20100101 Firefox/125.0",
-            accept_downloads=True,
-        )
+        browser = await get_browser(p)
         sem = asyncio.Semaphore(concurrency)
 
         async def bounded(source):

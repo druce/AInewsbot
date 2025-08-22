@@ -46,7 +46,7 @@ langchain.verbose = os.getenv('LANGCHAIN_VERBOSE', 'false').lower() == 'true'
 nest_asyncio.apply()  # needed for asyncio.run to work under langgraph
 
 # defaults
-N_BROWSERS = 12
+N_BROWSERS = 16
 MAX_EDITS = 2
 
 
