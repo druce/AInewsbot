@@ -4,7 +4,7 @@ import dotenv
 
 dotenv.load_dotenv()
 
-REQUEST_TIMEOUT = 600
+REQUEST_TIMEOUT = 900
 
 DOWNLOAD_ROOT = "download"
 DOWNLOAD_DIR = os.path.join(DOWNLOAD_ROOT, "sources")
@@ -76,6 +76,9 @@ MAX_ARTICLES = 100
 
 DOMAIN_SKIPLIST = ['finbold.com', 'philarchive.org']
 SITE_NAME_SKIPLIST = ['finbold', 'philarchive.org']
+IGNORE_LIST = ["www.bloomberg.com", "bloomberg.com",
+                   "cnn.com", "www.cnn.com",
+                   "wsj.com", "www.wsj.com"]
 
 MODEL_FAMILY = {'gpt-4o-2024-11-20': 'openai',
                 'gpt-4o-mini': 'openai',

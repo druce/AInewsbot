@@ -42,7 +42,7 @@ from playwright_stealth import Stealth
 import trafilatura
 
 from .utilities import log, trunc_tokens
-from .config import (DOWNLOAD_DIR, PAGES_DIR, FIREFOX_PROFILE_PATH,  # SCREENSHOT_DIR,
+from .config import (DOWNLOAD_DIR, IGNORE_LIST, PAGES_DIR, FIREFOX_PROFILE_PATH,  # SCREENSHOT_DIR,
                      MIN_TITLE_LEN, SLEEP_TIME, MAX_INPUT_TOKENS)
 
 # Global state for per-domain rate limiting
@@ -390,24 +390,19 @@ async def worker(queue: asyncio.Queue,
     which I guess is OK but maybe each should just return results"""
 
     global _active_workers, _worker_counter, _worker_lock
-    
+
     # Initialize worker lock if not already done
     if _worker_lock is None:
         _worker_lock = asyncio.Lock()
-    
+
     # Track worker startup
     async with _worker_lock:
         _active_workers += 1
         _worker_counter += 1
         worker_id = _worker_counter
         log(f"Launching worker {worker_id} (total active: {_active_workers})")
-    
-    try:
-        # for now, skip these domains since I don't want to log in and potentially get my account blocked
-        ignore_list = ["www.bloomberg.com", "bloomberg.com",
-                       "cnn.com", "www.cnn.com",
-                       "wsj.com", "www.wsj.com"]
 
+    try:
         while True:
             try:
                 idx, url, title = await queue.get()
@@ -427,7 +422,7 @@ async def worker(queue: asyncio.Queue,
             log(f"from queue: {idx}, {url} , {title}")
 
             # skip urls from domains in ignore_list, just return empty path
-            if domain in ignore_list:
+            if domain in IGNORE_LIST:
                 log(f"Skipping fetch for {idx} {url} {title}")
                 results.append((idx, url, title, ""))
                 queue.task_done()
@@ -453,10 +448,13 @@ async def worker(queue: asyncio.Queue,
                     _domain_last_access[domain] = now
 
             # and we give up the lock
-            # note we are only checking the access time and updating it inside the lock block
-            # this is to prevent race conditions
-            # if the fetch takes a long time a we could have overlapping fetches
+            # note we are only checking the access time and computing wait inside the atomic lock block
+            # then the computation is always correct with no race conditions
+            # the fetch proceeds if enough time has elapsed
+            # if the fetch takes a long time we could have overlapping fetches
             # but overall will only get 1 fetch per domain per _RATE_LIMIT_SECONDS
+            # I guess we could lock domain during the fetch and update time after
+            # but you will get long waits for locks, not what we want.
 
             # Handle rate limiting and fetching OUTSIDE the lock
             if should_wait:
@@ -489,7 +487,7 @@ async def worker(queue: asyncio.Queue,
                 # Make request (no lock needed here)
                 try:
                     log(f"Fetching {url}")
-                    html_path, last_updated, final_url = await fetch_url(url, title, browser)
+                    html_path, last_updated, final_url = await fetch_url(url, title, browser, destination=PAGES_DIR)
                     results.append((idx, final_url, title, html_path, last_updated))
                 except asyncio.TimeoutError as exc:
                     log(f"Timeout fetching {url}: {exc}")

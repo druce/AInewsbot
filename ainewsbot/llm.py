@@ -260,6 +260,7 @@ async def filter_page_async(
     input_vars: Optional[Dict[str, Any]] = None,
     opening_delimiter: str = "### <<<DATASET>>>",
     closing_delimiter: str = "### <<<END>>>###\nThink carefully, then respond with the JSON only.",
+    verbose: bool = False,
 ) -> T:
     """
     Process a single dataframe asynchronously.
@@ -288,9 +289,10 @@ async def filter_page_async(
     input_dict = {"input_text": input_text}
     if input_vars is not None:
         input_dict.update(input_vars)
-    # input_prompt = prompt_template.format_messages(**input_dict)
-    # print(input_prompt)
-    # print(input_text)
+    if verbose:
+        input_prompt = prompt_template.format_messages(**input_dict)
+        print(input_prompt)
+        print(input_text)
 
     try:
         response = await chain.ainvoke(input_dict)
@@ -330,6 +332,7 @@ async def filter_page_async_id(
     item_id_field: str = "id",
     opening_delimiter: str = "### <<<DATASET>>>",
     closing_delimiter: str = "### <<<END>>>\nThink carefully, then respond with the JSON only.",
+    verbose: bool = False,
 ) -> T:
     """
     similar to filter_page_async but checks ids in the response
@@ -373,6 +376,8 @@ async def filter_page_async_id(
         raise
     except Exception as e:
         log(f"Unexpected error in filter_page_async_id: {str(e)}")
+        input_prompt = prompt_template.format_messages(**input_dict)
+        print(input_prompt)
         raise
 
     # check ids in response
@@ -402,6 +407,7 @@ async def process_dataframes(dataframes: List[pd.DataFrame],
                              input_vars: Optional[Dict[str, Any]] = None,
                              item_list_field: str = "items",
                              item_id_field: str = "",
+                             verbose: bool = False,
                              ) -> Union[List[Any], None]:
     """
     Process multiple dataframes asynchronously.
@@ -427,13 +433,13 @@ async def process_dataframes(dataframes: List[pd.DataFrame],
     if item_id_field:
         tasks = [
             filter_page_async_id(df, system_prompt, user_prompt, output_class,
-                                 model, input_vars, item_list_field, item_id_field)
+                                 model, input_vars, item_list_field, item_id_field, verbose=verbose)
             for df in dataframes
         ]
     else:
         tasks = [
             filter_page_async(df, system_prompt, user_prompt,
-                              output_class, model, input_vars)
+                              output_class, model, input_vars, verbose=verbose)
             for df in dataframes
         ]
 

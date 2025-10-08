@@ -82,42 +82,42 @@ class Agent:
         self.model_medium = get_model(state["model_medium"])
         self.model_high = get_model(state["model_high"])
 
-        graph_builder = StateGraph(AgentState)
-        graph_builder.add_node("Initialize", self.initialize_config)
-        graph_builder.add_node("Download sources", self.download_sources)
-        graph_builder.add_node("Extract URLs", self.extract_web_urls)
-        graph_builder.add_node("Initial rank / filter", self.filter_urls)
-        graph_builder.add_node("Download pages", self.download_pages)
-        graph_builder.add_node("Summarize pages", self.summarize_pages)
-        graph_builder.add_node("Topic extraction", self.topic_analysis)
-        graph_builder.add_node("Topic clustering", self.topic_clusters)
-        graph_builder.add_node("Rerank", self.rate_articles)
-        graph_builder.add_node(
+        self.graph_builder = StateGraph(AgentState)
+        self.graph_builder.add_node("Initialize", self.initialize_config)
+        self.graph_builder.add_node("Download sources", self.download_sources)
+        self.graph_builder.add_node("Extract URLs", self.extract_web_urls)
+        self.graph_builder.add_node("Initial rank / filter", self.filter_urls)
+        self.graph_builder.add_node("Download pages", self.download_pages)
+        self.graph_builder.add_node("Summarize pages", self.summarize_pages)
+        self.graph_builder.add_node("Topic extraction", self.topic_analysis)
+        self.graph_builder.add_node("Topic clustering", self.topic_clusters)
+        self.graph_builder.add_node("Rerank", self.rate_articles)
+        self.graph_builder.add_node(
             "Propose newsletter topics", self.propose_topics)
-        graph_builder.add_node("Compose summary", self.compose_summary)
-        graph_builder.add_node("Criticize summary", self.criticize_summary)
-        graph_builder.add_node("Polish summary", self.rewrite_summary)
-        graph_builder.add_node("Send email", self.send_mail)
+        self.graph_builder.add_node("Compose summary", self.compose_summary)
+        self.graph_builder.add_node("Criticize summary", self.criticize_summary)
+        self.graph_builder.add_node("Polish summary", self.rewrite_summary)
+        self.graph_builder.add_node("Send email", self.send_mail)
 
-        graph_builder.add_edge(START, "Initialize")
-        graph_builder.add_edge("Initialize", "Download sources")
-        graph_builder.add_edge("Download sources", "Extract URLs")
-        graph_builder.add_edge("Extract URLs", "Initial rank / filter")
-        graph_builder.add_edge("Initial rank / filter", "Download pages")
-        graph_builder.add_edge("Download pages", "Summarize pages")
-        graph_builder.add_edge("Summarize pages", "Rerank")
-        graph_builder.add_edge("Rerank", "Topic extraction")
-        graph_builder.add_edge("Topic extraction", "Topic clustering")
-        graph_builder.add_edge("Topic clustering", "Propose newsletter topics")
-        graph_builder.add_edge("Propose newsletter topics", "Compose summary")
-        graph_builder.add_edge("Compose summary", "Criticize summary")
-        graph_builder.add_conditional_edges("Criticize summary",
+        self.graph_builder.add_edge(START, "Initialize")
+        self.graph_builder.add_edge("Initialize", "Download sources")
+        self.graph_builder.add_edge("Download sources", "Extract URLs")
+        self.graph_builder.add_edge("Extract URLs", "Initial rank / filter")
+        self.graph_builder.add_edge("Initial rank / filter", "Download pages")
+        self.graph_builder.add_edge("Download pages", "Summarize pages")
+        self.graph_builder.add_edge("Summarize pages", "Rerank")
+        self.graph_builder.add_edge("Rerank", "Topic extraction")
+        self.graph_builder.add_edge("Topic extraction", "Topic clustering")
+        self.graph_builder.add_edge("Topic clustering", "Propose newsletter topics")
+        self.graph_builder.add_edge("Propose newsletter topics", "Compose summary")
+        self.graph_builder.add_edge("Compose summary", "Criticize summary")
+        self.graph_builder.add_conditional_edges("Criticize summary",
                                             self.is_revision_complete,
                                             {"incomplete": "Polish summary",
                                              "complete": "Send email",
                                              })
-        graph_builder.add_edge("Polish summary", "Criticize summary")
-        graph_builder.add_edge("Send email", END)
+        self.graph_builder.add_edge("Polish summary", "Criticize summary")
+        self.graph_builder.add_edge("Send email", END)
 
         # human in the loop should check web pages downloaded ok, and edit proposed categories
         # Disable SQLite same-thread check so this connection can be reused by LangGraph nodes that may execute in
@@ -127,9 +127,8 @@ class Agent:
         self.conn = sqlite3.connect(
             'lg_checkpointer.db', check_same_thread=False)
         self.checkpointer = SqliteSaver(conn=self.conn)
-        graph = graph_builder.compile(checkpointer=self.checkpointer,)
+        self.graph = self.graph_builder.compile(checkpointer=self.checkpointer,)
 #                                      interrupt_before=["filter_urls", "compose_summary",])
-        self.graph = graph
 
     def initialize_config(self, state: AgentState) -> AgentState:
         """initialize agent, loading sources and setting up initial state"""
@@ -182,13 +181,13 @@ class Agent:
 
     def topic_analysis(self, state: AgentState, model_str: str = "") -> AgentState:
         """extract and assign topics for each headline"""
-        model = get_model(model_str) if model_str else self.model_low
+        model = get_model(model_str) if model_str else self.model_medium
         self.state = fn_topic_analysis(state, model)
         return self.state
 
     def topic_clusters(self, state: AgentState, model_str: str = "") -> AgentState:
         """identify clusters of similar stories"""
-        model = get_model(model_str) if model_str else self.model_low
+        model = get_model(model_str) if model_str else self.model_medium
         self.state = fn_topic_clusters(state, model)
         return self.state
 

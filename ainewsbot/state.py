@@ -836,12 +836,9 @@ def fn_filter_urls(state: AgentState, model_low: Any) -> AgentState:
     return state
 
 
-def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
+def fn_topic_analysis(state: AgentState, model_medium: any) -> AgentState:
     """
     Extracts and selects topics for each headline in the state['AIdf'] dataframe, scrubs them, and stores them back in the dataframe.
-
-    TODO: uses a complex LLM extraction prompt. An alternative is something like
-    Research topic extraction models and APIs
 
     Args:
         state (AgentState): The current state of the agent.
@@ -860,14 +857,14 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
     pages = paginate_df(tmpdf[["id", "summary"]], maxpagelen=20)
 
     # apply topic extraction prompt to AI headlines
-    log(f"start free-form topic extraction using {str(type(model_low))}")
+    log(f"start free-form topic extraction using {str(type(model_medium))}")
     # pdb.set_trace()
     topic_results = asyncio.run(process_dataframes(
         dataframes=pages,
         system_prompt=TOPIC_SYSTEM_PROMPT,
         user_prompt=TOPIC_USER_PROMPT,
         output_class=TopicSpecList,
-        model=model_low,
+        model=model_medium,
         item_list_field="items",
         item_id_field="id"
     ))
@@ -895,9 +892,9 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
                       [c.lower() for c in filtered_topics])
 
     # pdb.set_trace()
-    log(f"Starting assigned topic extraction using {str(type(model_low))}")
+    log(f"Starting assigned topic extraction using {str(type(model_medium))}")
     assigned_topics = asyncio.run(
-        get_all_canonical_topic_results(pages, lcategories, model_low))
+        get_all_canonical_topic_results(pages, lcategories, model_medium))
     # assigned_topics = sget_all_canonical_topic_results(
     #     pages, lcategories, model_low)
     ctr_dict = defaultdict(list)
@@ -940,7 +937,7 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
     )
 
     aidf = asyncio.run(filter_df_rows(aidf,
-                                      model_low,
+                                      model_medium,
                                       TOPIC_FILTER_SYSTEM_PROMPT, TOPIC_FILTER_USER_PROMPT,
                                       "topic_list",
                                       "filter_input",
@@ -980,7 +977,7 @@ def fn_topic_analysis(state: AgentState, model_low: any) -> AgentState:
     return state
 
 
-def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
+def fn_topic_clusters(state: AgentState, model_medium: any) -> AgentState:
     """
     Fetches embeddings for the headlines, creates clusters of similar articles using DBSCAN, and sorts
     using the clusters and a traveling salesman shortest traversal in embedding space.
@@ -1072,7 +1069,7 @@ def fn_topic_clusters(state: AgentState, model_low: any) -> AgentState:
                     TOPIC_WRITER_SYSTEM_PROMPT,
                     TOPIC_WRITER_USER_PROMPT,
                     TopicHeadline,
-                    model=model_low,
+                    model=model_medium,
                 ))
                 cluster_topic = response.topic_title
                 state["cluster_topics"].append(cluster_topic)
@@ -1225,6 +1222,8 @@ def fn_download_pages(state: AgentState, model_low) -> AgentState:
             log(f"Encoding error processing {html_path}: {e}")
         except OSError as e:
             log(f"OS error processing {html_path}: {e}")
+        except Exception as e:
+            log(f"Other error processing {html_path}: {e}")
 
     # rename url column to final_url
     pages_df = pages_df.rename(columns={'url': 'final_url'})
@@ -1520,6 +1519,9 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
         'importance': 0,
         'low_quality': 0,
     })
+    # kludge to drop rows causing refusal
+    # aidf = aidf.loc[~(aidf["title"].str.find("bio")>0)]
+
     log(f"Calculating article ratings for {len(aidf)} articles")
     # Ensure 'title' and 'summary' are always strings
     aidf['title'] = aidf['title'].fillna("")
@@ -1533,6 +1535,7 @@ def fn_rate_articles(state: AgentState, model_medium) -> AgentState:
     # add points for recency
     yesterday = (datetime.now(timezone.utc)
                  - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    aidf['last_updated'] = aidf['last_updated'].apply(lambda s: s if isinstance(s, str) and s[:4] == str(datetime.now().year) else None)
     aidf['last_updated'] = aidf['last_updated'].fillna(yesterday)
     aidf["age"] = (datetime.now(timezone.utc) -
                    pd.to_datetime(aidf['last_updated']))
@@ -1826,11 +1829,12 @@ def fn_propose_topics(state: AgentState, model_high: any) -> AgentState:
         TOP_CATEGORIES_USER_PROMPT,
         TopicCategoryList,
         model=model_high,
+        verbose=False
     ))
     state["cluster_topics"].extend(response)
     state["topics_str"] = '\n'.join(state['cluster_topics'])
     log(
-        f"Added cluster topics using {str(type(model_high))}: \n{state['topics_str']}"
+        f"Added cluster topics: \n{state['topics_str']}"
     )
 
     # deduplicate and edit topics
@@ -1863,6 +1867,7 @@ def fn_propose_topics(state: AgentState, model_high: any) -> AgentState:
     return state
 
 async def do_dedupe_async(cluster_tasks):
+    """not currently used, getting a rating not in results error"""
     deduped_results = await asyncio.gather(*[
         filter_df_rows(tmpdf,
                         model_medium,
@@ -1914,40 +1919,45 @@ def fn_compose_summary(state: AgentState, model_high: any) -> AgentState:
     cluster_df.columns = ["cluster_name", "count"]
     log(cluster_df.to_dict(orient='records'))
 
-    # TODO: possibly could just use semantic distance to dedupe instead of a prompt.
+    deduped_dfs = []
+    # TODO: run async
+    # TODO: possibly could just use semantic distance to dedupe.
     # but need to test a lot for the right threshold
     # if you have very similar story but different facts, like 1 is google vs microsoft
     # then you want to keep both, how different will cosine similarity be?
-    # Prepare list of dataframes for parallel processing
-    cluster_tasks = []
     for cluster_name in cluster_df["cluster_name"]:
         tmpdf = aidf.loc[aidf["cluster_name"] == cluster_name].sort_values(
             "rating", ascending=False).copy()
         if len(tmpdf) > 1:  # at least 2 to dedupe
-            log(f"Preparing dedup for cluster: {cluster_name}")
-            cluster_tasks.append(tmpdf.copy())
+            log(f"Deduping cluster: {cluster_name}")
+            # apply filter_df to tmpdf using DEDUPLICATE_SYSTEM_PROMPT and DEDUPLICATE_USER_PROMPT
+            # need a class to output
+            deduped_dfs.append(
+                filter_df(tmpdf,
+                          model_medium,
+                          DEDUPLICATE_SYSTEM_PROMPT,
+                          DEDUPLICATE_USER_PROMPT,
+                          "dupe_id",
+                          "prompt_input",
+                          "topic"))
+    # concatenate deduped_dfs into a single df
+    deduped_df = pd.concat(deduped_dfs)
+    # merge dupe_id into aidf
+    try:
+        aidf = aidf.drop("dupe_id", axis=1)
+    except:
+        pass
+    aidf = pd.merge(aidf, deduped_df[["id", "dupe_id"]], on="id", how="left")
+    # count number of rows in aidf where dupe_id is >0 and group by dupe_id
+    dupe_counts = aidf.loc[aidf['dupe_id'] > 0].groupby('dupe_id').size()
+    log(dupe_counts)
+    # for each dupe_id in dupe_counts, add the count to the rating of that id
+    for dupe_id in dupe_counts.index:
+        aidf.loc[aidf['id'] == dupe_id, 'rating'] += dupe_counts[dupe_id]
 
-    # Process all clusters in parallel
-    if cluster_tasks:
-        deduped_dfs = asyncio.run(do_dedupe_async(cluster_tasks))
-        # concatenate deduped_dfs into a single df
-        deduped_df = pd.concat(deduped_dfs)
-        # merge dupe_id into aidf
-        try:
-            aidf = aidf.drop("dupe_id", axis=1)
-        except:
-            pass
-        aidf = pd.merge(aidf, deduped_df[["id", "dupe_id"]], on="id", how="left")
-        # count number of rows in aidf where dupe_id is >0 and group by dupe_id
-        dupe_counts = aidf.loc[aidf['dupe_id'] > 0].groupby('dupe_id').size()
-        log(dupe_counts)
-        # for each dupe_id in dupe_counts, add the count to the rating of that id
-        for dupe_id in dupe_counts.index:
-            aidf.loc[aidf['id'] == dupe_id, 'rating'] += dupe_counts[dupe_id]
-        # drop rows where dupe_id is >= 0 (keep rows where dupe_id is -1, ie unique)
-        aidf = aidf.loc[aidf['dupe_id'] < 0]
-
-    # trim rating to < 10
+    # drop rows where dupe_id is >= 0 (keep rows where dupe_id is -1, ie unique)
+    aidf = aidf.loc[aidf['dupe_id'] < 0]
+    # trim to < 10
     aidf['rating'] = aidf['rating'].clip(lower=0, upper=10)
     log(f"After deduping: {len(aidf)} rows")
     aidf["bullet"] = aidf.apply(make_bullet, axis=1)
